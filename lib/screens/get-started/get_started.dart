@@ -1,8 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
+import 'package:mama_meow/screens/get-started/modals/permission_modal.dart';
+import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
 
-class GetStartedPage extends StatelessWidget {
+class GetStartedPage extends StatefulWidget {
   const GetStartedPage({super.key});
+
+  @override
+  State<GetStartedPage> createState() => _GetStartedPageState();
+}
+
+class _GetStartedPageState extends State<GetStartedPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _bounceAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+
+    _bounceAnimation = Tween<double>(
+      begin: 0,
+      end: -20,
+    ).chain(CurveTween(curve: Curves.easeInOut)).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,20 +62,29 @@ class GetStartedPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Cat face placeholder (replace with custom painting/image)
-                Container(
-                  width: 128,
-                  height: 128,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.pink200, AppColors.pink300],
+                AnimatedBuilder(
+                  animation: _bounceAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _bounceAnimation.value),
+                      child: child,
+                    );
+                  },
+                  child: Container(
+                    width: 128,
+                    height: 128,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.pink200, AppColors.pink300],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 8),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black26, blurRadius: 8),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text('😺', style: TextStyle(fontSize: 48)),
+                    child: const Center(
+                      child: Text('😺', style: TextStyle(fontSize: 48)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -77,7 +118,29 @@ class GetStartedPage extends StatelessWidget {
                     shadowColor: Colors.pinkAccent,
                     elevation: 8,
                   ),
-                  onPressed: () {},
+                  onPressed: () async {
+                    /*
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const TermsAndPrivacyPage(),
+                    );
+                   */
+
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const PermissionsModal(),
+                    );
+
+                    /*
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const BabyInfoModal(),
+                    );
+                     */
+                  },
                   child: const Text(
                     "Get Started 😸",
                     style: TextStyle(fontSize: 18),

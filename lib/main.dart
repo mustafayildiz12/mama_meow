@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mama_meow/screens/get_started.dart';
+import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const GetStartedPage(),
+      home: const BottomNavBarScreen(),
     );
   }
 }
