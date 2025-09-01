@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "387317917599",
+    "project_id": "mamameow-ca942",
+    "storage_bucket": "mamameow-ca942.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387317917599:android:56cfd3173742fff970ffaa",
+        "android_client_info": {
+          "package_name": "com.example.mama_meow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArmCcbja7q1NfrgwACqMVdDL-ok8ZuGF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

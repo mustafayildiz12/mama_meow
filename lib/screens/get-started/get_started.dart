@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
-import 'package:mama_meow/screens/get-started/modals/permission_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
 
 class GetStartedPage extends StatefulWidget {
@@ -119,18 +117,10 @@ class _GetStartedPageState extends State<GetStartedPage>
                     elevation: 8,
                   ),
                   onPressed: () async {
-                    /*
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => const TermsAndPrivacyPage(),
-                    );
-                   */
-
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const PermissionsModal(),
+                      builder: (_) => const TermsAndPrivacyModal(),
                     );
 
                     /*
