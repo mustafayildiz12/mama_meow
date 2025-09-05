@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/models/meow_user_model.dart';
 
 class BabyInfoModal extends StatefulWidget {
   final VoidCallback? onContinue;
@@ -37,10 +39,7 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(
-          maxHeight: 750,
-          maxWidth: 500,
-        ),
+        constraints: const BoxConstraints(maxHeight: 750, maxWidth: 500),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -103,7 +102,7 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                           ),
                         ],
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -126,14 +125,23 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                 decoration: InputDecoration(
                   hintText: "Enter your baby's name...",
                   counterText: '',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFFBCFE8), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFBCFE8),
+                      width: 2,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFF472B6), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFF472B6),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -156,14 +164,23 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
               DropdownButtonFormField<String>(
                 initialValue: selectedAge,
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFFBCFE8), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFBCFE8),
+                      width: 2,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFF472B6), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFF472B6),
+                      width: 2,
+                    ),
                   ),
                 ),
                 hint: const Text('Select age range...'),
@@ -216,7 +233,7 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: widget.onSkip ?? () => Navigator.of(context).pop(),
+                      onPressed: widget.onSkip ?? () => Navigator.pop(context),
                       child: const Text('Skip for Now'),
                     ),
                   ),
@@ -229,12 +246,20 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: widget.onContinue ?? () => Navigator.of(context).pop(),
+                      onPressed:
+                          widget.onContinue ??
+                          () {
+                            currentMeowUser = MeowUserModel(
+                              babyName: _nameController.text,
+                              ageRange: selectedAge,
+                            );
+                            Navigator.pop(context, true);
+                          },
                       child: const Text('Continue'),
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

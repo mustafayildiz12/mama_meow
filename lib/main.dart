@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:mama_meow/constants/app_pages.dart';
+import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/service/app_init_service.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  await AppInitService.initApp();
+  runMyApp();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+void runMyApp() {
+  return runApp(
+    GetMaterialApp(
       title: 'Mama Meow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const BottomNavBarScreen(),
-    );
-  }
+      initialRoute: AppRoutes.initialRoute,
+      getPages: AppPages.pages,
+    ),
+  );
 }

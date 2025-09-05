@@ -1,5 +1,9 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/permission_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
@@ -119,27 +123,32 @@ class _GetStartedPageState extends State<GetStartedPage>
                     elevation: 8,
                   ),
                   onPressed: () async {
-                    /*
-                    showDialog(
+                    bool isTermsAccepted = await showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => const TermsAndPrivacyPage(),
-                    );
-                   */
-
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const PermissionsModal(),
+                      builder: (_) => const TermsAndPrivacyModal(),
                     );
 
-                    /*
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const BabyInfoModal(),
-                    );
-                     */
+                    if (isTermsAccepted) {
+                      bool isPermissionsGranted = await showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => const PermissionsModal(),
+                      );
+
+                      if (isPermissionsGranted) {
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const BabyInfoModal(),
+                        ).then((_) async {
+                          await Navigator.pushNamed(
+                            context,
+                            AppRoutes.loginPage,
+                          );
+                        });
+                      }
+                    }
                   },
                   child: const Text(
                     "Get Started 😸",

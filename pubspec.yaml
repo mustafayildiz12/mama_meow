@@ -36,6 +36,22 @@ dependencies:
   cupertino_icons: ^1.0.8
   lucide_icons: ^0.257.0
 
+  get: ^4.6.6
+  get_storage: ^2.1.1
+
+  crypto: ^3.0.6
+  intl: ^0.20.2
+
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.2
+  firebase_database: ^12.0.0
+  
+
+
+  google_sign_in: ^6.3.0
+  sign_in_with_apple: ^7.0.1
+  googleapis_auth: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
