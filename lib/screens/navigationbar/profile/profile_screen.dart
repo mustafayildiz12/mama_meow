@@ -1,5 +1,6 @@
 // ProfilePage UI generated from provided HTML
 import 'package:flutter/material.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -21,7 +22,7 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 12),
-                _buildMiaHead(),
+                _buildMiaHead(context),
                 const SizedBox(height: 8),
                 const Text(
                   "Profile",
@@ -48,18 +49,23 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMiaHead() {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
+  Widget _buildMiaHead(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        authenticationService.logoutFromFirebase(context);
+      },
+      child: Container(
+        width: 96,
+        height: 96,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
         ),
-        shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+        child: const Center(child: Text("😺", style: TextStyle(fontSize: 36))),
       ),
-      child: const Center(child: Text("😺", style: TextStyle(fontSize: 36))),
     );
   }
 

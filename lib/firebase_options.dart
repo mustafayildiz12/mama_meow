@@ -52,24 +52,28 @@ class DefaultFirebaseOptions {
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
     authDomain: 'mamameow-ca942.firebaseapp.com',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
     measurementId: 'G-8C6Z88T112',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyArmCcbja7q1NfrgwACqMVdDL-ok8ZuGF0',
-    appId: '1:387317917599:android:56cfd3173742fff970ffaa',
+    appId: '1:387317917599:android:5872ffcacb69379e70ffaa',
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDr007SSTju3lMKIlc82tj6rCDYNsT8eRo',
-    appId: '1:387317917599:ios:27bce3e338d9c08a70ffaa',
+    appId: '1:387317917599:ios:32e6ffe1df2600aa70ffaa',
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
-    iosBundleId: 'com.example.mamaMeow',
+    iosBundleId: 'com.yildiz.mamaMeow',
   );
+
 }

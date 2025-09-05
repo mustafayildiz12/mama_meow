@@ -177,7 +177,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.pop(context),
                         child: const Text('Cancel'),
                       ),
                     ),
@@ -186,7 +186,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                       child: ElevatedButton(
                         onPressed: (agreedToTerms && agreedToPrivacy)
                             ? () {
-                                // Proceed to app
+                                Navigator.pop(context, true);
                               }
                             : null,
                         style: ElevatedButton.styleFrom(
