@@ -82,7 +82,6 @@ Keep suggestions short, practical, and directly related to the original question
       'https://api.openai.com/v1/audio/transcriptions';
   static const String _chatModel =
       'gpt-4.1-mini'; // İstersen güncelleyebilirsin
-  static const String _whisperModel = 'whisper-1';
 
   final Duration _timeout = const Duration(seconds: 60);
 
@@ -110,13 +109,6 @@ Keep suggestions short, practical, and directly related to the original question
     }
   }
 
-  // ----- Yardımcı: Görseli data URL'e çevir -----
-  String? _toDataImageUrl(Uint8List bytes, String mimeType) {
-    // Örn: mimeType 'image/png', 'image/jpeg'
-    final b64 = base64Encode(bytes);
-    return 'data:$mimeType;base64,$b64';
-    // Not: OpenAI "image_url" alanında data URL kabul eder.
-  }
 
   // =======================
   // 1) askMia
@@ -259,44 +251,76 @@ Keep suggestions short, practical, and directly related to the original question
   /// filename ve mimeType isteğe göre değiştirilebilir.
   Future<String> transcribeAudio(
     Uint8List audioBytes, {
+
+    /// Dosya adı ve MIME, mümkünse gerçek içerikle uyumlu olsun:
+    /// Örn: "recording.m4a" + "audio/mp4"  (m4a genelde AAC içerir)
+    ///      "clip.webm"     + "audio/webm"
+    ///      "voice.mp3"     + "audio/mpeg"
     String filename = 'audio.webm',
     String mimeType = 'audio/webm',
+
+    /// Modeller: "gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"
+    String model = 'gpt-4o-mini-transcribe',
+
+    /// İsteğe bağlılar
+    String? language, // "tr", "en", "de" vb. (Whisper ile uyumlu)
+    String? prompt, // Modeli yönlendirmek için ipucu
+    double? temperature, // 0.0 - 1.0, varsayılan genelde 0
+    Duration timeout = const Duration(seconds: 60),
   }) async {
+    final uri = Uri.parse(_transcribeUrl);
+
     try {
-      final uri = Uri.parse(_transcribeUrl);
       final req = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $apiKey'
-        ..fields['model'] = _whisperModel
-        ..files.add(
-          http.MultipartFile.fromBytes(
-            'file',
-            audioBytes,
-            filename: filename,
-            contentType: _toMediaType(mimeType),
-          ),
-        );
+        ..fields['model'] = model;
 
-      final streamed = await req.send().timeout(_timeout);
+      // Opsiyonel parametreler (dökümantasyona uygun isimlerle)
+      if (prompt != null && prompt.isNotEmpty) {
+        req.fields['prompt'] = prompt;
+      }
+      if (language != null && language.isNotEmpty) {
+        req.fields['language'] = language; // örn: "tr"
+      }
+      if (temperature != null) {
+        req.fields['temperature'] = temperature.toString();
+      }
+
+      // Daha detaylı çıktı (segmentler vs.) istersen:
+      // req.fields['response_format'] = 'verbose_json';
+
+      // NOT: filename & mimeType gerçek formata yakın olsun
+      req.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          audioBytes,
+          filename: filename,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+      final streamed = await req.send().timeout(timeout);
       final resp = await http.Response.fromStream(streamed);
 
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        // response_format=verbose_json gönderdiysen 'text' + 'segments' olabilir
         return (data['text'] as String?) ?? '';
       } else {
-        return '';
+        // Hata mesajını görsel olarak döndür (debug için)
+        try {
+          final err = jsonDecode(resp.body) as Map<String, dynamic>;
+          final msg = (err['error'] is Map && err['error']['message'] is String)
+              ? err['error']['message'] as String
+              : resp.body;
+          return 'Transcribe error (${resp.statusCode}): $msg';
+        } catch (_) {
+          return 'Transcribe error (${resp.statusCode})';
+        }
       }
-    } catch (_) {
-      return '';
+    } catch (e) {
+      return 'Transcribe exception: $e';
     }
-  }
-
-  // ---- Yardımcı: ContentType dönüştürücü ----
-  static MediaType _toMediaType(String mime) {
-    final parts = mime.split('/');
-    if (parts.length == 2) {
-      return MediaType(parts[0], parts[1]);
-    }
-    return MediaType('application', 'octet-stream');
   }
 
   /// Bayttan basit MIME tespiti

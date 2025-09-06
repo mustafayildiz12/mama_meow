@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
-
+import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/service/gpt_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 class MamaMeowHomePage extends StatefulWidget {
   const MamaMeowHomePage({super.key});
@@ -42,8 +45,20 @@ class _AskMeowViewState extends State<AskMeowView> {
   String? _answer;
   bool _isLoading = false;
 
+  final AudioRecorder _rec = AudioRecorder();
+
+  bool _isRecording = false;
+  String? currentPath;
+  Duration _elapsed = Duration.zero;
+  Timer? _timer;
+  StreamSubscription<Amplitude>? _ampSub;
+  double _amp = 0.0; // -160..0 dB civarı gelir, biz basit normalize edeceğiz
+
   @override
   void dispose() {
+    _timer?.cancel();
+    _ampSub?.cancel();
+    _rec.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -192,38 +207,77 @@ class _AskMeowViewState extends State<AskMeowView> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.teal,
-                              ),
-                              onPressed: () async {
-                                XFile? image = await pickImage();
+                        IconButton(
+                          icon: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.teal,
+                          ),
+                          onPressed: () async {
+                            XFile? image = await pickImage();
 
-                                Uint8List? imageByte = await image
-                                    ?.readAsBytes();
-                                String? mimeTypeImage = image?.mimeType;
+                            Uint8List? imageByte = await image?.readAsBytes();
+                            String? mimeTypeImage = image?.mimeType;
 
-                                setState(() {
-                                  imageBytes = imageByte;
-                                  mimeType = mimeTypeImage;
-                                });
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.mic,
-                                color: Colors.deepPurple,
-                              ),
-                              onPressed: () {
-                                // ileride: ses kaydı + whisper
-                              },
-                            ),
-                          ],
+                            setState(() {
+                              imageBytes = imageByte;
+                              mimeType = mimeTypeImage;
+                            });
+                          },
                         ),
-                        Spacer(),
+                        IconButton.filledTonal(
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(
+                              _isRecording
+                                  ? Colors.red.shade400
+                                  : Colors.deepPurple.shade100,
+                            ),
+                          ),
+                          icon: Icon(
+                            _isRecording ? Icons.stop : Icons.mic,
+                            color: _isRecording
+                                ? Colors.white
+                                : Colors.deepPurple,
+                          ),
+                          onPressed: onMicPressed,
+                        ),
+
+                        // Kayıt göstergesi: süre + seviye çubuğu + "REC" noktası
+                        _isRecording
+                            ? Expanded(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Row(
+                                    key: const ValueKey('rec'),
+                                    children: [
+                                      // Kırmızı yanıp sönen nokta
+                                      _BlinkingDot(),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatDuration(_elapsed),
+                                        style: const TextStyle(
+                                          fontFeatures: [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          child: LinearProgressIndicator(
+                                            value: _amp, // 0..1
+                                            minHeight: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : Spacer(),
                         if (imageBytes != null)
                           Padding(
                             padding: const EdgeInsets.only(right: 8.0),
@@ -260,20 +314,21 @@ class _AskMeowViewState extends State<AskMeowView> {
                               ],
                             ),
                           ),
-                        ElevatedButton.icon(
-                          onPressed: _isLoading ? null : () => _ask(null),
-                          icon: const Icon(Icons.send),
-                          label: const Text("Ask"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF472B6),
-                            disabledBackgroundColor: const Color(
-                              0xFFF472B6,
-                            ).withOpacity(0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                        if (!_isRecording)
+                          ElevatedButton.icon(
+                            onPressed: _isLoading ? null : () => _ask(null),
+                            icon: const Icon(Icons.send),
+                            label: const Text("Ask"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF472B6),
+                              disabledBackgroundColor: const Color(
+                                0xFFF472B6,
+                              ).withValues(alpha: 0.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -291,6 +346,13 @@ class _AskMeowViewState extends State<AskMeowView> {
         ),
       ),
     );
+  }
+
+  String _formatDuration(Duration d) {
+    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final hh = d.inHours;
+    return hh > 0 ? '$hh:$mm:$ss' : '$mm:$ss';
   }
 
   Widget _quickQuestionTile(String emoji, String question, List<Color> colors) {
@@ -432,5 +494,164 @@ class _AskMeowViewState extends State<AskMeowView> {
     }
 
     return image;
+  }
+
+  Future<void> recordAndTranscribe() async {
+    final record = AudioRecorder();
+
+    // İzin
+    if (!await record.hasPermission()) {
+      // izin diyaloğunu tetikleyebilirsin
+      return;
+    }
+
+    // ... kullanıcı kayıt ediyor, sonra:
+    final path = await record.stop(); // kayıt biter ve dosya yolu döner
+    if (path == null) return;
+
+    final bytes = await File(path).readAsBytes();
+
+    // Kayıt başlat (AAC ile m4a kapsayıcı, yaygın ve iyi kalite)
+    await record.start(
+      RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
+      path: path,
+    );
+
+    // AAC/m4a → `audio/mp4` kullan
+    final result = await _gpt.transcribeAudio(
+      bytes,
+      filename: 'recording.m4a',
+      mimeType: 'audio/mp4',
+    );
+
+    setState(() => _answer = result);
+  }
+
+  Future<void> _startRecording() async {
+    // İzin kontrolü
+    final hasPerm = await _rec.hasPermission();
+    if (!hasPerm) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mikrofon izni verilmedi.')),
+        );
+      }
+      return;
+    }
+
+    // Kayıt dosya yolu (m4a kapsayıcı, AAC)
+    final dir = await getTemporaryDirectory();
+    final fileName = 'rec_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final path = p.join(dir.path, fileName);
+
+    // Kayıt başlat
+    await _rec.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
+      path: path,
+    );
+
+    // Amplitude stream (isteğe bağlı görsel geri bildirim)
+    _ampSub?.cancel();
+    _ampSub = _rec.onAmplitudeChanged(const Duration(milliseconds: 120)).listen((
+      a,
+    ) {
+      // a.current genelde -45..-5 dB gibi değerler; 0'a yakın daha yüksek seviye
+      final normalized = (a.current + 60) / 60; // -60..0 dB -> 0..1 arası
+      setState(() => _amp = normalized.clamp(0, 1));
+    });
+
+    // Süre sayacı
+    _timer?.cancel();
+    _elapsed = Duration.zero;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => _elapsed += const Duration(seconds: 1));
+    });
+
+    setState(() {
+      _isRecording = true;
+      currentPath = path;
+    });
+  }
+
+  Future<void> _stopAndTranscribe() async {
+    final path = await _rec.stop(); // kaydı durdurur ve dosya yolunu döndürür
+    _timer?.cancel();
+    _ampSub?.cancel();
+
+    setState(() {
+      _isRecording = false;
+      _amp = 0;
+    });
+
+    if (path == null) return;
+
+    // Dosyayı oku
+    final bytes = await File(path).readAsBytes();
+
+    // m4a/AAC için doğru MIME:
+    const mime = 'audio/mp4';
+
+    // Transcribe
+    final text = await _gpt.transcribeAudio(
+      bytes,
+      filename: p.basename(path),
+      mimeType: mime,
+    );
+
+    _controller.text = text;
+
+    await _ask(text);
+  }
+
+  Future<void> onMicPressed() async {
+    if (_isRecording) {
+      await _stopAndTranscribe();
+    } else {
+      await _startRecording();
+    }
+  }
+}
+
+class _BlinkingDot extends StatefulWidget {
+  const _BlinkingDot();
+
+  @override
+  State<_BlinkingDot> createState() => __BlinkingDotState();
+}
+
+class __BlinkingDotState extends State<_BlinkingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _c.drive(CurveTween(curve: Curves.easeInOut)),
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: const BoxDecoration(
+          color: Colors.red,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
   }
 }
