@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
-
+import 'package:image/image.dart' as img;
 import 'package:mama_meow/constants/app_constants.dart';
 
 class GptService {
@@ -80,7 +80,8 @@ Keep suggestions short, practical, and directly related to the original question
   static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
   static const String _transcribeUrl =
       'https://api.openai.com/v1/audio/transcriptions';
-  static const String _chatModel = 'gpt-4o'; // İstersen güncelleyebilirsin
+  static const String _chatModel =
+      'gpt-4.1-mini'; // İstersen güncelleyebilirsin
   static const String _whisperModel = 'whisper-1';
 
   final Duration _timeout = const Duration(seconds: 60);
@@ -132,20 +133,27 @@ Keep suggestions short, practical, and directly related to the original question
     try {
       final system = '$_systemPrompt${_buildPersonalization()}';
 
-      // Mesaj gövdesini hazırla (metin veya multimodal)
-      dynamic userContent;
+      // Görseli hazırlama: desteklenmiyorsa PNG'e çevir
+      Uint8List? sendBytes;
+      String? sendMime;
       if (imageBytes != null) {
-        final dataUrl = _toDataImageUrl(imageBytes, imageMimeType);
-        userContent = [
-          {"type": "text", "text": question},
+        final prepared = _ensureSupportedImage(imageBytes);
+        sendBytes = prepared['bytes'] as Uint8List;
+        sendMime = (prepared['mime'] as String).toLowerCase();
+        if (sendMime == 'image/jpg') sendMime = 'image/jpeg'; // güvenlik
+      }
+
+      // Chat Completions şemasına uygun messages
+      final List<Map<String, dynamic>> userContent = [
+        {"type": "text", "text": question},
+        if (sendBytes != null)
           {
             "type": "image_url",
-            "image_url": {"url": dataUrl},
+            "image_url": {
+              "url": "data:$sendMime;base64,${base64Encode(sendBytes)}",
+            },
           },
-        ];
-      } else {
-        userContent = question;
-      }
+      ];
 
       final body = {
         "model": _chatModel,
@@ -289,5 +297,43 @@ Keep suggestions short, practical, and directly related to the original question
       return MediaType(parts[0], parts[1]);
     }
     return MediaType('application', 'octet-stream');
+  }
+
+  /// Bayttan basit MIME tespiti
+  String _detectMime(Uint8List bytes) {
+    if (bytes.length > 4 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47)
+      return 'image/png';
+    if (bytes.length > 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
+      return 'image/jpeg';
+    if (bytes.length > 4 &&
+        bytes[0] == 0x47 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x38)
+      return 'image/gif';
+    if (bytes.length > 12 &&
+        String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
+        String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP')
+      return 'image/webp';
+    if (bytes.length > 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
+      return 'image/bmp'; // BMP (desteklenmiyor)
+    throw Exception('Unsupported image format');
+  }
+
+  /// Desteklenmeyen formatları (BMP vb.) PNG'e çevirir
+  Map<String, dynamic> _ensureSupportedImage(Uint8List bytes) {
+    final mime = _detectMime(bytes);
+    const allowed = {'image/png', 'image/jpeg', 'image/gif', 'image/webp'};
+    if (allowed.contains(mime)) {
+      return {'bytes': bytes, 'mime': mime};
+    }
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) throw Exception('Failed to decode image bytes');
+    final pngBytes = Uint8List.fromList(img.encodePng(decoded));
+    return {'bytes': pngBytes, 'mime': 'image/png'};
   }
 }
