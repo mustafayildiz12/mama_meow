@@ -5,6 +5,7 @@ import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/app_init_service.dart';
 
 Future<void> main() async {
+ 
   await AppInitService.initApp();
   runMyApp();
 }

@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/permission_modal.dart';

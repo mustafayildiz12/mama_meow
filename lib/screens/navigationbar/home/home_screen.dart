@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:mama_meow/service/gpt_service.dart';
 
 class MamaMeowHomePage extends StatefulWidget {
   const MamaMeowHomePage({super.key});
@@ -10,15 +13,153 @@ class MamaMeowHomePage extends StatefulWidget {
 class _MamaMeowHomePageState extends State<MamaMeowHomePage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF1F5),
+    return const Scaffold(
+      backgroundColor: Color(0xFFFFF1F5),
       body: AskMeowView(),
     );
   }
 }
 
-class AskMeowView extends StatelessWidget {
+class AskMeowView extends StatefulWidget {
   const AskMeowView({super.key});
+
+  @override
+  State<AskMeowView> createState() => _AskMeowViewState();
+}
+
+class _AskMeowViewState extends State<AskMeowView> {
+  final _controller = TextEditingController();
+  final _gpt = GptService();
+
+  List<String> _suggestions = [];
+
+  String? _answer;
+  bool _isLoading = false;
+
+  Future<void> _ask(String? presetQuestion) async {
+    final q = (presetQuestion ?? _controller.text).trim();
+    if (q.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _answer ??= ''; // alanı göster
+    });
+
+    try {
+      final res = await _gpt.askMia(q);
+      setState(() => _answer = res);
+
+      // önerileri getir
+      final sug = await _gpt.getSuggestions(question: q, language: "English");
+      setState(() => _suggestions = sug);
+    } catch (e) {
+      setState(() => _answer = 'Bir hata oluştu: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _quickQuestionTile(String emoji, String question, List<Color> colors) {
+    return InkWell(
+      onTap: () async {
+        _controller.text = question;
+        await _ask(question);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFBCFE8)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                question,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _answerCard() {
+    if (_answer == null && !_isLoading) return const SizedBox.shrink();
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              // Cevap
+              MarkdownBody(
+                data: _answer!,
+                selectable: true,
+                styleSheet: MarkdownStyleSheet.fromTheme(
+                  Theme.of(context),
+                ).copyWith(p: const TextStyle(fontSize: 15, height: 1.4)),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Öneriler
+              if (_suggestions.isNotEmpty) ...[
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: const [
+                    Icon(Icons.lightbulb, color: Colors.amber),
+                    SizedBox(width: 8),
+                    Text(
+                      "Maybe these also help:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _suggestions
+                      .map(
+                        (s) => Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber.shade200),
+                          ),
+                          child: Text("👉 $s"),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +215,8 @@ class AskMeowView extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.favorite, color: Color(0xFFEC4899)),
                             SizedBox(width: 8),
                             Text(
@@ -89,7 +230,9 @@ class AskMeowView extends StatelessWidget {
                             Icons.shuffle,
                             color: Color(0xFFEC4899),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            // gelecekte: listeyi karıştır
+                          },
                         ),
                       ],
                     ),
@@ -140,6 +283,7 @@ class AskMeowView extends StatelessWidget {
                 child: Column(
                   children: [
                     TextField(
+                      controller: _controller,
                       maxLines: 4,
                       decoration: InputDecoration(
                         hintText: "Ask me anything about babies and moms! 😸🐾",
@@ -169,26 +313,30 @@ class AskMeowView extends StatelessWidget {
                                 Icons.camera_alt,
                                 color: Colors.teal,
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                // ileride: görsel ekleme + multimodal
+                              },
                             ),
                             IconButton(
                               icon: const Icon(
                                 Icons.mic,
                                 color: Colors.deepPurple,
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                // ileride: ses kaydı + whisper
+                              },
                             ),
                           ],
                         ),
                         ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : () => _ask(null),
                           icon: const Icon(Icons.send),
                           label: const Text("Ask"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFF472B6),
                             disabledBackgroundColor: const Color(
                               0xFFF472B6,
-                            ).withValues(alpha: 0.5),
+                            ).withOpacity(0.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -201,39 +349,14 @@ class AskMeowView extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              "No questions yet. Ask Meow something!",
-              style: TextStyle(color: Colors.grey),
-            ),
+            const SizedBox(height: 16),
+
+            // Answer area
+            _answerCard(),
+
             const SizedBox(height: 80),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _quickQuestionTile(String emoji, String question, List<Color> colors) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: colors),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFBCFE8)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              question,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
       ),
     );
   }

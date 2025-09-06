@@ -1,5 +1,6 @@
 // ProfilePage UI generated from provided HTML
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -51,8 +52,16 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildMiaHead(BuildContext context) {
     return InkWell(
-      onTap: () {
-        authenticationService.logoutFromFirebase(context);
+      onTap: () async {
+        bool isSuccess = await authenticationService.logoutFromFirebase();
+
+        if (isSuccess) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.loginPage,
+            (_) => false,
+          );
+        }
       },
       child: Container(
         width: 96,

@@ -76,7 +76,7 @@ class DatabaseService {
         .update({"status": 1})
         .then((_) async {
           customSnackBar.success("account_deleted".tr);
-          await authenticationService.logoutFromFirebase(context);
+          await authenticationService.logoutFromFirebase();
         });
   }
 }

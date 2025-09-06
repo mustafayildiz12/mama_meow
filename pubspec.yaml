@@ -39,18 +39,19 @@ dependencies:
   get: ^4.6.6
   get_storage: ^2.1.1
 
-  crypto: ^3.0.6
+  http: ^1.5.0
+  http_parser: ^4.1.2
+
   intl: ^0.20.2
+  flutter_dotenv: ^6.0.0
+  flutter_markdown: ^0.7.7+1
+  just_audio: ^0.10.5
 
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.2
   firebase_database: ^12.0.0
   
 
-
-  google_sign_in: ^6.3.0
-  sign_in_with_apple: ^7.0.1
-  googleapis_auth: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -75,8 +76,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - .env
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

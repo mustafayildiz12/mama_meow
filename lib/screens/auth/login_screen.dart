@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     );
                                   } else if (isSuccess == 2) {
                                     await authenticationService
-                                        .logoutFromFirebase(context);
+                                        .logoutFromFirebase();
                                   }
                                 }
                               },
