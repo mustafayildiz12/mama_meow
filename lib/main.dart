@@ -13,7 +13,7 @@ Future<void> main() async {
 void runMyApp() {
   return runApp(
     GetMaterialApp(
-      title: 'Mama Meow',
+      title: 'MamaMeow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
