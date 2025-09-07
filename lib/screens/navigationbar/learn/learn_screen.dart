@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
+import 'package:mama_meow/screens/navigationbar/learn/display_podcast.dart';
 import 'package:mama_meow/service/podcast_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
@@ -168,7 +167,7 @@ class _LearnPageState extends State<LearnPage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        PodcastDetailPage(podcast: p),
+                                        DisplayPodcastPage(podcast: p),
                                   ),
                                 );
                               },
@@ -257,105 +256,3 @@ class _LearnPageState extends State<LearnPage> {
 }
 
 // podcast detay sayfası
-class PodcastDetailPage extends StatefulWidget {
-  final Podcast podcast;
-  const PodcastDetailPage({super.key, required this.podcast});
-
-  @override
-  State<PodcastDetailPage> createState() => _PodcastDetailPageState();
-}
-
-class _PodcastDetailPageState extends State<PodcastDetailPage> {
-  late AudioPlayer _player;
-  bool isPlaying = false;
-  Duration position = Duration.zero;
-  Duration duration = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _player = AudioPlayer();
-    _player.setUrl(widget.podcast.audioUrl);
-    _player.durationStream.listen((d) {
-      if (d != null) setState(() => duration = d);
-    });
-    _player.positionStream.listen((p) {
-      setState(() => position = p);
-    });
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  void togglePlay() {
-    if (isPlaying) {
-      _player.pause();
-    } else {
-      _player.play();
-    }
-    setState(() => isPlaying = !isPlaying);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = widget.podcast;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(p.title),
-        centerTitle: true,
-        backgroundColor: AppColors.purple500,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(p.coverArt, height: 250, fit: BoxFit.cover),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              p.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              p.description,
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Slider(
-              min: 0,
-              max: duration.inSeconds.toDouble(),
-              value: position.inSeconds.toDouble().clamp(
-                0,
-                duration.inSeconds.toDouble(),
-              ),
-              onChanged: (val) {
-                _player.seek(Duration(seconds: val.toInt()));
-              },
-              activeColor: Colors.purple,
-            ),
-            Text(
-              "${position.inMinutes}:${(position.inSeconds % 60).toString().padLeft(2, '0')} "
-              "/ ${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}",
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            IconButton(
-              icon: Icon(
-                isPlaying ? Icons.pause_circle : Icons.play_circle,
-                size: 64,
-                color: Colors.purple,
-              ),
-              onPressed: togglePlay,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
