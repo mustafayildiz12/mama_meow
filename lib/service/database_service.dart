@@ -79,6 +79,8 @@ class DatabaseService {
           await authenticationService.logoutFromFirebase();
         });
   }
+
+
 }
 
 final DatabaseService databaseService = DatabaseService();

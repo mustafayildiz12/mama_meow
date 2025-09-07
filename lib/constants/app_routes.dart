@@ -8,4 +8,5 @@ class AppRoutes {
   static String navigationBarPage = "/navigationBar";
 
   static String forgotPasswordPage = "/forgotPassword";
+  static String uploadPodcastPage = "/uploadPodcast";
 }

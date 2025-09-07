@@ -80,8 +80,7 @@ Keep suggestions short, practical, and directly related to the original question
   static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
   static const String _transcribeUrl =
       'https://api.openai.com/v1/audio/transcriptions';
-  static const String _chatModel =
-      'gpt-4.1-mini'; // İstersen güncelleyebilirsin
+  static const String _chatModel = 'gpt-4.1-mini'; // 4.0
 
   final Duration _timeout = const Duration(seconds: 60);
 
@@ -108,7 +107,6 @@ Keep suggestions short, practical, and directly related to the original question
       return '\n\nIMPORTANT PERSONALIZATION: The user\'s baby is $ageText. Please personalize your response accordingly.';
     }
   }
-
 
   // =======================
   // 1) askMia

@@ -4,6 +4,7 @@ import 'package:mama_meow/screens/auth/login_screen.dart';
 import 'package:mama_meow/screens/auth/register_screen.dart';
 import 'package:mama_meow/screens/get-started/get_started.dart';
 import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
+import 'package:mama_meow/screens/podcast/podcast_form_page.dart';
 
 class AppPages {
   static List<GetPage<dynamic>>? pages = [
@@ -14,6 +15,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.navigationBarPage,
       page: () => const BottomNavBarScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.uploadPodcastPage,
+      page: () => const PodcastFormPage(),
     ),
   ];
 }
