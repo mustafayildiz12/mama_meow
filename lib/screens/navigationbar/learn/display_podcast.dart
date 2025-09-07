@@ -57,36 +57,38 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   @override
   Widget build(BuildContext context) {
     final p = widget.podcast;
+    double height = MediaQuery.sizeOf(context).height;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(p.title),
+        title: Text(
+          p.title,
+          style: TextStyle(fontSize: 18, color: Colors.white),
+        ),
         centerTitle: true,
-        backgroundColor: AppColors.purple500,
+        backgroundColor: AppColors.pink500,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: CachedNetworkImage(
-                imageUrl: p.coverArt,
-                height: 250,
+                imageUrl: p.icon,
+                height: height * 2 / 5,
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
                     Center(child: CircularProgressIndicator()),
                 errorWidget: (context, url, error) => Icon(Icons.error),
               ),
             ),
+            Spacer(),
             const SizedBox(height: 16),
-            Text(
-              p.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+
             Text(
               p.description,
-              style: const TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.black87, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -122,7 +124,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                             // Drag esnasında anında seek
                             _player.seek(Duration(milliseconds: v.toInt()));
                           },
-                          activeColor: Colors.purple,
+                          activeColor: Colors.pink.shade500,
                         ),
                         Text(
                           "${_fmt(pos)} / ${_fmt(total)}",
@@ -140,7 +142,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               icon: Icon(
                 isPlaying ? Icons.pause_circle : Icons.play_circle,
                 size: 64,
-                color: Colors.purple,
+                color: Colors.pink.shade500,
               ),
               onPressed: togglePlay,
             ),

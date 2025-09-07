@@ -72,13 +72,10 @@ class PodcastService {
   Future<Podcast> uploadAssetsAndReturnUpdated({
     required Podcast base,
     File? audio,
-    File? thumbnail,
-    File? coverArt,
     File? icon,
   }) async {
     String audioUrl = base.audioUrl;
-    String thumbUrl = base.thumbnail;
-    String coverUrl = base.coverArt;
+
     String iconUrl = base.icon;
 
     // Audio
@@ -88,30 +85,6 @@ class PodcastService {
       final path = 'podcasts/${base.id}/audio.$ext';
       audioUrl = await _uploadFile(
         file: audio,
-        storagePath: path,
-        contentType: ct,
-      );
-    }
-
-    // Thumbnail
-    if (thumbnail != null) {
-      final ext = _extOf(thumbnail).isEmpty ? 'png' : _extOf(thumbnail);
-      final ct = _guessContentType(ext);
-      final path = 'podcasts/${base.id}/thumbnail.$ext';
-      thumbUrl = await _uploadFile(
-        file: thumbnail,
-        storagePath: path,
-        contentType: ct,
-      );
-    }
-
-    // Cover Art
-    if (coverArt != null) {
-      final ext = _extOf(coverArt).isEmpty ? 'png' : _extOf(coverArt);
-      final ct = _guessContentType(ext);
-      final path = 'podcasts/${base.id}/coverArt.$ext';
-      coverUrl = await _uploadFile(
-        file: coverArt,
         storagePath: path,
         contentType: ct,
       );
@@ -136,8 +109,6 @@ class PodcastService {
       subtitle: base.subtitle,
       duration: base.duration,
       category: base.category,
-      thumbnail: thumbUrl,
-      coverArt: coverUrl,
       description: base.description,
       audioUrl: audioUrl,
       icon: iconUrl,
@@ -156,8 +127,6 @@ class PodcastService {
     final updated = await uploadAssetsAndReturnUpdated(
       base: base,
       audio: audio,
-      thumbnail: thumbnail,
-      coverArt: coverArt,
       icon: icon,
     );
     await addPodcastToRealtime(updated);
@@ -172,8 +141,7 @@ class PodcastService {
       subtitle: podcast.subtitle,
       duration: podcast.duration,
       category: podcast.category,
-      thumbnail: podcast.thumbnail,
-      coverArt: podcast.coverArt,
+
       description: podcast.description,
       audioUrl: audioUrl,
       icon: podcast.icon,

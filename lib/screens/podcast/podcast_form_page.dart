@@ -31,8 +31,6 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
 
   // Seçilen dosyalar
   PlatformFile? _audio;
-  PlatformFile? _thumb;
-  PlatformFile? _cover;
   PlatformFile? _icon;
 
   bool _saving = false;
@@ -153,24 +151,6 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
                       fileName: _audio?.name,
                       onPick: _pickAudio,
                       preview: const Icon(Icons.audio_file, size: 28),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Thumbnail
-                    _fileTile(
-                      title: 'Thumbnail',
-                      fileName: _thumb?.name,
-                      onPick: _pickThumb,
-                      preview: _imagePreview(_thumb),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // CoverArt
-                    _fileTile(
-                      title: 'Cover Art',
-                      fileName: _cover?.name,
-                      onPick: _pickCover,
-                      preview: _imagePreview(_cover),
                     ),
                     const SizedBox(height: 8),
 
@@ -296,20 +276,6 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
     if (f != null) setState(() => _audio = f);
   }
 
-  Future<void> _pickThumb() async {
-    final f = await _pickSingle(
-      allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
-    );
-    if (f != null) setState(() => _thumb = f);
-  }
-
-  Future<void> _pickCover() async {
-    final f = await _pickSingle(
-      allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
-    );
-    if (f != null) setState(() => _cover = f);
-  }
-
   Future<void> _pickIcon() async {
     final f = await _pickSingle(
       allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
@@ -358,20 +324,6 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
       final audioPath = 'podcasts/$id/audio.${_audio!.extension ?? 'm4a'}';
       uploads.add(_uploadPlatformFile(file: _audio!, storagePath: audioPath));
 
-      // Thumbnail (opsiyonel)
-      String? thumbUrl;
-      if (_thumb != null) {
-        final p = 'podcasts/$id/thumbnail.${_thumb!.extension ?? 'png'}';
-        uploads.add(_uploadPlatformFile(file: _thumb!, storagePath: p));
-      }
-
-      // CoverArt (opsiyonel)
-      String? coverUrl;
-      if (_cover != null) {
-        final p = 'podcasts/$id/coverArt.${_cover!.extension ?? 'png'}';
-        uploads.add(_uploadPlatformFile(file: _cover!, storagePath: p));
-      }
-
       // Icon (opsiyonel)
       String? iconUrl;
       if (_icon != null) {
@@ -386,12 +338,7 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
       final audioUrl = results[0];
 
       int idx = 1;
-      if (_thumb != null) {
-        thumbUrl = results[idx++];
-      }
-      if (_cover != null) {
-        coverUrl = results[idx++];
-      }
+
       if (_icon != null) {
         iconUrl = results[idx++];
       }
@@ -403,8 +350,6 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
         subtitle: _subtitleCtrl.text.trim(),
         duration: _durationCtrl.text.trim(),
         category: _categoryCtrl.text.trim(),
-        thumbnail: thumbUrl ?? '',
-        coverArt: coverUrl ?? '',
         description: _descriptionCtrl.text.trim(),
         audioUrl: audioUrl,
         icon: iconUrl ?? '',

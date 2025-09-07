@@ -185,9 +185,10 @@ class _LearnPageState extends State<LearnPage> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
                                       child: CachedNetworkImage(
-                                        imageUrl: p.thumbnail,
+                                        imageUrl: p.icon,
+                                        height: 120,
                                         width: 80,
-                                        height: 60,
+                                        fit: BoxFit.fitHeight,
                                         placeholder: (context, url) => Center(
                                           child: CircularProgressIndicator(),
                                         ),

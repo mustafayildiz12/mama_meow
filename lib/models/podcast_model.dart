@@ -4,8 +4,6 @@ class Podcast {
   final String subtitle;
   final String duration;
   final String category;
-  final String thumbnail;
-  final String coverArt;
   final String description;
   final String audioUrl;
   final String icon;
@@ -16,8 +14,7 @@ class Podcast {
     required this.subtitle,
     required this.duration,
     required this.category,
-    required this.thumbnail,
-    required this.coverArt,
+
     required this.description,
     required this.audioUrl,
     required this.icon,
@@ -31,8 +28,7 @@ class Podcast {
       subtitle: json['subtitle'] as String,
       duration: json['duration'] as String,
       category: json['category'] as String,
-      thumbnail: json['thumbnail'] as String,
-      coverArt: json['coverArt'] as String,
+
       description: json['description'] as String,
       audioUrl: json['audioUrl'] as String,
       icon: json['icon'] as String,
@@ -47,8 +43,6 @@ class Podcast {
       'subtitle': subtitle,
       'duration': duration,
       'category': category,
-      'thumbnail': thumbnail,
-      'coverArt': coverArt,
       'description': description,
       'audioUrl': audioUrl,
       'icon': icon,
