@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
-import 'package:mama_meow/screens/get-started/modals/permission_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
 
 class GetStartedPage extends StatefulWidget {
@@ -129,24 +128,13 @@ class _GetStartedPageState extends State<GetStartedPage>
                     );
 
                     if (isTermsAccepted) {
-                      bool isPermissionsGranted = await showDialog(
+                      await showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) => const PermissionsModal(),
-                      );
-
-                      if (isPermissionsGranted) {
-                        await showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (context) => const BabyInfoModal(),
-                        ).then((_) async {
-                          await Navigator.pushNamed(
-                            context,
-                            AppRoutes.loginPage,
-                          );
-                        });
-                      }
+                        builder: (context) => const BabyInfoModal(),
+                      ).then((_) async {
+                        await Navigator.pushNamed(context, AppRoutes.loginPage);
+                      });
                     }
                   },
                   child: const Text(
