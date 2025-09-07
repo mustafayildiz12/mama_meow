@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
@@ -51,23 +52,18 @@ class _LearnPageState extends State<LearnPage> {
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Color(0xFFF5F3FF),
-          actions: [
-            IconButton(
-              onPressed: () async {
-                await Navigator.pushNamed(
-                  context,
-                  AppRoutes.uploadPodcastPage,
-                ).then((v) async {
-                  if (v != null) {
-                    await getPageData();
-                  }
-                });
-              },
-              icon: Icon(Icons.add),
-            ),
-          ],
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await Navigator.pushNamed(
+              context,
+              AppRoutes.uploadPodcastPage,
+            ).then((v) async {
+              if (v != null) {
+                await getPageData();
+              }
+            });
+          },
+          child: Icon(Icons.add),
         ),
         body: Container(
           width: double.infinity,
@@ -188,13 +184,18 @@ class _LearnPageState extends State<LearnPage> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        p.thumbnail,
+                                      child: CachedNetworkImage(
+                                        imageUrl: p.thumbnail,
                                         width: 80,
                                         height: 60,
-                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            Icon(Icons.error),
                                       ),
                                     ),
+
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(

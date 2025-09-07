@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
@@ -47,14 +48,11 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     });
   }
 
-
-
   @override
   void dispose() {
     _player.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +70,14 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(p.coverArt, height: 250, fit: BoxFit.cover),
+              child: CachedNetworkImage(
+                imageUrl: p.coverArt,
+                height: 250,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -153,7 +158,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     return h > 0 ? "$h:$m:$s" : "$m:$s";
   }
 
-    Future<void> _initAudio() async {
+  Future<void> _initAudio() async {
     try {
       await _player.setUrl(widget.podcast.audioUrl);
       // İstersen burada duration’a erişebilirsin:
@@ -166,7 +171,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     }
   }
 
-    void togglePlay() {
+  void togglePlay() {
     if (_player.playing) {
       _player.pause();
     } else {
@@ -174,5 +179,4 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     }
     // isPlaying güncellemesini playingStream zaten yapıyor
   }
-
 }

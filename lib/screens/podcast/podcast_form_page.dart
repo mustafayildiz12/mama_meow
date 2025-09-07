@@ -37,6 +37,219 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
 
   bool _saving = false;
 
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _titleCtrl.dispose();
+    _subtitleCtrl.dispose();
+    _durationCtrl.dispose();
+    _categoryCtrl.dispose();
+    _descriptionCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = const [
+      'sleep',
+      'feeding',
+      'diaper',
+      'growth',
+      'journal',
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFFF5F3FF),
+        title: const Text('Yeni Podcast Ekle'),
+      ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF5F3FF), Color(0xFFE0F2FE)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: AbsorbPointer(
+          absorbing: _saving,
+          child: Stack(
+            children: [
+              Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    TextFormField(
+                      controller: _idCtrl,
+                      decoration: const InputDecoration(labelText: 'ID'),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'ID gerekli' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _titleCtrl,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Title gerekli'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _subtitleCtrl,
+                      decoration: const InputDecoration(labelText: 'Subtitle'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _durationCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Duration (örn: 8 min)',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Category (Dropdown gibi)
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: categories.contains(_categoryCtrl.text)
+                              ? _categoryCtrl.text
+                              : categories.first,
+                          items: categories
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _categoryCtrl.text = v!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    TextFormField(
+                      controller: _descriptionCtrl,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 8),
+
+                    // Audio
+                    _fileTile(
+                      title: 'Audio',
+                      fileName: _audio?.name,
+                      onPick: _pickAudio,
+                      preview: const Icon(Icons.audio_file, size: 28),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Thumbnail
+                    _fileTile(
+                      title: 'Thumbnail',
+                      fileName: _thumb?.name,
+                      onPick: _pickThumb,
+                      preview: _imagePreview(_thumb),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // CoverArt
+                    _fileTile(
+                      title: 'Cover Art',
+                      fileName: _cover?.name,
+                      onPick: _pickCover,
+                      preview: _imagePreview(_cover),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Icon
+                    _fileTile(
+                      title: 'Icon',
+                      fileName: _icon?.name,
+                      onPick: _pickIcon,
+                      preview: _imagePreview(_icon),
+                    ),
+
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _saving ? null : _save,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Kaydet'),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+
+              if (_saving)
+                const Center(
+                  child: Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 12),
+                          Text('Yükleniyor, lütfen bekleyin...'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fileTile({
+    required String title,
+    required String? fileName,
+    required VoidCallback onPick,
+    Widget? preview,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(fileName ?? 'Seçilmedi'),
+      trailing: ElevatedButton(onPressed: onPick, child: const Text('Seç')),
+      leading: preview == null
+          ? const Icon(Icons.attach_file)
+          : SizedBox(
+              width: 56,
+              height: 56,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: preview,
+              ),
+            ),
+    );
+  }
+
+  Widget? _imagePreview(PlatformFile? f) {
+    if (f == null) return null;
+    if (kIsWeb) {
+      return Image.memory(f.bytes!, fit: BoxFit.cover);
+    } else {
+      return Image.file(File(f.path!), fit: BoxFit.cover);
+    }
+  }
+
   // Basit içerik tipi eşlemesi
   String _guessContentType(String name) {
     final ext = name.split('.').last.toLowerCase();
@@ -213,200 +426,5 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-  }
-
-  @override
-  void dispose() {
-    _idCtrl.dispose();
-    _titleCtrl.dispose();
-    _subtitleCtrl.dispose();
-    _durationCtrl.dispose();
-    _categoryCtrl.dispose();
-    _descriptionCtrl.dispose();
-    super.dispose();
-  }
-
-  Widget _fileTile({
-    required String title,
-    required String? fileName,
-    required VoidCallback onPick,
-    Widget? preview,
-  }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(fileName ?? 'Seçilmedi'),
-      trailing: ElevatedButton(onPressed: onPick, child: const Text('Seç')),
-      leading: preview == null
-          ? const Icon(Icons.attach_file)
-          : SizedBox(
-              width: 56,
-              height: 56,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: preview,
-              ),
-            ),
-    );
-  }
-
-  Widget? _imagePreview(PlatformFile? f) {
-    if (f == null) return null;
-    if (kIsWeb) {
-      return Image.memory(f.bytes!, fit: BoxFit.cover);
-    } else {
-      return Image.file(File(f.path!), fit: BoxFit.cover);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final categories = const [
-      'sleep',
-      'feeding',
-      'diaper',
-      'growth',
-      'journal',
-    ];
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Yeni Podcast Ekle')),
-      body: AbsorbPointer(
-        absorbing: _saving,
-        child: Stack(
-          children: [
-            Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  TextFormField(
-                    controller: _idCtrl,
-                    decoration: const InputDecoration(labelText: 'ID'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'ID gerekli' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Title gerekli'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _subtitleCtrl,
-                    decoration: const InputDecoration(labelText: 'Subtitle'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _durationCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Duration (örn: 8 min)',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Category (Dropdown gibi)
-                  InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: categories.contains(_categoryCtrl.text)
-                            ? _categoryCtrl.text
-                            : categories.first,
-                        items: categories
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _categoryCtrl.text = v!),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    controller: _descriptionCtrl,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Description'),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  // Audio
-                  _fileTile(
-                    title: 'Audio',
-                    fileName: _audio?.name,
-                    onPick: _pickAudio,
-                    preview: const Icon(Icons.audio_file, size: 28),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Thumbnail
-                  _fileTile(
-                    title: 'Thumbnail',
-                    fileName: _thumb?.name,
-                    onPick: _pickThumb,
-                    preview: _imagePreview(_thumb),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // CoverArt
-                  _fileTile(
-                    title: 'Cover Art',
-                    fileName: _cover?.name,
-                    onPick: _pickCover,
-                    preview: _imagePreview(_cover),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Icon
-                  _fileTile(
-                    title: 'Icon',
-                    fileName: _icon?.name,
-                    onPick: _pickIcon,
-                    preview: _imagePreview(_icon),
-                  ),
-
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Kaydet'),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-
-            if (_saving)
-              const Center(
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 12),
-                        Text('Yükleniyor, lütfen bekleyin...'),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
