@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 
@@ -195,7 +196,7 @@ class _SleepExtendedMultiSliderBottomSheetState
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.kLightOrange,
             borderRadius: BorderRadius.only(topLeft: radius, topRight: radius),
             boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
           ),
@@ -212,7 +213,9 @@ class _SleepExtendedMultiSliderBottomSheetState
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(height: 8),
+
+                /*
+                 const SizedBox(height: 8),Ğ
                 Row(
                   children: [
                     Text(
@@ -237,6 +240,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                     ),
                   ],
                 ),
+                */
                 if (hasOverlap)
                   Row(
                     children: const [
@@ -256,9 +260,16 @@ class _SleepExtendedMultiSliderBottomSheetState
                   ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
-                  child: _InfoBanner(
-                    text: "Total: ${_fmtDuration(total)}",
-                    isWarning: false,
+                  child: Row(
+                    children: [
+                      Text(
+                        "Total: ${_fmtDuration(total)}",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -359,6 +370,8 @@ class _SleepExtendedMultiSliderBottomSheetState
                             ),
                             RangeSlider(
                               min: 0,
+                              activeColor: AppColors.kDeepOrange,
+                              inactiveColor: AppColors.kOrange,
                               max: kMaxMinutes.toDouble(),
                               divisions: kMaxMinutes ~/ kStepMinutes,
                               values: r,
@@ -649,6 +662,8 @@ class _SleepExtendedMultiSliderBottomSheetState
                     ],
                   ),
                   RangeSlider(
+                    activeColor: AppColors.kDeepOrange,
+                    inactiveColor: AppColors.kLightOrange,
                     min: 0,
                     max: kMaxMinutes.toDouble(),
                     divisions: kMaxMinutes ~/ kStepMinutes,
@@ -673,9 +688,9 @@ class _SleepExtendedMultiSliderBottomSheetState
                       child: Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          "Gece yarısını aşıyor",
+                          "After midnight",
                           style: TextStyle(
-                            color: Colors.orange.shade800,
+                            color: AppColors.kDeepOrange,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -800,13 +815,13 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.kLightOrange,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black12),
       ),
       child: Row(
         children: [
-          Icon(leading, size: 18, color: Theme.of(context).colorScheme.primary),
+          Icon(leading, size: 18, color: AppColors.kDeepOrange),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -929,9 +944,8 @@ class _ChipTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selColor = Theme.of(context).colorScheme.primary;
-    final bg = selected ? selColor.withValues(alpha: .10) : Colors.white;
-    final border = selected ? selColor : Colors.black12;
+    final bg = selected ? AppColors.kOrange : AppColors.kLightOrange;
+    final border = selected ? AppColors.kDeepOrange : Colors.black12;
     return Semantics(
       button: true,
       selected: selected,
@@ -958,7 +972,11 @@ class _ChipTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 24, color: selected ? selColor : Colors.black54),
+              Icon(
+                icon,
+                size: 24,
+                color: selected ? AppColors.kDeepOrange : Colors.black54,
+              ),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -969,7 +987,7 @@ class _ChipTile extends StatelessWidget {
                   fontSize: 11,
                   height: 1.15,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected ? selColor : Colors.black87,
+                  color: Colors.black87,
                 ),
               ),
             ],
