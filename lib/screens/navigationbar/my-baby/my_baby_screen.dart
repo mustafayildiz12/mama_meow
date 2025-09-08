@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
+import 'package:mama_meow/service/activities/sleep_service.dart';
 
 class MyBabyScreen extends StatelessWidget {
   const MyBabyScreen({super.key});
@@ -40,17 +42,35 @@ class MyBabyScreen extends StatelessWidget {
             ),
             textColor: Colors.orange.shade700,
             bgColor: Colors.orange.shade50,
+            onPlusPressed: () {},
           ),
           const SizedBox(height: 16),
-          _babyCard(
-            emoji: '😴',
-            title: 'Sleep',
-            subtitle: 'Today: 0 times',
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade200, Colors.purple.shade200],
-            ),
-            textColor: Colors.blue.shade700,
-            bgColor: Colors.blue.shade50,
+          StreamBuilder(
+            stream: sleepService.todaySleepCountStream(),
+            builder: (context, snapshot) {
+              int sleepTime = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '😴',
+                title: 'Sleep',
+                subtitle: 'Today: $sleepTime times',
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade200, Colors.purple.shade200],
+                ),
+                textColor: Colors.blue.shade700,
+                bgColor: Colors.blue.shade50,
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => SleepExtendedMultiSliderBottomSheet(
+                      initialStartEnds: [12 * 60, 15 * 60],
+                      sleepDate: DateTime.now(),
+                    ),
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(height: 16),
           _babyCard(
@@ -62,6 +82,7 @@ class MyBabyScreen extends StatelessWidget {
             ),
             textColor: Colors.green.shade700,
             bgColor: Colors.green.shade50,
+            onPlusPressed: () {},
           ),
           const SizedBox(height: 16),
           _babyCard(
@@ -73,6 +94,7 @@ class MyBabyScreen extends StatelessWidget {
             ),
             textColor: Colors.pink.shade700,
             bgColor: Colors.pink.shade50,
+            onPlusPressed: () {},
           ),
           const SizedBox(height: 16),
           _babyCard(
@@ -84,11 +106,12 @@ class MyBabyScreen extends StatelessWidget {
             ),
             textColor: Colors.purple.shade600,
             bgColor: Colors.purple.shade50,
+            onPlusPressed: () {},
           ),
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
-              gradient:  LinearGradient(
+              gradient: LinearGradient(
                 colors: [Colors.yellow.shade100, Colors.orange.shade100],
               ),
               borderRadius: BorderRadius.circular(24),
@@ -142,6 +165,7 @@ class MyBabyScreen extends StatelessWidget {
     required LinearGradient gradient,
     required Color textColor,
     required Color bgColor,
+    required void Function() onPlusPressed,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -203,7 +227,9 @@ class MyBabyScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        onPlusPressed();
+                      },
                       icon: Icon(LucideIcons.plus, color: textColor, size: 28),
                     ),
                   ),
