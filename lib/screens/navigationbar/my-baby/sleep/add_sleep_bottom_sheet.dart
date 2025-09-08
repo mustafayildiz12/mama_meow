@@ -126,9 +126,9 @@ class _SleepExtendedMultiSliderBottomSheetState
   String _fmtDuration(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
-    if (h == 0) return '${m}dk';
-    if (m == 0) return '${h}s';
-    return '${h}s ${m}dk';
+    if (h == 0) return '${m}min';
+    if (m == 0) return '${h}h';
+    return '${h}h ${m}min';
   }
 
   Duration _totalAll() {
@@ -174,14 +174,6 @@ class _SleepExtendedMultiSliderBottomSheetState
     return false;
   }
 
-  List<SleepInterval> _flattenAllSegments() {
-    final segs = <SleepInterval>[];
-    for (final r in _ranges) {
-      segs.addAll(_splitToDaySegments(r));
-    }
-    return segs;
-  }
-
   String _dateLabel(DateTime d) {
     final dd = d.day.toString().padLeft(2, '0');
     final mm = d.month.toString().padLeft(2, '0');
@@ -197,7 +189,7 @@ class _SleepExtendedMultiSliderBottomSheetState
     final hasOverlap = _hasOverlapAfterSplit();
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.86,
+      initialChildSize: 0.92,
       minChildSize: 0.5,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
@@ -207,46 +199,46 @@ class _SleepExtendedMultiSliderBottomSheetState
             borderRadius: BorderRadius.only(topLeft: radius, topRight: radius),
             boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
           ),
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(8),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                const SizedBox(height: 8),
+                Row(
                   children: [
                     Text(
-                      "Uyku Aralıkları — ${_dateLabel(widget.sleepDate)}",
+                      "Date — ${_dateLabel(widget.sleepDate)}",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const Spacer(),
-                    IconButton(
-                      tooltip: "Yeni aralık ekle",
-                      onPressed: () {
-                        setState(() {
-                          _ranges.add(RangeValues(12 * 60, 13 * 60));
-                        });
-                      },
-                      icon: const Icon(Icons.add_circle_outline),
+                    Visibility(
+                      visible: false, // TODO ilerde açabiliriz tekrardan
+                      child: IconButton(
+                        tooltip: "Add Interval",
+                        onPressed: () {
+                          setState(() {
+                            _ranges.add(RangeValues(12 * 60, 13 * 60));
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              if (hasOverlap)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
+                if (hasOverlap)
+                  Row(
                     children: const [
                       Icon(Icons.error_outline, color: Colors.red, size: 18),
                       SizedBox(width: 8),
@@ -262,22 +254,17 @@ class _SleepExtendedMultiSliderBottomSheetState
                       ),
                     ],
                   ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+                  child: _InfoBanner(
+                    text: "Total: ${_fmtDuration(total)}",
+                    isWarning: false,
+                  ),
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                child: _InfoBanner(
-                  text: "Toplam: ${_fmtDuration(total)}",
-                  isWarning: false,
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-                  itemCount: _ranges.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, i) {
-                    final r = _ranges[i];
+
+                Builder(
+                  builder: (context) {
+                    final r = _ranges.first;
                     final startLabel = _label(r.start.round());
                     final endLabel = _label(r.end.round());
                     final crossesMidnight = r.end > kDayMinutes;
@@ -302,18 +289,24 @@ class _SleepExtendedMultiSliderBottomSheetState
                             Row(
                               children: [
                                 Text(
-                                  "${i + 1}. Uyku",
+                                  "Sleep Interval",
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const Spacer(),
-                                IconButton(
-                                  tooltip: "Kaldır",
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () {
-                                    setState(() => _ranges.removeAt(i));
-                                  },
+                                Visibility(
+                                  visible: false,
+                                  maintainAnimation: true,
+                                  maintainSize: true,
+                                  maintainState: true,
+                                  child: IconButton(
+                                    tooltip: "Kaldır",
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: () {
+                                      // setState(() => _ranges.removeAt(i));
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
@@ -321,7 +314,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                               children: [
                                 Expanded(
                                   child: _InfoChip(
-                                    title: "Başlangıç",
+                                    title: "Start time",
                                     value: startLabel,
                                     leading: Icons.nightlight_round,
                                   ),
@@ -329,7 +322,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: _InfoChip(
-                                    title: "Bitiş",
+                                    title: "End Time",
                                     value: endLabel,
                                     leading: Icons.bedtime,
                                   ),
@@ -379,7 +372,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                                       0,
                                       kMaxMinutes.toDouble(),
                                     );
-                                  _ranges[i] = RangeValues(s, e);
+                                  _ranges.first = RangeValues(s, e);
                                 });
                               },
                             ),
@@ -404,106 +397,297 @@ class _SleepExtendedMultiSliderBottomSheetState
                     );
                   },
                 ),
-              ),
 
-              // Diğer alanlar (opsiyonel)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text(
-                    "Diğer Alanlar (opsiyonel)",
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  children: [
-                    const SizedBox(height: 8),
-                    _Dropdown(
-                      label: "Start of sleep",
-                      value: _startOfSleep,
-                      items: SleepOptions.startOfSleepOptions,
-                      onChanged: (v) => setState(() => _startOfSleep = v),
-                    ),
-                    const SizedBox(height: 8),
-                    _Dropdown(
-                      label: "End of sleep",
-                      value: _endOfSleep,
-                      items: SleepOptions.endOfSleepOptions,
-                      onChanged: (v) => setState(() => _endOfSleep = v),
-                    ),
-                    const SizedBox(height: 8),
-                    _Dropdown(
-                      label: "How it happened",
-                      value: _howItHappened,
-                      items: SleepOptions.howItHappenedOptions,
-                      onChanged: (v) => setState(() => _howItHappened = v),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _noteCtrl,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: "Not",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                //TODO çoklu istenirse açalım
+                //rangeList(),
+                const SizedBox(height: 16),
+
+                _ChipPickerSection(
+                  title: "Start of sleep",
+                  items: SleepOptions.startOfSleepOptions,
+                  value: _startOfSleep,
+                  onChanged: (v) => setState(() => _startOfSleep = v),
+                  iconBuilder: _iconForStartOfSleep,
                 ),
-              ),
+                const SizedBox(height: 16),
 
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("İptal"),
+                _ChipPickerSection(
+                  title: "End of sleep",
+                  items: SleepOptions.endOfSleepOptions,
+                  value: _endOfSleep,
+                  onChanged: (v) => setState(() => _endOfSleep = v),
+                  iconBuilder: _iconForEndOfSleep,
+                ),
+                const SizedBox(height: 16),
+
+                _ChipPickerSection(
+                  title: "How it happened",
+                  items: SleepOptions.howItHappenedOptions,
+                  value: _howItHappened,
+                  onChanged: (v) => setState(() => _howItHappened = v),
+                  iconBuilder: _iconForHowItHappened,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _noteCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: "Note",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(
+                                Colors.grey.shade200,
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Back"),
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: (_ranges.isEmpty || hasOverlap)
+                                ? null
+                                : () async {
+                                    final meta = SleepMeta(
+                                      startOfSleep: _startOfSleep,
+                                      endOfSleep: _endOfSleep,
+                                      howItHappened: _howItHappened,
+                                      note: _noteCtrl.text.isEmpty
+                                          ? null
+                                          : _noteCtrl.text,
+                                    );
+
+                                    // 1) SleepModel listesi oluştur
+                                    final models = buildSleepModels(
+                                      day: widget.sleepDate,
+                                      ranges: _ranges,
+                                      meta: meta,
+                                      splitWrapAcrossMidnight:
+                                          true, // wrap'ı iki modele böl
+                                    );
+
+                                    for (SleepModel sleepModel in models) {
+                                      await sleepService.addSleep(sleepModel);
+                                    }
+
+                                    Navigator.pop(context);
+                                  },
+                            child: const Text("Save"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _iconForStartOfSleep(String s) {
+    switch (s) {
+      case "upset":
+        return Icons.sentiment_very_dissatisfied;
+      case "crying":
+        return Icons.mood_bad;
+      case "content":
+        return Icons.sentiment_satisfied_alt;
+      case "under 10 min to fall asleep":
+        return Icons.timer;
+      case "10-30 min":
+        return Icons.av_timer;
+      case "more than 30 min":
+        return Icons.hourglass_bottom;
+      default:
+        return Icons.timer;
+    }
+  }
+
+  IconData _iconForEndOfSleep(String s) {
+    switch (s) {
+      case "woke up child":
+        return Icons.bedtime_off;
+      case "upset":
+        return Icons.sentiment_very_dissatisfied;
+      case "content":
+        return Icons.sentiment_satisfied_alt;
+      case "crying":
+        return Icons.mood_bad;
+      default:
+        return Icons.bedtime;
+    }
+  }
+
+  IconData _iconForHowItHappened(String s) {
+    switch (s) {
+      case "nursing":
+        return Icons.baby_changing_station; // uygun değilse Icons.monitor_heart
+      case "on own in bed":
+        return Icons.bedroom_child;
+      case "warm or health":
+        return Icons.health_and_safety;
+      case "next to caregiver":
+        return Icons.family_restroom;
+      case "co-sleep":
+        return Icons.king_bed;
+      case "bottle":
+        return Icons.local_drink;
+      case "stroller":
+        return Icons.stroller;
+      case "car":
+        return Icons.directions_car_filled;
+      case "swing":
+        return Icons.chair_alt;
+      default:
+        return Icons.bed;
+    }
+  }
+
+  Expanded rangeList() {
+    return Expanded(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+        itemCount: _ranges.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, i) {
+          final r = _ranges[i];
+          final startLabel = _label(r.start.round());
+          final endLabel = _label(r.end.round());
+          final crossesMidnight = r.end > kDayMinutes;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
+              border: Border.all(color: Colors.black12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        "${i + 1}. Sleep",
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: (_ranges.isEmpty || hasOverlap)
-                              ? null
-                              : () async {
-                                  final meta = SleepMeta(
-                                    startOfSleep: _startOfSleep,
-                                    endOfSleep: _endOfSleep,
-                                    howItHappened: _howItHappened,
-                                    note: _noteCtrl.text.isEmpty
-                                        ? null
-                                        : _noteCtrl.text,
-                                  );
-
-                                  // 1) SleepModel listesi oluştur
-                                  final models = buildSleepModels(
-                                    day: widget.sleepDate,
-                                    ranges: _ranges,
-                                    meta: meta,
-                                    splitWrapAcrossMidnight:
-                                        true, // wrap'ı iki modele böl
-                                  );
-
-                                  for (SleepModel sleepModel in models) {
-                                    await sleepService.addSleep(sleepModel);
-                                  }
-
-                                  Navigator.pop(context);
-                                },
-                          child: const Text("Kaydet"),
+                      const Spacer(),
+                      Visibility(
+                        visible: false,
+                        maintainAnimation: true,
+                        maintainSize: true,
+                        maintainState: true,
+                        child: IconButton(
+                          tooltip: "Kaldır",
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () {
+                            setState(() => _ranges.removeAt(i));
+                          },
                         ),
                       ),
                     ],
                   ),
-                ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoChip(
+                          title: "Start time",
+                          value: startLabel,
+                          leading: Icons.nightlight_round,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _InfoChip(
+                          title: "End Time",
+                          value: endLabel,
+                          leading: Icons.bedtime,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: const [
+                      Text(
+                        "00:00",
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                      Spacer(),
+                      Text(
+                        "24:00 | +1",
+                        style: TextStyle(fontSize: 11, color: Colors.black87),
+                      ),
+                      Spacer(),
+                      Text(
+                        "36:00",
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                  RangeSlider(
+                    min: 0,
+                    max: kMaxMinutes.toDouble(),
+                    divisions: kMaxMinutes ~/ kStepMinutes,
+                    values: r,
+                    labels: RangeLabels(startLabel, endLabel),
+                    onChanged: (v) {
+                      setState(() {
+                        var s = v.start;
+                        var e = v.end;
+                        if (e - s < kMinDuration)
+                          e = (s + kMinDuration).clamp(
+                            0,
+                            kMaxMinutes.toDouble(),
+                          );
+                        _ranges[i] = RangeValues(s, e);
+                      });
+                    },
+                  ),
+                  if (crossesMidnight)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          "Gece yarısını aşıyor",
+                          style: TextStyle(
+                            color: Colors.orange.shade800,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -541,7 +725,6 @@ class _SleepExtendedMultiSliderBottomSheetState
       final s = r.start.round();
       final e = r.end.round();
 
-      final startIsToday = _withTime(day, s % kDayMinutes);
       final crosses = e > kDayMinutes;
 
       if (crosses && splitWrapAcrossMidnight) {
@@ -677,35 +860,120 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
-class _Dropdown extends StatelessWidget {
-  final String label;
-  final String? value;
-  final List<String> items;
-  final ValueChanged<String?> onChanged;
+class _ChipPickerSection extends StatelessWidget {
+  final String title; // örn: "Start of sleep"
+  final List<String> items; // seçenekler
+  final String? value; // seçili değer
+  final ValueChanged<String> onChanged;
+  final IconData Function(String) iconBuilder;
 
-  const _Dropdown({
-    required this.label,
-    required this.value,
+  const _ChipPickerSection({
+    required this.title,
     required this.items,
+    required this.value,
     required this.onChanged,
+    required this.iconBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: "",
-        border: OutlineInputBorder(),
-      ).copyWith(labelText: label),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: value,
-          hint: const Text("Seçiniz"),
-          items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
-          onChanged: onChanged,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Subtitle
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        // Sağa kaydırılabilir sıra
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final it in items)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _ChipTile(
+                    label: it,
+                    selected: it == value,
+                    icon: iconBuilder(it),
+                    onTap: () => onChanged(it),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChipTile extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ChipTile({
+    required this.label,
+    required this.selected,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final selColor = Theme.of(context).colorScheme.primary;
+    final bg = selected ? selColor.withValues(alpha: .10) : Colors.white;
+    final border = selected ? selColor : Colors.black12;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          width: 96,
+          height: 96, // kare
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: border, width: selected ? 1.5 : 1),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 24, color: selected ? selColor : Colors.black54),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? selColor : Colors.black87,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
