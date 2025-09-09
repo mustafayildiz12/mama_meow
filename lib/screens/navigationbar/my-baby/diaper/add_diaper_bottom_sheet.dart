@@ -1,65 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/models/activities/solid_model.dart';
+import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
-import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/service/activities/diaper_service.dart';
 
-class AddSolidBottomSheet extends StatefulWidget {
-  const AddSolidBottomSheet();
+class AddDiaperBottomSheet extends StatefulWidget {
+  const AddDiaperBottomSheet();
 
   @override
-  State<AddSolidBottomSheet> createState() => _AddSolidBottomSheetState();
+  State<AddDiaperBottomSheet> createState() => _AddDiaperBottomSheetState();
 }
 
-class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
-  String? _selectedSolid;
-  int _amount = 1;
+class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
+  String? _selectedDiaper;
+
   TimeOfDay _time = TimeOfDay.now();
-  Reaction? _reaction;
-
-  String get _eatTimeStr {
-    final dt = DateTime(0, 1, 1, _time.hour, _time.minute);
-    return DateFormat('HH:mm').format(dt);
-  }
-
-  void _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-    );
-    if (picked != null) setState(() => _time = picked);
-  }
-
-  Future<void> _save() async {
-    if (_selectedSolid == null || _amount <= 0) return;
-
-    final model = SolidModel(
-      solidName: _selectedSolid!,
-      solidAmount: _amount.toString(),
-      createdAt: DateTime.now().toIso8601String(),
-      eatTime: _eatTimeStr,
-      reactions: _reaction,
-    );
-
-    await solidService.addSolid(model);
-
-    Navigator.pop(context, true);
-    //  Navigator.of(context).pop(model);
-  }
 
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      minChildSize: 0.5,
+      initialChildSize: 0.5,
+      minChildSize: 0.4,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
         return Container(
@@ -96,41 +58,14 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
 
                       _ChipPickerSection<String?>(
                         labelBuilder: (v) => v!,
-                        items: kDummySolids,
-                        title: "Add Solid",
-                        value: _selectedSolid,
+                        items: kDummyDiapers,
+                        title: "Add Diaper",
+                        value: _selectedDiaper,
                         onChanged: (value) =>
-                            setState(() => _selectedSolid = value),
+                            setState(() => _selectedDiaper = value),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
 
-                      // Miktar +/-
-                      Row(
-                        children: [
-                          const Text(
-                            "Amount:",
-                            style: TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: _amount > 0
-                                ? () => setState(() => _amount -= 1)
-                                : null,
-                          ),
-                          Text(
-                            "$_amount",
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () => setState(() => _amount += 1),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Saat seçimi
                       InkWell(
                         onTap: _pickTime,
                         borderRadius: BorderRadius.circular(8),
@@ -143,23 +78,12 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                             children: [
                               const Icon(Icons.access_time, size: 18),
                               const SizedBox(width: 8),
-                              Text(_eatTimeStr),
+                              Text(_diaperTimeStr),
                               const Spacer(),
                               const Icon(Icons.edit_outlined, size: 18),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Reactions chips (opsiyonel)
-                      _ChipPickerSection<Reaction>(
-                        title: "Reaction",
-                        labelBuilder: (v) => reactionToText(v!),
-                        items: items,
-                        value: _reaction,
-                        onChanged: (v) => setState(() => _reaction = v),
-                        iconBuilder: (v) => _iconForStartOfSleep(v!),
                       ),
                     ],
                   ),
@@ -185,9 +109,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: (_selectedSolid != null && _amount > 0)
-                            ? _save
-                            : null,
+                        onPressed: (_selectedDiaper != null) ? _save : null,
                         child: const Text("Save"),
                       ),
                     ),
@@ -201,39 +123,38 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     );
   }
 
-  String reactionToText(Reaction r) {
-    switch (r) {
-      case Reaction.loveIt:
-        return "love it";
-      case Reaction.meh:
-        return "meh";
-      case Reaction.hatedIt:
-        return "hated it";
-      case Reaction.allergicOrSensitivity:
-        return "allergic or sensitivity";
-    }
+  String get _diaperTimeStr {
+    final dt = DateTime(0, 1, 1, _time.hour, _time.minute);
+    return DateFormat('HH:mm').format(dt);
   }
 
-  // Reaction listesi
-  final items = <Reaction>[
-    Reaction.loveIt,
-    Reaction.meh,
-    Reaction.hatedIt,
-    Reaction.allergicOrSensitivity,
-  ];
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null) setState(() => _time = picked);
+  }
 
-  // Reaction → Icon eşleştirmesi
-  IconData _iconForStartOfSleep(Reaction r) {
-    switch (r) {
-      case Reaction.loveIt:
-        return Icons.favorite;
-      case Reaction.meh:
-        return Icons.thumbs_up_down;
-      case Reaction.hatedIt:
-        return Icons.sentiment_very_dissatisfied;
-      case Reaction.allergicOrSensitivity:
-        return Icons.warning_amber;
-    }
+  Future<void> _save() async {
+    if (_selectedDiaper == null) return;
+
+    final model = DiaperModel(
+      diaperName: _selectedDiaper!,
+      createdAt: DateTime.now().toIso8601String(),
+      diaperTime: _diaperTimeStr,
+    );
+
+    await diaperService.addDiaper(model);
+
+    Navigator.pop(context, true);
+    //  Navigator.of(context).pop(model);
   }
 }
 

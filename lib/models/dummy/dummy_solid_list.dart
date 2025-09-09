@@ -12,3 +12,5 @@ const kDummySolids = <String>[
   "Egg yolk (well-cooked)",
   "Chicken puree",
 ];
+
+const kDummyDiapers = <String>["Pee", "Poo", "Mixed", "Dry"];

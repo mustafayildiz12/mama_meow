@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
+import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
@@ -93,16 +95,34 @@ class MyBabyScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          _babyCard(
-            emoji: '👶',
-            title: 'Diaper',
-            subtitle: 'Today: 0 times',
-            gradient: LinearGradient(
-              colors: [Colors.green.shade200, Colors.tealAccent.shade200],
-            ),
-            textColor: Colors.green.shade700,
-            bgColor: Colors.green.shade50,
-            onPlusPressed: () {},
+          StreamBuilder(
+            stream: diaperService.todayDiaperCountStream(),
+            builder: (context, snapshot) {
+              int diaperTime = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '👶',
+                title: 'Diaper',
+                subtitle: 'Today: $diaperTime times',
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade200, Colors.tealAccent.shade200],
+                ),
+                textColor: Colors.green.shade700,
+                bgColor: Colors.green.shade50,
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => const AddDiaperBottomSheet(),
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(height: 16),
           _babyCard(
