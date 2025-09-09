@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
+import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
@@ -125,16 +127,34 @@ class MyBabyScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          _babyCard(
-            emoji: '📏',
-            title: 'Growth',
-            subtitle: 'Today: 0 times',
-            gradient: LinearGradient(
-              colors: [Colors.pink.shade50, Colors.pink.shade100],
-            ),
-            textColor: Colors.pink.shade700,
-            bgColor: Colors.pink.shade50,
-            onPlusPressed: () {},
+          StreamBuilder(
+            stream: pumpingService.todayPumpingCountStream(),
+            builder: (context, snapshot) {
+              int pumpingTime = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '👩‍🍼',
+                title: 'Pumping',
+                subtitle: 'Today: $pumpingTime times',
+                gradient: LinearGradient(
+                  colors: [Colors.pink.shade50, Colors.pink.shade100],
+                ),
+                textColor: Colors.pink.shade700,
+                bgColor: Colors.pink.shade50,
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => const AddPumpingBottomSheet(),
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(height: 16),
           _babyCard(

@@ -1,30 +1,24 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:firebase_database/firebase_database.dart';
-import 'package:mama_meow/models/activities/diaper_model.dart';
+import 'package:mama_meow/models/activities/pumping_model.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
-/// TercihService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
-/// Kullanıcı tercihleri, sınav bilgileri ve diğer verilerin yönetimini sağlar.
-class DiaperService {
+class PumpingService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
-  /// Yeni bir kullanıcıyı Firebase'e ekler.
-  /// @param user - Eklenecek kullanıcı modeli
-  Future<void> addDiaper(DiaperModel diaper) async {
+  Future<void> addPumping(PumpingModel pumping) async {
     final user = authenticationService.getUser()!;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
-        .ref('diapers')
+        .ref('pumpings')
         .child(user.uid)
         .child(createdAt)
-        .set(diaper.toMap());
+        .set(pumping.toMap());
   }
 
-  Future<List<DiaperModel>> getDiaperList() async {
-    final List<DiaperModel> diapers = [];
+  Future<List<PumpingModel>> getDiaperList() async {
+    final List<PumpingModel> pumpings = [];
 
-    final DatabaseReference ref = _realtimeDatabase.ref('diapers');
+    final DatabaseReference ref = _realtimeDatabase.ref('pumpings');
 
     final DataSnapshot snapshot = await ref.get();
 
@@ -35,9 +29,9 @@ class DiaperService {
         for (final value in raw.values) {
           if (value is Map) {
             final map = Map<String, dynamic>.from(value);
-            final model = DiaperModel.fromMap(map);
+            final model = PumpingModel.fromMap(map);
 
-            diapers.add(model);
+            pumpings.add(model);
           }
         }
       } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
@@ -45,20 +39,20 @@ class DiaperService {
         for (final item in raw) {
           if (item is Map) {
             final map = Map<String, dynamic>.from(item);
-            final model = DiaperModel.fromMap(map);
+            final model = PumpingModel.fromMap(map);
 
-            diapers.add(model);
+            pumpings.add(model);
           }
         }
       }
     }
 
-    return diapers;
+    return pumpings;
   }
 
-  Stream<int> todayDiaperCountStream() {
+  Stream<int> todayPumpingCountStream() {
     final user = authenticationService.getUser()!;
-    final ref = FirebaseDatabase.instance.ref('diapers').child(user.uid);
+    final ref = FirebaseDatabase.instance.ref('pumpings').child(user.uid);
 
     final now = DateTime.now().toLocal();
     final startMs = now.startOfDay.millisecondsSinceEpoch;
@@ -78,4 +72,4 @@ extension _Today on DateTime {
   DateTime get endOfDay => DateTime(year, month, day, 23, 59, 59, 999);
 }
 
-final DiaperService diaperService = DiaperService();
+final PumpingService pumpingService = PumpingService();
