@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
+import 'package:mama_meow/service/activities/solid_service.dart';
 
 class MyBabyScreen extends StatelessWidget {
   const MyBabyScreen({super.key});
@@ -33,16 +35,34 @@ class MyBabyScreen extends StatelessWidget {
               ],
             ),
           ),
-          _babyCard(
-            emoji: '🍼',
-            title: 'Feeding',
-            subtitle: 'Today: 0 times',
-            gradient: LinearGradient(
-              colors: [Colors.orange.shade200, Colors.yellow.shade200],
-            ),
-            textColor: Colors.orange.shade700,
-            bgColor: Colors.orange.shade50,
-            onPlusPressed: () {},
+          StreamBuilder(
+            stream: solidService.todaySolidCountStream(),
+            builder: (context, snapshot) {
+              int solidTime = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '🍼',
+                title: 'Solid',
+                subtitle: 'Today: $solidTime times',
+                gradient: LinearGradient(
+                  colors: [Colors.orange.shade200, Colors.yellow.shade200],
+                ),
+                textColor: Colors.orange.shade700,
+                bgColor: Colors.orange.shade50,
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => const AddSolidBottomSheet(),
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(height: 16),
           StreamBuilder(
