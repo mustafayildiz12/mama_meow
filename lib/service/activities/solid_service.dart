@@ -15,36 +15,42 @@ class SolidService {
         .set(solid.toMap());
   }
 
-  Future<List<SolidModel>> getSolidList() async {
+  Future<List<SolidModel>> getUserSolidList() async {
     final List<SolidModel> sleeps = [];
-
-    final DatabaseReference ref = _realtimeDatabase.ref('solids');
+    final user = authenticationService.getUser()!;
+    final DatabaseReference ref = _realtimeDatabase
+        .ref('solids')
+        .child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
 
-    if (snapshot.exists) {
-      final raw = snapshot.value;
+    try {
+      if (snapshot.exists) {
+        final raw = snapshot.value;
 
-      if (raw is Map) {
-        for (final value in raw.values) {
-          if (value is Map) {
-            final map = Map<String, dynamic>.from(value);
-            final model = SolidModel.fromMap(map);
+        if (raw is Map) {
+          for (final value in raw.values) {
+            if (value is Map) {
+              final map = Map<String, dynamic>.from(value);
+              final model = SolidModel.fromMap(map);
 
-            sleeps.add(model);
+              sleeps.add(model);
+            }
           }
-        }
-      } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
-      else if (raw is List) {
-        for (final item in raw) {
-          if (item is Map) {
-            final map = Map<String, dynamic>.from(item);
-            final model = SolidModel.fromMap(map);
+        } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
+        else if (raw is List) {
+          for (final item in raw) {
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              final model = SolidModel.fromMap(map);
 
-            sleeps.add(model);
+              sleeps.add(model);
+            }
           }
         }
       }
+    } catch (e) {
+      print(e.toString());
     }
 
     return sleeps;

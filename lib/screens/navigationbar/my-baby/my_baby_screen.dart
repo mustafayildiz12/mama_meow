@@ -5,6 +5,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
@@ -52,6 +53,12 @@ class MyBabyScreen extends StatelessWidget {
                 ),
                 textColor: Colors.orange.shade700,
                 bgColor: Colors.orange.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SolidReportPage()),
+                  );
+                },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
                     context: context,
@@ -226,6 +233,7 @@ class MyBabyScreen extends StatelessWidget {
     required Color textColor,
     required Color bgColor,
     required void Function() onPlusPressed,
+    void Function()? onReportPressed,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -259,7 +267,7 @@ class MyBabyScreen extends StatelessWidget {
                         subtitle,
                         style: TextStyle(
                           fontSize: 13,
-                          color: textColor.withOpacity(0.7),
+                          color: textColor.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -275,7 +283,9 @@ class MyBabyScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        onReportPressed!();
+                      },
                       icon: Icon(LucideIcons.barChart3, color: textColor),
                     ),
                   ),

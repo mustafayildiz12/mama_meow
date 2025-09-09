@@ -48,23 +48,6 @@ class SolidModel {
     this.reactions,
   });
 
-  SolidModel copyWith({
-    String? solidName,
-    String? solidAmount,
-    String? createdAt,
-    String? eatTime,
-    Reaction? reactions, // null geçmek için explicitlyPassNull kullan
-    bool explicitlyNullReaction = false,
-  }) {
-    return SolidModel(
-      solidName: solidName ?? this.solidName,
-      solidAmount: solidAmount ?? this.solidAmount,
-      createdAt: createdAt ?? this.createdAt,
-      eatTime: eatTime ?? this.eatTime,
-      reactions: explicitlyNullReaction ? null : (reactions ?? this.reactions),
-    );
-  }
-
   Map<String, dynamic> toMap() => {
     'solidName': solidName,
     'solidAmount': solidAmount,
@@ -75,11 +58,11 @@ class SolidModel {
 
   factory SolidModel.fromMap(Map<String, dynamic> map) {
     return SolidModel(
-      solidName: map['solidName'] as String,
-      solidAmount: map['solidAmount'] as String,
-      createdAt: map['createdAt'] as String,
-      eatTime: map['eatTime'] as String,
-      reactions: reactionFromText(map['reactions'] as String?),
+      solidName: map['solidName']?.toString() ?? "",
+      solidAmount: map['solidAmount']?.toString() ?? "0",
+      createdAt: map['createdAt']?.toString() ?? "",
+      eatTime: map['eatTime']?.toString() ?? "",
+      reactions: reactionFromText(map['reactions']?.toString()),
     );
   }
 }
