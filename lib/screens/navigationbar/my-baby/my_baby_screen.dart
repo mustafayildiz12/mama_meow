@@ -4,6 +4,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
@@ -161,6 +162,14 @@ class MyBabyScreen extends StatelessWidget {
                 ),
                 textColor: Colors.pink.shade700,
                 bgColor: Colors.pink.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PumpingReportPage(),
+                    ),
+                  );
+                },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
                     context: context,

@@ -17,8 +17,10 @@ class PumpingService {
 
   Future<List<PumpingModel>> getDiaperList() async {
     final List<PumpingModel> pumpings = [];
-
-    final DatabaseReference ref = _realtimeDatabase.ref('pumpings');
+    final user = authenticationService.getUser()!;
+    final DatabaseReference ref = _realtimeDatabase
+        .ref('pumpings')
+        .child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
 
