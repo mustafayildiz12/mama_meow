@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
@@ -89,6 +91,12 @@ class MyBabyScreen extends StatelessWidget {
                 ),
                 textColor: Colors.blue.shade700,
                 bgColor: Colors.blue.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SleepReportPage()),
+                  );
+                },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
                     context: context,
@@ -117,6 +125,12 @@ class MyBabyScreen extends StatelessWidget {
                 ),
                 textColor: Colors.green.shade700,
                 bgColor: Colors.green.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => DiaperReportPage()),
+                  );
+                },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
                     context: context,

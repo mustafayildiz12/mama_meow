@@ -200,7 +200,6 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 _SectionCard(
                   title: "Reactions",
                   subtitle: "Love it, meh, hated it, allergic/sensitivity",
-                  trailing: _ReactionBadges(byReaction: byReaction),
                   child: SizedBox(
                     height: 220,
                     child: SfCartesianChart(
@@ -417,13 +416,12 @@ class _SectionCard extends StatelessWidget {
   final String? subtitle;
   final Widget child;
   final EdgeInsets padding;
-  final Widget? trailing;
 
   const _SectionCard({
     required this.title,
     required this.child,
     this.subtitle,
-    this.trailing,
+
     this.padding = const EdgeInsets.all(16),
   });
 
@@ -458,7 +456,6 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) trailing!,
               ],
             ),
             if (subtitle != null) ...[
@@ -475,52 +472,6 @@ class _SectionCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ReactionBadges extends StatelessWidget {
-  final Map<String, int> byReaction;
-  const _ReactionBadges({required this.byReaction});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      ('love it', Icons.favorite),
-      ('meh', Icons.thumbs_up_down),
-      ('hated it', Icons.sentiment_very_dissatisfied),
-      ('allergic or sensitivity', Icons.warning_amber),
-      ('none', Icons.remove_circle_outline),
-    ];
-
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: items.map((it) {
-        final count = byReaction[it.$1] ?? 0;
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(it.$2, size: 16, color: AppColors.kDeepOrange),
-              const SizedBox(width: 6),
-              Text(
-                "${it.$1} · $count",
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
 }
@@ -563,7 +514,7 @@ class _TopFoodTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: Colors.orange.withOpacity(0.1),
+                    backgroundColor: Colors.orange.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       AppColors.kDeepOrange,
                     ),

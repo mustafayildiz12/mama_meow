@@ -23,34 +23,41 @@ class DiaperService {
 
   Future<List<DiaperModel>> getDiaperList() async {
     final List<DiaperModel> diapers = [];
+    final user = authenticationService.getUser()!;
 
-    final DatabaseReference ref = _realtimeDatabase.ref('diapers');
+    final DatabaseReference ref = _realtimeDatabase
+        .ref('diapers')
+        .child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
 
-    if (snapshot.exists) {
-      final raw = snapshot.value;
+    try {
+      if (snapshot.exists) {
+        final raw = snapshot.value;
 
-      if (raw is Map) {
-        for (final value in raw.values) {
-          if (value is Map) {
-            final map = Map<String, dynamic>.from(value);
-            final model = DiaperModel.fromMap(map);
+        if (raw is Map) {
+          for (final value in raw.values) {
+            if (value is Map) {
+              final map = Map<String, dynamic>.from(value);
+              final model = DiaperModel.fromMap(map);
 
-            diapers.add(model);
+              diapers.add(model);
+            }
           }
-        }
-      } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
-      else if (raw is List) {
-        for (final item in raw) {
-          if (item is Map) {
-            final map = Map<String, dynamic>.from(item);
-            final model = DiaperModel.fromMap(map);
+        } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
+        else if (raw is List) {
+          for (final item in raw) {
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              final model = DiaperModel.fromMap(map);
 
-            diapers.add(model);
+              diapers.add(model);
+            }
           }
         }
       }
+    } catch (e) {
+      print(e.toString());
     }
 
     return diapers;

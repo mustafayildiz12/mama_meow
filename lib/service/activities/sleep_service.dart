@@ -21,11 +21,13 @@ class SleepService {
         .set(sleepModel.toJson());
   }
 
-
   Future<List<SleepModel>> getSleepList() async {
     final List<SleepModel> sleeps = [];
 
-    final DatabaseReference ref = _realtimeDatabase.ref('sleeps');
+    final user = authenticationService.getUser()!;
+    final DatabaseReference ref = _realtimeDatabase
+        .ref('sleeps')
+        .child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
 

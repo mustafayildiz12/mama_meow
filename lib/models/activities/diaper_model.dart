@@ -10,9 +10,9 @@ class DiaperModel {
   }); // "HH:mm"
 
   Map<String, dynamic> toMap() => {
-    'solidName': diaperName,
+    'diaperName': diaperName,
     'createdAt': createdAt,
-    'eatTime': diaperTime,
+    'diaperTime': diaperTime,
   };
 
   factory DiaperModel.fromMap(Map<String, dynamic> map) {
