@@ -73,7 +73,7 @@ class CustomSnackBar {
       mainButton: TextButton(
         onPressed: () => Get.closeCurrentSnackbar(),
         child: Text(
-          "sn_ok".tr,
+          "Ok",
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -86,7 +86,7 @@ class CustomSnackBar {
 
   Future<void> success(String message) async {
     _showSnackbar(
-      title: "sn_success".tr,
+      title: "Success",
       message: message,
       backgroundColor: Colors.blue.shade500,
       icon: const Icon(
@@ -99,7 +99,7 @@ class CustomSnackBar {
 
   Future<void> error(String message) async {
     _showSnackbar(
-      title: "sn_error".tr,
+      title: "Error",
       message: message,
       backgroundColor: Colors.red.withValues(alpha: 0.9),
       icon: const Icon(
@@ -112,7 +112,7 @@ class CustomSnackBar {
 
   Future<void> warning(String message) async {
     _showSnackbar(
-      title: "sn_warn".tr,
+      title: "Warning",
       message: message,
       backgroundColor: Colors.orange.withValues(alpha: 0.75),
       icon: const Icon(

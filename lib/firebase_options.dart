@@ -68,12 +68,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDr007SSTju3lMKIlc82tj6rCDYNsT8eRo',
-    appId: '1:387317917599:ios:32e6ffe1df2600aa70ffaa',
+    appId: '1:387317917599:ios:44899605e3299ae170ffaa',
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
     databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
-    iosBundleId: 'com.yildiz.mamaMeow',
+    iosBundleId: 'com.yildiz.mamameow',
   );
 
 }

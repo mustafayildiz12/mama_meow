@@ -52,19 +52,23 @@ class _LearnPageState extends State<LearnPage> {
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Scaffold(
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            await Navigator.pushNamed(
-              context,
-              AppRoutes.uploadPodcastPage,
-            ).then((v) async {
-              if (v != null) {
-                await getPageData();
-              }
-            });
-          },
-          child: Icon(Icons.add),
+        floatingActionButton: Visibility(
+          visible: false,
+          child: FloatingActionButton(
+            onPressed: () async {
+              await Navigator.pushNamed(
+                context,
+                AppRoutes.uploadPodcastPage,
+              ).then((v) async {
+                if (v != null) {
+                  await getPageData();
+                }
+              });
+            },
+            child: Icon(Icons.add),
+          ),
         ),
+
         body: Container(
           width: double.infinity,
           height: double.infinity,

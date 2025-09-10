@@ -69,18 +69,18 @@ class DatabaseService {
 
   /// Kullanıcı hesabını siler.
   /// @param context - BuildContext nesnesi
-  Future<void> deleteAccount(BuildContext context) async {
+  Future<bool> deleteAccount(BuildContext context) async {
+    bool isSuccess = false;
     await _realtimeDatabase
         .ref("users")
         .child(currentMeowUser!.uid!)
         .update({"status": 1})
         .then((_) async {
-          customSnackBar.success("account_deleted".tr);
-          await authenticationService.logoutFromFirebase();
+          customSnackBar.success("Account Deleted");
+          isSuccess = true;
         });
+    return isSuccess;
   }
-
-
 }
 
 final DatabaseService databaseService = DatabaseService();

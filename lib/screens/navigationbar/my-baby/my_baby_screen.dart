@@ -186,6 +186,7 @@ class MyBabyScreen extends StatelessWidget {
               );
             },
           ),
+          /*
           const SizedBox(height: 16),
           _babyCard(
             emoji: '📔',
@@ -198,6 +199,7 @@ class MyBabyScreen extends StatelessWidget {
             bgColor: Colors.purple.shade50,
             onPlusPressed: () {},
           ),
+          */
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
@@ -329,20 +331,6 @@ class MyBabyScreen extends StatelessWidget {
                 ],
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              "No records today",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 14),
-            ),
           ),
         ],
       ),

@@ -61,9 +61,17 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+        ),
         title: Text(
           p.title,
-          style: TextStyle(fontSize: 18, color: Colors.white),
+          style: TextStyle(fontSize: 16,
+          fontWeight: FontWeight.w500,
+           color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: AppColors.pink500,

@@ -1,7 +1,9 @@
 // ProfilePage UI generated from provided HTML
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/database_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -9,6 +11,8 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFFEEF2FF), Color(0xFFF3E8FF)],
@@ -39,9 +43,93 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _buildUserInfoCard(),
-                _buildUsageCard(),
-                _buildPremiumCard(),
+                //   _buildUsageCard(),
+                //   _buildPremiumCard(),
                 _buildAboutCard(),
+
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: () async {
+                                bool isSuccess = await authenticationService
+                                    .logoutFromFirebase();
+
+                                if (isSuccess) {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    AppRoutes.loginPage,
+                                    (_) => false,
+                                  );
+                                }
+                              },
+                              child: Text("Logout"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog.adaptive(
+                                      title: Text("Delete Account?"),
+                                      content: Text(
+                                        "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
+                                      ),
+                                      actions: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: OutlinedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                            },
+                                            child: Text("Back"),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: OutlinedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context, true);
+                                            },
+                                            child: Text("Delete"),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ).then((value) async {
+                                  if (value == true) {
+                                    bool isSuccess = await databaseService
+                                        .deleteAccount(context);
+                                    if (isSuccess) {
+                                      Navigator.pushNamedAndRemoveUntil(
+                                        context,
+                                        AppRoutes.loginPage,
+                                        (_) => false,
+                                      );
+                                    }
+                                  }
+                                });
+                              },
+                              child: Text("Delete Account"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -51,30 +139,17 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildMiaHead(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        bool isSuccess = await authenticationService.logoutFromFirebase();
-
-        if (isSuccess) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.loginPage,
-            (_) => false,
-          );
-        }
-      },
-      child: Container(
-        width: 96,
-        height: 96,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
         ),
-        child: const Center(child: Text("😺", style: TextStyle(fontSize: 36))),
+        shape: BoxShape.circle,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
+      child: const Center(child: Text("😺", style: TextStyle(fontSize: 36))),
     );
   }
 
@@ -99,19 +174,19 @@ class ProfilePage extends StatelessWidget {
                   child: const Icon(Icons.person, color: Color(0xFF4F46E5)),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Musti",
+                        currentMeowUser?.userName ?? "Guest",
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1F2937),
                         ),
                       ),
                       Text(
-                        "test123123@gmail.com",
+                        currentMeowUser?.userEmail ?? "",
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF6B7280),
@@ -120,13 +195,10 @@ class ProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Color(0xFF9CA3AF)),
-                  onPressed: () {},
-                ),
               ],
             ),
             const SizedBox(height: 12),
+            /*
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -149,6 +221,7 @@ class ProfilePage extends StatelessWidget {
                 ],
               ),
             ),
+            */
           ],
         ),
       ),

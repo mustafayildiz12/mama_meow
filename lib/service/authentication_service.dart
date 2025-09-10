@@ -58,11 +58,11 @@ class AuthenticationService {
     } on FirebaseAuthException catch (e) {
       isSuccess = 0;
       if (e.code == 'user-not-found') {
-        customSnackBar.warning("user_not_found".tr);
+        customSnackBar.warning("User not found");
       } else if (e.code == 'wrong-password') {
-        customSnackBar.warning("wrong_password".tr);
+        customSnackBar.warning("Wrong Password");
       } else {
-        customSnackBar.warning("wrong_password".tr);
+        customSnackBar.warning("Wrong Password");
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -115,9 +115,9 @@ class AuthenticationService {
     } on FirebaseAuthException catch (e) {
       isSuccess = false;
       if (e.code == 'user-not-found') {
-        customSnackBar.warning("user_not_found".tr);
+        customSnackBar.warning("User not found");
       } else if (e.code == 'wrong-password') {
-        customSnackBar.warning("wrong_password".tr);
+        customSnackBar.warning("Wrong Password");
       }
     }
     return isSuccess;
@@ -141,10 +141,10 @@ class AuthenticationService {
     try {
       await firebaseAuth.sendPasswordResetEmail(email: email);
       isSendResetEmailSuccess = true;
-      customSnackBar.success("rest_pass_send".tr);
+      customSnackBar.success("Reset password send");
     } catch (e) {
       isSendResetEmailSuccess = false;
-      customSnackBar.error("rest_pass_not_send".tr);
+      customSnackBar.error("Reset password send");
     }
     return isSendResetEmailSuccess;
   }
