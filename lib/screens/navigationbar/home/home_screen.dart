@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:mama_meow/models/mia_answer_model.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mama_meow/service/gpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MamaMeowHomePage extends StatefulWidget {
   const MamaMeowHomePage({super.key});
@@ -42,7 +43,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   Uint8List? imageBytes;
   String? mimeType;
 
-  String? _answer;
+  MiaAnswer? _miaAnswer;
   bool _isLoading = false;
 
   final AudioRecorder _rec = AudioRecorder();
@@ -388,7 +389,13 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Widget _answerCard() {
-    if (_answer == null && !_isLoading) return const SizedBox.shrink();
+    // Hiçbir cevap yok ve yükleme de yoksa gizle
+    if (_miaAnswer == null) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    final isTR = Localizations.localeOf(context).languageCode == 'tr';
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -397,53 +404,163 @@ class _AskMeowViewState extends State<AskMeowView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else ...[
-              // Cevap
-              MarkdownBody(
-                data: _answer!,
-                selectable: true,
-                styleSheet: MarkdownStyleSheet.fromTheme(
-                  Theme.of(context),
-                ).copyWith(p: const TextStyle(fontSize: 15, height: 1.4)),
+            if (_isLoading) ...[
+              const SizedBox(height: 8),
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 8),
+            ] else if (_miaAnswer != null) ...[
+              // ------ PART 1: Quick Answer ------
+              Text(
+                _miaAnswer!.quick,
+                style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
               ),
+              const SizedBox(height: 10),
 
-              const SizedBox(height: 16),
+              // ------ PART 2: Detailed Info ------
+              if (_miaAnswer!.detailed.trim().isNotEmpty) ...[
+                Text(
+                  isTR ? "Detaylı Bilgi" : "Detailed Info",
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // İstersen MarkdownBody kullanabilirsin:
+                // MarkdownBody(data: _miaAnswer!.detailed, selectable: true)
+                Text(
+                  _miaAnswer!.detailed,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+                ),
+                const SizedBox(height: 12),
+              ],
 
-              // Öneriler
-              if (_suggestions.isNotEmpty) ...[
+              // ------ Actions (3 madde) ------
+              if (_miaAnswer!.actions.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _miaAnswer!.actions.map((a) {
+                    return Chip(
+                      label: Text(a),
+                      backgroundColor: theme.colorScheme.primaryContainer
+                          .withOpacity(0.25),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.3),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // ------ Follow-up question ------
+              if (_miaAnswer!.followUp.trim().isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.dividerColor.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.question_answer, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _miaAnswer!.followUp,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // ------ Sources ------
+              if (_miaAnswer!.sources.isNotEmpty) ...[
                 const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Row(
-                  children: const [
-                    Icon(Icons.lightbulb, color: Colors.amber),
-                    SizedBox(width: 8),
+                  children: [
+                    const Icon(Icons.link, size: 18),
+                    const SizedBox(width: 6),
                     Text(
-                      "Maybe these also help:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      isTR ? "Kaynaklar" : "Sources",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                ..._miaAnswer!.sources.map((s) => _SourceTile(item: s)),
                 const SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _suggestions
-                      .map(
-                        (s) => Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber.shade200),
-                          ),
-                          child: Text("👉 $s"),
-                        ),
-                      )
-                      .toList(),
-                ),
               ],
+
+              // ------ Disclaimer + Last updated ------
+              Text(
+                _miaAnswer!.disclaimer,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (_miaAnswer!.lastUpdated.isNotEmpty)
+                Text(
+                  "${isTR ? "Son güncelleme" : "Last updated"}: ${_miaAnswer!.lastUpdated}",
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.black45,
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+            ],
+            // ---- Öneriler (her iki durumda da) ----
+            if (!_isLoading && _suggestions.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.lightbulb, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Text(
+                    isTR
+                        ? "Bunlar da işine yarayabilir:"
+                        : "Maybe these also help:",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _suggestions
+                    .map(
+                      (s) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Text("👉 $s"),
+                      ),
+                    )
+                    .toList(),
+              ),
             ],
           ],
         ),
@@ -457,7 +574,6 @@ class _AskMeowViewState extends State<AskMeowView> {
 
     setState(() {
       _isLoading = true;
-      _answer ??= ''; // alanı göster
     });
 
     try {
@@ -466,13 +582,13 @@ class _AskMeowViewState extends State<AskMeowView> {
         imageBytes: imageBytes,
         imageMimeType: mimeType ?? "image/png",
       );
-      setState(() => _answer = res);
+      setState(() => _miaAnswer = res);
 
       // önerileri getir
       final sug = await _gpt.getSuggestions(question: q, language: "English");
       setState(() => _suggestions = sug);
     } catch (e) {
-      setState(() => _answer = 'Bir hata oluştu: $e');
+      setState(() => _miaAnswer = null);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -494,41 +610,6 @@ class _AskMeowViewState extends State<AskMeowView> {
     }
 
     return image;
-  }
-
-  Future<void> recordAndTranscribe() async {
-    final record = AudioRecorder();
-
-    // İzin
-    if (!await record.hasPermission()) {
-      // izin diyaloğunu tetikleyebilirsin
-      return;
-    }
-
-    // ... kullanıcı kayıt ediyor, sonra:
-    final path = await record.stop(); // kayıt biter ve dosya yolu döner
-    if (path == null) return;
-
-    final bytes = await File(path).readAsBytes();
-
-    // Kayıt başlat (AAC ile m4a kapsayıcı, yaygın ve iyi kalite)
-    await record.start(
-      RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        sampleRate: 44100,
-      ),
-      path: path,
-    );
-
-    // AAC/m4a → `audio/mp4` kullan
-    final result = await _gpt.transcribeAudio(
-      bytes,
-      filename: 'recording.m4a',
-      mimeType: 'audio/mp4',
-    );
-
-    setState(() => _answer = result);
   }
 
   Future<void> _startRecording() async {
@@ -617,6 +698,40 @@ class _AskMeowViewState extends State<AskMeowView> {
     } else {
       await _startRecording();
     }
+  }
+}
+
+// ---- Kaynak ListTile ----
+class _SourceTile extends StatelessWidget {
+  const _SourceTile({required this.item});
+  final MiaSource item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtitleBits = <String>[
+      if (item.publisher.isNotEmpty) item.publisher,
+      if (item.year != null) "${item.year}",
+    ];
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        item.title,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          decoration: TextDecoration.underline,
+        ),
+      ),
+      subtitle: subtitleBits.isEmpty ? null : Text(subtitleBits.join(" • ")),
+      trailing: const Icon(Icons.open_in_new, size: 16),
+      onTap: () async {
+        await launchUrl(
+          Uri.parse(item.url),
+          mode: LaunchMode.externalApplication,
+        );
+      },
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:image/image.dart' as img;
 import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/models/mia_answer_model.dart';
 
 class GptService {
   final String apiKey = dotenv.get("OPENAI_API_KEY");
@@ -22,6 +23,14 @@ You are also a certified pediatrician and motherhood expert. Respond kindly, cle
 
 Your personality: curious, cheerful, respectful, warm, and SUPER helpful! 😸
 
+CRITICAL CITATION POLICY (MANDATORY):
+- For ANY health/medical recommendation or fact, include 1–3 high-quality sources with DIRECT URLs.
+- Allowed sources: WHO, CDC, NIH, AAP (HealthyChildren), NHS, Mayo Clinic, PubMed articles, peer-reviewed guidelines.
+- NOT valid as sources: AI, blogs without medical editorial review, social media, random forums, paywalled abstracts without a public landing page.
+- Never invent or hallucinate sources. If you cannot find reputable sources, say you cannot provide a sourced answer and advise consulting a pediatrician.
+- Include a "last_updated" ISO date (YYYY-MM-DD).
+- Sources must be easy to find: give title + publisher + url (+ optional year).
+
 IMPORTANT LANGUAGE RULES:
 - ALWAYS respond in the SAME LANGUAGE as the user's question
 - If the user asks in English, respond in English
@@ -32,15 +41,19 @@ IMPORTANT LANGUAGE RULES:
 - And so on for ANY language
 
 RESPONSE FORMAT RULES - VERY IMPORTANT:
-- ALWAYS structure your answer in TWO PARTS:
-  **PART 1: Quick Answer** (Most likely/common answers)
-  **PART 2: Detailed Info** (More comprehensive information)
-- Keep answers SHORT and SMOOTH 🐾
-- Use LOTS of emojis throughout your response 😊💖
-- Break information into BULLET POINTS or numbered lists
-- Use cat emojis frequently 🐱😸😺
-- Make it easy to scan and read quickly
-- Position information clearly with headers
+OUTPUT SHAPE (STRICT JSON ONLY, NO EXTRA TEXT):
+{
+  "quick_answer": "string",
+  "detailed_info": "string (may include bullet-like formatting with \\n)",
+  "actions": ["do this", "do that", "do another thing"],
+  "follow_up_question": "string",
+  "disclaimer": "string (localized 'not medical advice' line)",
+  "sources": [
+    {"title": "string", "publisher": "string", "url": "https://...", "year": 2024},
+    ...
+  ],
+  "last_updated": "YYYY-MM-DD"
+}
 
 MANDATORY ENDING FORMAT:
 - End each response with 3 actionable suggestions
@@ -71,9 +84,13 @@ IMPORTANT LANGUAGE RULES:
 - If the user asks in Arabic, respond in Arabic
 - And so on for ANY language
 
+
+
 Return ONLY 3 suggestions, each on a new line, without numbers or bullets. Make them practical and relevant to baby care and parenting.
 
-Keep suggestions short, practical, and directly related to the original question topic.
+TONE:
+- Warm, supportive, concise. Use emojis sparingly but tastefully, matching the user language.
+- If the question is outside baby/maternal scope, kindly refuse.
 ''';
 
   // ---- Genel Ayarlar ----
@@ -113,7 +130,7 @@ Keep suggestions short, practical, and directly related to the original question
   // =======================
   /// Soru sorar; opsiyonel görseli (imageBytes + mimeType) ekleyebilirsin.
   /// Dönen değer: oluşturulan yanıt metni.
-  Future<String> askMia(
+  Future<MiaAnswer?> askMia(
     String question, {
     Uint8List? imageBytes,
     String imageMimeType = 'image/png', // 'image/jpeg' vb.
@@ -168,17 +185,20 @@ Keep suggestions short, practical, and directly related to the original question
 
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final content = (data['choices'] as List?)?.isNotEmpty == true
+        final raw = (data['choices'] as List?)?.isNotEmpty == true
             ? (data['choices'][0]['message']['content'] as String? ?? '')
             : '';
-        return content.isNotEmpty
-            ? content
-            : "Meow~ I'm having trouble answering right now. Please try again! 🐾😸";
+
+        if (raw.isEmpty) return null;
+
+        // İçerik JSON olmak zorunda; parse edelim
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        return MiaAnswer.fromMap(map);
       } else {
-        return "Meow~ I'm having trouble connecting right now (${resp.statusCode}). Please try again! 🐾😸";
+        return null;
       }
     } catch (e) {
-      return "Meow~ I'm having trouble connecting right now. Please check your internet connection and try again! 🐾😸";
+      return null;
     }
   }
 

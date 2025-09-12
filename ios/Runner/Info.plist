@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>We need to grant access to your camera so you can send photos and ask the AI questions.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to let you upload images and ask the AI questions.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Sesinizi metne dönüştürmek için mikrofon erişimi gerekiyor.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
