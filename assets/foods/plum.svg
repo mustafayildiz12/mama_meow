@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="800" viewBox="0 0 150 150" id="ART" xmlns="http://www.w3.org/2000/svg">
+  <!-- cls-1 -->
+  <path d="M84.46,52.78S77.19,18.44,91.43,5"
+        fill="none"
+        stroke="#000000"
+        stroke-width="4"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- cls-2 -->
+  <path d="M125.26,98.24c-1.08,25.3-26.23,49.09-54.88,46.58-27.6-2.42-45.73-22.73-45.73-53.36S36.47,26.08,81.31,44C117.05,36.37,126.39,71.7,125.26,98.24Z"
+        fill="#0a1a5b"
+        stroke="#000000"
+        stroke-width="4"
+        stroke-miterlimit="10"/>
+
+  <!-- cls-3 -->
+  <path d="M81,44.78c25,16.05,24,70.52,0,92.22"
+        fill="none"
+        stroke="#000000"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- cls-4 (iki kez vardı, biri yeterli) -->
+  <path d="M38.69,59.5C45.18,49.9,56.15,44,58.67,48s-4,7.16-11.71,20.45S40.86,88.65,36.69,88.88,31,70.94,38.69,59.5Z"
+        fill="#ffffff"/>
+
+  <!-- cls-5 -->
+  <path d="M84,32.06c7-20.85,25.29-15.3,40-4.27C110,39.24,102.6,24.49,84,32.06Z"
+        fill="#08b552"
+        stroke="#000000"
+        stroke-width="4"
+        stroke-miterlimit="10"
+        id="_Path_"
+        data-name="&lt;Path&gt;"/>
+</svg>

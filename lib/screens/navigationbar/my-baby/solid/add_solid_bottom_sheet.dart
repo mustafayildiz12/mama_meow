@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
+import 'package:mama_meow/models/solid_food.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
@@ -94,11 +95,10 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                       ),
                       const SizedBox(height: 12),
 
-                      _ChipPickerSection<String?>(
-                        labelBuilder: (v) => v!,
-                        items: kDummySolids,
+                      FoodChipPickerSection(
                         title: "Add Solid",
-                        value: _selectedSolid,
+                        items: kSolidFoods,
+                        value: _selectedSolid, // String? (ör. "Banana")
                         onChanged: (value) =>
                             setState(() => _selectedSolid = value),
                       ),
@@ -289,6 +289,129 @@ class _ChipPickerSection<T> extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class FoodChipPickerSection extends StatelessWidget {
+  final String title; // örn: "Add Solid"
+  final List<SolidFood> items; // kSolidFoods
+  final String? value; // seçili food adı
+  final ValueChanged<String?> onChanged;
+
+  const FoodChipPickerSection({
+    super.key,
+    required this.title,
+    required this.items,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Subtitle
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+
+        // Sağa kaydırılabilir sıra (chip kart hissini bozmadan)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final f in items)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _FoodChipTile(
+                    label: f.name,
+                    asset: f.asset,
+                    selected: f.name == value,
+                    onTap: () => onChanged(f.name),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Chip kart tasarımını korur; sadece üstte SVG, altta label gösterir.
+class _FoodChipTile extends StatelessWidget {
+  final String label;
+  final String asset;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FoodChipTile({
+    required this.label,
+    required this.asset,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: 110, // kare kare görünüm için sabit bir genişlik iyi oluyor
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? theme.primaryColorLight
+                : theme.dividerColor.withOpacity(0.6),
+            width: selected ? 1.2 : 0.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(selected ? 0.12 : 0.06),
+              blurRadius: selected ? 12 : 8,
+              spreadRadius: 1,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // SVG görseli
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: SvgPicture.asset(asset, width: 48, height: 48, fit: BoxFit.contain)),
+            const SizedBox(height: 8),
+            // İsim
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

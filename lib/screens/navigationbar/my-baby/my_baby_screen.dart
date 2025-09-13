@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
@@ -186,20 +187,30 @@ class MyBabyScreen extends StatelessWidget {
               );
             },
           ),
-          /*
+
           const SizedBox(height: 16),
-          _babyCard(
+          _babyCardJournal(
             emoji: '📔',
             title: 'Journal',
-            subtitle: 'Today: 0 times',
+
             gradient: LinearGradient(
               colors: [Colors.purple.shade100, Colors.indigo.shade200],
             ),
             textColor: Colors.purple.shade600,
             bgColor: Colors.purple.shade50,
-            onPlusPressed: () {},
+            onReportPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (context) => const JournalPage(),
+              );
+            },
           ),
-          */
+
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
@@ -333,6 +344,49 @@ class MyBabyScreen extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _babyCardJournal({
+    required String emoji,
+    required String title,
+
+    required LinearGradient gradient,
+    required Color textColor,
+    required Color bgColor,
+
+    void Function()? onReportPressed,
+  }) {
+    return InkWell(
+      onTap: onReportPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white, width: 4),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 32)),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
