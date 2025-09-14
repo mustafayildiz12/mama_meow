@@ -189,7 +189,9 @@ class _SleepExtendedMultiSliderBottomSheetState
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.kLightOrange,
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade200, Colors.purple.shade200],
+            ),
             borderRadius: BorderRadius.only(topLeft: radius, topRight: radius),
             boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
           ),
@@ -209,7 +211,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                
+
                       /*
                        const SizedBox(height: 8),Ğ
                       Row(
@@ -272,14 +274,14 @@ class _SleepExtendedMultiSliderBottomSheetState
                           ],
                         ),
                       ),
-                
+
                       Builder(
                         builder: (context) {
                           final r = _ranges.first;
                           final startLabel = _label(r.start.round());
                           final endLabel = _label(r.end.round());
                           final crossesMidnight = r.end > kDayMinutes;
-                
+
                           return Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -294,7 +296,12 @@ class _SleepExtendedMultiSliderBottomSheetState
                               border: Border.all(color: Colors.black12),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                12,
+                                12,
+                                10,
+                              ),
                               child: Column(
                                 children: [
                                   Row(
@@ -313,7 +320,9 @@ class _SleepExtendedMultiSliderBottomSheetState
                                         maintainState: true,
                                         child: IconButton(
                                           tooltip: "Kaldır",
-                                          icon: const Icon(Icons.delete_outline),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                          ),
                                           onPressed: () {
                                             // setState(() => _ranges.removeAt(i));
                                           },
@@ -410,11 +419,11 @@ class _SleepExtendedMultiSliderBottomSheetState
                           );
                         },
                       ),
-                
+
                       //TODO çoklu istenirse açalım
                       //rangeList(),
                       const SizedBox(height: 16),
-                
+
                       _ChipPickerSection(
                         title: "Start of sleep",
                         items: SleepOptions.startOfSleepOptions,
@@ -423,7 +432,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                         iconBuilder: _iconForStartOfSleep,
                       ),
                       const SizedBox(height: 16),
-                
+
                       _ChipPickerSection(
                         title: "End of sleep",
                         items: SleepOptions.endOfSleepOptions,
@@ -432,7 +441,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                         iconBuilder: _iconForEndOfSleep,
                       ),
                       const SizedBox(height: 16),
-                
+
                       _ChipPickerSection(
                         title: "How it happened",
                         items: SleepOptions.howItHappenedOptions,

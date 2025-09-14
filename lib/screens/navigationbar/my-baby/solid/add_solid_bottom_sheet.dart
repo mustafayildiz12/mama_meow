@@ -65,7 +65,9 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.kLightOrange,
+            gradient: LinearGradient(
+              colors: [Colors.orange.shade200, Colors.yellow.shade200],
+            ),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),
@@ -96,7 +98,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                       const SizedBox(height: 12),
 
                       FoodChipPickerSection(
-                        title: "Add Solid",
+                        title: "Recent Foods",
                         items: kSolidFoods,
                         value: _selectedSolid, // String? (ör. "Banana")
                         onChanged: (value) =>
@@ -332,7 +334,7 @@ class FoodChipPickerSection extends StatelessWidget {
             children: [
               for (final f in items)
                 Padding(
-                  padding: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.only(right: 8),
                   child: _FoodChipTile(
                     label: f.name,
                     asset: f.asset,
@@ -370,7 +372,7 @@ class _FoodChipTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
-        width: 110, // kare kare görünüm için sabit bir genişlik iyi oluyor
+        width: 100, // kare kare görünüm için sabit bir genişlik iyi oluyor
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -395,9 +397,15 @@ class _FoodChipTile extends StatelessWidget {
           children: [
             // SVG görseli
             SizedBox(
-              width: 48,
-              height: 48,
-              child: SvgPicture.asset(asset, width: 48, height: 48, fit: BoxFit.contain)),
+              width: 32,
+              height: 32,
+              child: SvgPicture.asset(
+                asset,
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+              ),
+            ),
             const SizedBox(height: 8),
             // İsim
             Text(

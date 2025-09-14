@@ -47,297 +47,310 @@ class _SleepReportPageState extends State<SleepReportPage> {
   @override
   Widget build(BuildContext context) {
     final todayStr = DateFormat('EEEE, d MMM').format(DateTime.now());
-    return Scaffold(
-      backgroundColor: AppColors.kLightOrange,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppColors.kLightOrange,
-        title: const Text("Today's Sleep Report"),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade200, Colors.purple.shade200],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: FutureBuilder<List<SleepModel>>(
-          future: _futureToday,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingView();
-            }
-            if (snapshot.hasError) {
-              return _CenteredMessage(
-                emoji: '⚠️',
-                title: 'Something went wrong',
-                subtitle: snapshot.error.toString(),
-              );
-            }
-            final sleeps = snapshot.data ?? [];
-            if (sleeps.isEmpty) {
-              return const _CenteredMessage(
-                emoji: '😴',
-                title: 'No sleep records today',
-                subtitle: 'Log a sleep to see insights here.',
-              );
-            }
-
-            // ---- Aggregate ----
-            final minutesList = <int>[];
-            final byHourRaw = <int, int>{}; // 0..23 -> toplam dakika
-            final byStartMood =
-                <String, int>{}; // upset, crying, content, under10, 10-30, >30
-            final byEndMood =
-                <String, int>{}; // woke up child, upset, content, crying
-            final byHow =
-                <String, int>{}; // nursing, own bed, next to caregiver, ...
-
-            DateTime? latestEnd; // son bitiş zamanı
-            String lastEndStr = '-';
-
-            for (final s in sleeps) {
-              final dur = _calcDurationMinutes(s); // cross-midnight aware
-              minutesList.add(dur);
-
-              // start hour bucket
-              final h = _parseHourSafe(s.startTime);
-              byHourRaw[h] = (byHourRaw[h] ?? 0) + dur;
-
-              // moods & how
-              if ((s.startOfSleep ?? '').trim().isNotEmpty) {
-                final k = _normalizeLabel(s.startOfSleep!);
-                byStartMood[k] = (byStartMood[k] ?? 0) + 1;
-              } else {
-                byStartMood['none'] = (byStartMood['none'] ?? 0) + 1;
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          title: const Text("Today's Sleep Report"),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: FutureBuilder<List<SleepModel>>(
+            future: _futureToday,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const _LoadingView();
+              }
+              if (snapshot.hasError) {
+                return _CenteredMessage(
+                  emoji: '⚠️',
+                  title: 'Something went wrong',
+                  subtitle: snapshot.error.toString(),
+                );
+              }
+              final sleeps = snapshot.data ?? [];
+              if (sleeps.isEmpty) {
+                return const _CenteredMessage(
+                  emoji: '😴',
+                  title: 'No sleep records today',
+                  subtitle: 'Log a sleep to see insights here.',
+                );
               }
 
-              if ((s.endOfSleep ?? '').trim().isNotEmpty) {
-                final k = _normalizeLabel(s.endOfSleep!);
-                byEndMood[k] = (byEndMood[k] ?? 0) + 1;
-              } else {
-                byEndMood['none'] = (byEndMood['none'] ?? 0) + 1;
+              // ---- Aggregate ----
+              final minutesList = <int>[];
+              final byHourRaw = <int, int>{}; // 0..23 -> toplam dakika
+              final byStartMood =
+                  <
+                    String,
+                    int
+                  >{}; // upset, crying, content, under10, 10-30, >30
+              final byEndMood =
+                  <String, int>{}; // woke up child, upset, content, crying
+              final byHow =
+                  <String, int>{}; // nursing, own bed, next to caregiver, ...
+
+              DateTime? latestEnd; // son bitiş zamanı
+              String lastEndStr = '-';
+
+              for (final s in sleeps) {
+                final dur = _calcDurationMinutes(s); // cross-midnight aware
+                minutesList.add(dur);
+
+                // start hour bucket
+                final h = _parseHourSafe(s.startTime);
+                byHourRaw[h] = (byHourRaw[h] ?? 0) + dur;
+
+                // moods & how
+                if ((s.startOfSleep ?? '').trim().isNotEmpty) {
+                  final k = _normalizeLabel(s.startOfSleep!);
+                  byStartMood[k] = (byStartMood[k] ?? 0) + 1;
+                } else {
+                  byStartMood['none'] = (byStartMood['none'] ?? 0) + 1;
+                }
+
+                if ((s.endOfSleep ?? '').trim().isNotEmpty) {
+                  final k = _normalizeLabel(s.endOfSleep!);
+                  byEndMood[k] = (byEndMood[k] ?? 0) + 1;
+                } else {
+                  byEndMood['none'] = (byEndMood['none'] ?? 0) + 1;
+                }
+
+                if ((s.howItHappened ?? '').trim().isNotEmpty) {
+                  final k = _normalizeLabel(s.howItHappened!);
+                  byHow[k] = (byHow[k] ?? 0) + 1;
+                } else {
+                  byHow['none'] = (byHow['none'] ?? 0) + 1;
+                }
+
+                // last end time (latest by end datetime)
+                final endDt = _combineDateAndTime(
+                  s.sleepDate,
+                  s.endTime,
+                  allowNextDay: true,
+                );
+                if (endDt != null &&
+                    (latestEnd == null || endDt.isAfter(latestEnd))) {
+                  latestEnd = endDt;
+                  lastEndStr = DateFormat('HH:mm').format(endDt);
+                }
               }
 
-              if ((s.howItHappened ?? '').trim().isNotEmpty) {
-                final k = _normalizeLabel(s.howItHappened!);
-                byHow[k] = (byHow[k] ?? 0) + 1;
-              } else {
-                byHow['none'] = (byHow['none'] ?? 0) + 1;
+              final totalMinutes = minutesList.fold<int>(
+                0,
+                (sum, m) => sum + m,
+              );
+              final napsCount = sleeps.length;
+              final avgMinutes = napsCount == 0
+                  ? 0
+                  : (totalMinutes / napsCount).round();
+
+              // Saat 0..23 eksiksiz ve sıralı
+              final byHour = <_KV>[];
+              for (int h = 0; h < 24; h++) {
+                byHour.add(
+                  _KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)),
+                );
               }
 
-              // last end time (latest by end datetime)
-              final endDt = _combineDateAndTime(
-                s.sleepDate,
-                s.endTime,
-                allowNextDay: true,
-              );
-              if (endDt != null &&
-                  (latestEnd == null || endDt.isAfter(latestEnd))) {
-                latestEnd = endDt;
-                lastEndStr = DateFormat('HH:mm').format(endDt);
+              // how-it-happened pasta
+              final howList =
+                  byHow.entries.map((e) => _KV(e.key, e.value)).toList()
+                    ..sort((a, b) => b.v.compareTo(a.v));
+
+              // moods barlar
+              final startMoodList =
+                  byStartMood.entries.map((e) => _KV(e.key, e.value)).toList()
+                    ..sort((a, b) => b.v.compareTo(a.v));
+              final endMoodList =
+                  byEndMood.entries.map((e) => _KV(e.key, e.value)).toList()
+                    ..sort((a, b) => b.v.compareTo(a.v));
+
+              final sortedByDuration = <_SleepWithDur>[];
+              for (final s in sleeps) {
+                sortedByDuration.add(_SleepWithDur(s, _calcDurationMinutes(s)));
               }
-            }
+              sortedByDuration.sort((a, b) {
+                final aDt = _combineDateAndTime(
+                  a.model.sleepDate,
+                  a.model.startTime,
+                );
+                final bDt = _combineDateAndTime(
+                  b.model.sleepDate,
+                  b.model.startTime,
+                );
+                if (aDt == null && bDt == null) return 0;
+                if (aDt == null) return 1; // null en sona
+                if (bDt == null) return -1;
+                return aDt.compareTo(bDt); // küçükten büyüğe
+              });
 
-            final totalMinutes = minutesList.fold<int>(0, (sum, m) => sum + m);
-            final napsCount = sleeps.length;
-            final avgMinutes = napsCount == 0
-                ? 0
-                : (totalMinutes / napsCount).round();
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: [
+                  _HeaderCard(
+                    dateLabel: todayStr,
+                    total: _fmtMin(totalMinutes),
+                    naps: napsCount,
+                    avg: _fmtMin(avgMinutes),
+                    lastEndTime: lastEndStr,
+                  ),
+                  const SizedBox(height: 16),
 
-            // Saat 0..23 eksiksiz ve sıralı
-            final byHour = <_KV>[];
-            for (int h = 0; h < 24; h++) {
-              byHour.add(
-                _KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)),
-              );
-            }
-
-            // how-it-happened pasta
-            final howList =
-                byHow.entries.map((e) => _KV(e.key, e.value)).toList()
-                  ..sort((a, b) => b.v.compareTo(a.v));
-
-            // moods barlar
-            final startMoodList =
-                byStartMood.entries.map((e) => _KV(e.key, e.value)).toList()
-                  ..sort((a, b) => b.v.compareTo(a.v));
-            final endMoodList =
-                byEndMood.entries.map((e) => _KV(e.key, e.value)).toList()
-                  ..sort((a, b) => b.v.compareTo(a.v));
-
-            final sortedByDuration = <_SleepWithDur>[];
-            for (final s in sleeps) {
-              sortedByDuration.add(_SleepWithDur(s, _calcDurationMinutes(s)));
-            }
-            sortedByDuration.sort((a, b) {
-              final aDt = _combineDateAndTime(
-                a.model.sleepDate,
-                a.model.startTime,
-              );
-              final bDt = _combineDateAndTime(
-                b.model.sleepDate,
-                b.model.startTime,
-              );
-              if (aDt == null && bDt == null) return 0;
-              if (aDt == null) return 1; // null en sona
-              if (bDt == null) return -1;
-              return aDt.compareTo(bDt); // küçükten büyüğe
-            });
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                _HeaderCard(
-                  dateLabel: todayStr,
-                  total: _fmtMin(totalMinutes),
-                  naps: napsCount,
-                  avg: _fmtMin(avgMinutes),
-                  lastEndTime: lastEndStr,
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "Distribution by start hour",
-                  subtitle: "When sleep started (sum of minutes per hour)",
-                  child: SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      backgroundColor: Colors.transparent,
-                      primaryXAxis: CategoryAxis(
-                        majorGridLines: const MajorGridLines(width: 0),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.4),
-                        axisLine: const AxisLine(width: 0),
-                        labelFormat: '{value}m',
-                      ),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      enableAxisAnimation: true,
-                      series: [
-                        ColumnSeries<_KV, String>(
-                          dataSource: byHour,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelMapper: (e, _) =>
-                              e.v == 0 ? "" : _fmtMinutes(e.v),
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          color: AppColors.kDeepOrange,
-                          name: 'Minutes',
+                  _SectionCard(
+                    title: "Distribution by start hour",
+                    subtitle: "When sleep started (sum of minutes per hour)",
+                    child: SizedBox(
+                      height: 220,
+                      child: SfCartesianChart(
+                        backgroundColor: Colors.transparent,
+                        primaryXAxis: CategoryAxis(
+                          majorGridLines: const MajorGridLines(width: 0),
                         ),
+                        primaryYAxis: NumericAxis(
+                          majorGridLines: const MajorGridLines(width: 0.4),
+                          axisLine: const AxisLine(width: 0),
+                          labelFormat: '{value}m',
+                        ),
+                        tooltipBehavior: TooltipBehavior(enable: true),
+                        enableAxisAnimation: true,
+                        series: [
+                          ColumnSeries<_KV, String>(
+                            dataSource: byHour,
+                            xValueMapper: (e, _) => e.k,
+                            yValueMapper: (e, _) => e.v,
+                            dataLabelMapper: (e, _) =>
+                                e.v == 0 ? "" : _fmtMinutes(e.v),
+                            dataLabelSettings: const DataLabelSettings(
+                              isVisible: true,
+                            ),
+                            color: AppColors.kDeepOrange,
+                            name: 'Minutes',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _SectionCard(
+                    title: "How it happened",
+                    subtitle: "Sleep method distribution",
+                    child: SizedBox(
+                      height: 240,
+                      child: SfCircularChart(
+                        backgroundColor: Colors.transparent,
+                        legend: const Legend(
+                          isVisible: true,
+                          overflowMode: LegendItemOverflowMode.wrap,
+                        ),
+                        series: <CircularSeries<_KV, String>>[
+                          PieSeries<_KV, String>(
+                            dataSource: howList,
+                            xValueMapper: (e, _) => e.k,
+                            yValueMapper: (e, _) => e.v,
+                            dataLabelSettings: const DataLabelSettings(
+                              isVisible: true,
+                            ),
+                            explode: true,
+                            explodeIndex: 0,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _SectionCard(
+                    title: "Start of sleep",
+                    subtitle:
+                        "upset, crying, content, under 10 min, 10–30 min, >30 min",
+                    child: SizedBox(
+                      height: 220,
+                      child: SfCartesianChart(
+                        backgroundColor: Colors.transparent,
+                        primaryXAxis: CategoryAxis(
+                          majorGridLines: const MajorGridLines(width: 0),
+                        ),
+                        primaryYAxis: NumericAxis(
+                          majorGridLines: const MajorGridLines(width: 0.4),
+                          axisLine: const AxisLine(width: 0),
+                        ),
+                        tooltipBehavior: TooltipBehavior(enable: true),
+                        series: [
+                          BarSeries<_KV, String>(
+                            dataSource: startMoodList,
+                            xValueMapper: (e, _) => e.k,
+                            yValueMapper: (e, _) => e.v,
+                            dataLabelSettings: const DataLabelSettings(
+                              isVisible: true,
+                            ),
+                            name: 'Count',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _SectionCard(
+                    title: "End of sleep",
+                    subtitle: "woke up child, upset, content, crying",
+                    child: SizedBox(
+                      height: 220,
+                      child: SfCartesianChart(
+                        backgroundColor: Colors.transparent,
+                        primaryXAxis: CategoryAxis(
+                          majorGridLines: const MajorGridLines(width: 0),
+                        ),
+                        primaryYAxis: NumericAxis(
+                          majorGridLines: const MajorGridLines(width: 0.4),
+                          axisLine: const AxisLine(width: 0),
+                        ),
+                        tooltipBehavior: TooltipBehavior(enable: true),
+                        series: [
+                          BarSeries<_KV, String>(
+                            dataSource: endMoodList,
+                            xValueMapper: (e, _) => e.k,
+                            yValueMapper: (e, _) => e.v,
+                            dataLabelSettings: const DataLabelSettings(
+                              isVisible: true,
+                            ),
+                            name: 'Count',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _SectionCard(
+                    title: "Longest sleeps",
+                    subtitle: "Top 5 by duration",
+                    child: Column(
+                      children: [
+                        for (final e in sortedByDuration)
+                          _TopSleepTile(
+                            label: "${e.model.startTime} → ${e.model.endTime}",
+                            minutes: e.minutes,
+                            ratio: sortedByDuration.isEmpty
+                                ? 0
+                                : (e.minutes / sortedByDuration.first.minutes),
+                          ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "How it happened",
-                  subtitle: "Sleep method distribution",
-                  child: SizedBox(
-                    height: 240,
-                    child: SfCircularChart(
-                      backgroundColor: Colors.transparent,
-                      legend: const Legend(
-                        isVisible: true,
-                        overflowMode: LegendItemOverflowMode.wrap,
-                      ),
-                      series: <CircularSeries<_KV, String>>[
-                        PieSeries<_KV, String>(
-                          dataSource: howList,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          explode: true,
-                          explodeIndex: 0,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "Start of sleep",
-                  subtitle:
-                      "upset, crying, content, under 10 min, 10–30 min, >30 min",
-                  child: SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      backgroundColor: Colors.transparent,
-                      primaryXAxis: CategoryAxis(
-                        majorGridLines: const MajorGridLines(width: 0),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.4),
-                        axisLine: const AxisLine(width: 0),
-                      ),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: [
-                        BarSeries<_KV, String>(
-                          dataSource: startMoodList,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          name: 'Count',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "End of sleep",
-                  subtitle: "woke up child, upset, content, crying",
-                  child: SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      backgroundColor: Colors.transparent,
-                      primaryXAxis: CategoryAxis(
-                        majorGridLines: const MajorGridLines(width: 0),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.4),
-                        axisLine: const AxisLine(width: 0),
-                      ),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: [
-                        BarSeries<_KV, String>(
-                          dataSource: endMoodList,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          name: 'Count',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "Longest sleeps",
-                  subtitle: "Top 5 by duration",
-                  child: Column(
-                    children: [
-                      for (final e in sortedByDuration)
-                        _TopSleepTile(
-                          label: "${e.model.startTime} → ${e.model.endTime}",
-                          minutes: e.minutes,
-                          ratio: sortedByDuration.isEmpty
-                              ? 0
-                              : (e.minutes / sortedByDuration.first.minutes),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
