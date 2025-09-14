@@ -93,19 +93,17 @@ class AuthenticationService {
       );
       final bool isUserExist = await checkUserExist(userCredential: credential);
       if (isUserExist) {
-        await Future.wait([
-          databaseService.addUserToRealTime(
-            MeowUserModel(
-              uid: credential.user!.uid,
-              babyName: currentMeowUser?.babyName,
-              ageRange: currentMeowUser?.ageRange,
-              userEmail: email,
-              userName: name,
-              userPassword: password,
-              createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
-            ),
+        await databaseService.addUserToRealTime(
+          MeowUserModel(
+            uid: credential.user!.uid,
+            babyName: currentMeowUser?.babyName,
+            ageRange: currentMeowUser?.ageRange,
+            userEmail: email,
+            userName: name,
+            userPassword: password,
+            createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
           ),
-        ]);
+        );
 
         await databaseService.getAdminBasicInfoFromRealTime(
           credential.user!.uid,

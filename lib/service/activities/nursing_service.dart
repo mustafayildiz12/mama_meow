@@ -1,32 +1,32 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:firebase_database/firebase_database.dart';
-import 'package:mama_meow/models/activities/medicine_model.dart';
+import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
-/// MedicineService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
-/// İlaç kayıtlarının yönetimini sağlar.
-class MedicineService {
+/// NursingService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
+/// Emzirme kayıtlarının yönetimini sağlar.
+class NursingService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
-  /// Yeni bir ilaç kaydını Firebase'e ekler.
-  /// @param medicine - Eklenecek ilaç modeli
-  Future<void> addMedicine(MedicineModel medicine) async {
+  /// Yeni bir emzirme kaydını Firebase'e ekler.
+  /// @param nursing - Eklenecek emzirme modeli
+  Future<void> addNursing(NursingModel nursing) async {
     final user = authenticationService.getUser()!;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
-        .ref('medicine')
+        .ref('nursing')
         .child(user.uid)
         .child(createdAt)
-        .set(medicine.toMap());
+        .set(nursing.toMap());
   }
 
-  Future<List<MedicineModel>> getMedicineList() async {
-    final List<MedicineModel> medicines = [];
+  Future<List<NursingModel>> getNursingList() async {
+    final List<NursingModel> nursings = [];
     final user = authenticationService.getUser()!;
 
     final DatabaseReference ref = _realtimeDatabase
-        .ref('medicine')
+        .ref('nursing')
         .child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
@@ -39,18 +39,18 @@ class MedicineService {
           for (final value in raw.values) {
             if (value is Map) {
               final map = Map<String, dynamic>.from(value);
-              final model = MedicineModel.fromMap(map);
+              final model = NursingModel.fromMap(map);
 
-              medicines.add(model);
+              nursings.add(model);
             }
           }
         } else if (raw is List) {
           for (final item in raw) {
             if (item is Map) {
               final map = Map<String, dynamic>.from(item);
-              final model = MedicineModel.fromMap(map);
+              final model = NursingModel.fromMap(map);
 
-              medicines.add(model);
+              nursings.add(model);
             }
           }
         }
@@ -59,12 +59,12 @@ class MedicineService {
       print(e.toString());
     }
 
-    return medicines;
+    return nursings;
   }
 
-  Stream<int> todayMedicineCountStream() {
+  Stream<int> todayNursingCountStream() {
     final user = authenticationService.getUser()!;
-    final ref = FirebaseDatabase.instance.ref('medicine').child(user.uid);
+    final ref = FirebaseDatabase.instance.ref('nursing').child(user.uid);
 
     final now = DateTime.now().toLocal();
     final startMs = now.startOfDay.millisecondsSinceEpoch;
@@ -84,4 +84,4 @@ extension _Today on DateTime {
   DateTime get endOfDay => DateTime(year, month, day, 23, 59, 59, 999);
 }
 
-final MedicineService medicineService = MedicineService();
+final NursingService nursingService = NursingService();

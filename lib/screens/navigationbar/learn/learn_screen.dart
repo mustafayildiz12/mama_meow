@@ -166,8 +166,11 @@ class _LearnPageState extends State<LearnPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        DisplayPodcastPage(podcast: p),
+                                    builder: (_) => DisplayPodcastPage(
+                                      podcast: p,
+                                      podcastList: filtered,
+                                      currentIndex: i,
+                                    ),
                                   ),
                                 );
                               },

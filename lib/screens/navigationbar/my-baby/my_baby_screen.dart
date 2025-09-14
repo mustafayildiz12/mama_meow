@@ -4,6 +4,10 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/add_medicine_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/add_nursing_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
@@ -11,6 +15,8 @@ import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
+import 'package:mama_meow/service/activities/medicine_service.dart';
+import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
@@ -49,7 +55,7 @@ class MyBabyScreen extends StatelessWidget {
             builder: (context, snapshot) {
               int solidTime = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
-                emoji: '🍼',
+                emoji: '🍛',
                 title: 'Solid',
                 subtitle: 'Today: $solidTime times',
                 gradient: LinearGradient(
@@ -182,6 +188,85 @@ class MyBabyScreen extends StatelessWidget {
                       ),
                     ),
                     builder: (context) => const AddPumpingBottomSheet(),
+                  );
+                },
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+          StreamBuilder(
+            stream: medicineService.todayMedicineCountStream(),
+            builder: (context, snapshot) {
+              int medicineCount = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '💊',
+                title: 'Medicine',
+                subtitle: 'Today: $medicineCount times',
+                gradient: LinearGradient(
+                  colors: [Colors.red.shade100, Colors.pink.shade200],
+                ),
+                textColor: Colors.red.shade700,
+                bgColor: Colors.red.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MedicineReportPage(),
+                    ),
+                  );
+                },
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) =>
+                        AddMedicineBottomSheet(selectedDate: DateTime.now()),
+                  );
+                },
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+          StreamBuilder(
+            stream: nursingService.todayNursingCountStream(),
+            builder: (context, snapshot) {
+              int nursingCount = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '🍼',
+                title: 'Nursing',
+                subtitle: 'Today: $nursingCount times',
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade100, Colors.teal.shade200],
+                ),
+                textColor: Colors.green.shade700,
+                bgColor: Colors.green.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NursingReportPage(),
+                    ),
+                  );
+                },
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => const AddNursingBottomSheet(),
                   );
                 },
               );

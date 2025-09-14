@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/models/activities/journal_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
+import 'package:mama_meow/service/activities/journal_service.dart';
+import 'package:mama_meow/service/activities/medicine_service.dart';
+import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
@@ -37,8 +42,8 @@ class JournalPage extends StatelessWidget {
     // );
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.5,
-      minChildSize: 0.4,
+      initialChildSize: 0.92,
+      minChildSize: 0.6,
       maxChildSize: 0.96,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
@@ -71,44 +76,212 @@ class JournalPage extends StatelessWidget {
               //   },
               // ),
               // const SizedBox(height: 12),
-
-              // 2x2 grid — responsive olarak Wrap kullanalım
               Expanded(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _SummaryCard<int>(
-                      title: "Sleep",
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 2x2 grid — responsive olarak Wrap kullanalım
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _SummaryCard<int>(
+                            title: "Sleep",
+                            icon: Icons.nightlight_round,
+                            stream: sleepService.todaySleepCountStream(),
+                            color: Colors.blue.shade200.withValues(alpha: 0.6),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Solid",
+                            icon: Icons.restaurant,
+                            stream: solidService.todaySolidCountStream(),
+                            color: Colors.orange.shade200.withValues(
+                              alpha: 0.6,
+                            ),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Pumping",
+                            icon: Icons.published_with_changes,
+                            stream: pumpingService.todayPumpingCountStream(),
+                            color: Colors.pink.shade200.withValues(alpha: 0.6),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Diaper",
+                            icon: Icons.baby_changing_station,
+                            stream: diaperService.todayDiaperCountStream(),
+                            color: Colors.green.shade200.withValues(alpha: 0.6),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Medicine",
+                            icon: Icons.medication,
+                            stream: medicineService.todayMedicineCountStream(),
+                            color: Colors.red.shade200.withValues(alpha: 0.6),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Nursing",
+                            icon: Icons.child_care,
+                            stream: nursingService.todayNursingCountStream(),
+                            color: Colors.teal.shade200.withValues(alpha: 0.6),
+                            valueBuilder: (v) => "$v",
+                          ),
+                          _SummaryCard<int>(
+                            title: "Notes",
+                            icon: Icons.edit_note,
+                            stream: journalService.todayNoteCountStream(),
+                            color: Colors.purple.shade200.withValues(
+                              alpha: 0.6,
+                            ),
+                            valueBuilder: (v) => "$v",
+                          ),
+                        ],
+                      ),
 
-                      icon: Icons.nightlight_round,
-                      stream: sleepService.todaySleepCountStream(),
-                      color: theme.primaryColorLight.withValues(alpha: 0.15),
-                      valueBuilder: (v) => "$v",
+                      const SizedBox(height: 24),
+
+                      // Today's Notes Section
+                      Text(
+                        "Today's Notes",
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Notes List
+                      StreamBuilder(
+                        stream: journalService.todayNotesStream(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red.shade600,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Failed to load notes',
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          final notes = snapshot.data ?? [];
+
+                          if (notes.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.purple.shade200,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.note_add_outlined,
+                                    size: 48,
+                                    color: Colors.purple.shade400,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No notes yet today',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.purple.shade700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Tap "Add Note" to capture your thoughts',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: Colors.purple.shade600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: notes
+                                .map((note) => _NoteCard(note: note))
+                                .toList(),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Add Note Button
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    _SummaryCard<int>(
-                      title: "Solid",
-                      icon: Icons.restaurant,
-                      stream: solidService.todaySolidCountStream(),
-                      color: theme.highlightColor.withValues(alpha: 0.15),
-                      valueBuilder: (v) => "$v",
-                    ),
-                    _SummaryCard<int>(
-                      title: "Pumping",
-                      icon: Icons
-                          .published_with_changes, // veya breast-pump simge yoksa alternatif
-                      stream: pumpingService.todayPumpingCountStream(),
-                      color: theme.focusColor.withValues(alpha: 0.15),
-                      valueBuilder: (v) => "$v",
-                    ),
-                    _SummaryCard<int>(
-                      title: "Diaper",
-                      icon: Icons.baby_changing_station,
-                      stream: diaperService.todayDiaperCountStream(),
-                      color: theme.secondaryHeaderColor.withValues(alpha: 0.15),
-                      valueBuilder: (v) => "$v",
-                    ),
-                  ],
+                  ),
+                  onPressed: () async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                      ),
+                      builder: (context) => const AddJournalNoteBottomSheet(),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Note'),
                 ),
               ),
 
@@ -260,69 +433,78 @@ class _SummaryCard<T> extends StatelessWidget {
   }
 }
 
-// (Opsiyonel) Toplam kartı
-class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.count});
+/// Individual note card widget
+class _NoteCard extends StatelessWidget {
+  const _NoteCard({required this.note});
 
-  final int count;
+  final JournalModel note;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.6),
-          width: 0.8,
-        ),
+        border: Border.all(color: Colors.purple.shade200, width: 1),
         boxShadow: [
           BoxShadow(
             color: theme.shadowColor.withValues(alpha: 0.08),
-            blurRadius: 12,
+            blurRadius: 8,
             spreadRadius: 1,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.primaryColorLight.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.today),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Toplam Aktivite",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+          // Header with time
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
-                  "Bugün yapılan tüm aktivitelerin toplamı",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.hintColor,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
+                      color: Colors.purple.shade700,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      note.formattedTime,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.purple.shade700,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              Icon(Icons.edit_note, size: 20, color: Colors.purple.shade400),
+            ],
           ),
+
+          const SizedBox(height: 12),
+
+          // Note content
           Text(
-            "$count",
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+            note.noteText,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              height: 1.4,
+              color: Colors.grey.shade800,
             ),
           ),
         ],
