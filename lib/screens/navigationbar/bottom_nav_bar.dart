@@ -18,7 +18,6 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
   final List<Widget> _pages = const [
     MamaMeowHomePage(),
     MyBabyScreen(),
-    //  MealPlansPage(),
     LearnPage(),
     ProfilePage(),
   ];
@@ -27,31 +26,33 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
-          color: Colors.white,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(icon: Icons.pets, label: 'Ask Meow', index: 0),
-            _buildNavItem(
-              icon: Icons.child_friendly,
-              label: 'My Baby',
-              index: 1,
-            ),
-            /*
-            _buildNavItem(
-              icon: Icons.restaurant_menu,
-              label: 'Meal Plan',
-              index: 2,
-            ),
-            */
-            _buildNavItem(icon: Icons.menu_book, label: 'Learn', index: 2),
-            _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
-          ],
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+            color: Colors.white,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(icon: Icons.pets, label: 'Ask Meow', index: 0),
+              _buildNavItem(
+                icon: Icons.child_friendly,
+                label: 'My Baby',
+                index: 1,
+              ),
+              /*
+              _buildNavItem(
+                icon: Icons.restaurant_menu,
+                label: 'Meal Plan',
+                index: 2,
+              ),
+              */
+              _buildNavItem(icon: Icons.menu_book, label: 'Learn', index: 2),
+              _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
+            ],
+          ),
         ),
       ),
     );

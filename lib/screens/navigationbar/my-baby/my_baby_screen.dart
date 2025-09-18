@@ -21,8 +21,39 @@ import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
-class MyBabyScreen extends StatelessWidget {
+class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
+
+  @override
+  State<MyBabyScreen> createState() => _MyBabyScreenState();
+}
+
+class _MyBabyScreenState extends State<MyBabyScreen> {
+  late final Stream<int> _solidCount$;
+  late final Stream<int> _sleepCount$;
+  late final Stream<int> _diaperCount$;
+  late final Stream<int> _pumpingCount$;
+  late final Stream<int> _medicineCount$;
+  late final Stream<int> _nursingCount$;
+
+  @override
+  void initState() {
+    super.initState();
+    // Eğer service zaten broadcast veriyorsa .asBroadcastStream() şart değil,
+    // emin değilsen ekle (zararı yok):
+    _solidCount$ = solidService.todaySolidCountStream().asBroadcastStream();
+    _sleepCount$ = sleepService.todaySleepCountStream().asBroadcastStream();
+    _diaperCount$ = diaperService.todayDiaperCountStream().asBroadcastStream();
+    _pumpingCount$ = pumpingService
+        .todayPumpingCountStream()
+        .asBroadcastStream();
+    _medicineCount$ = medicineService
+        .todayMedicineCountStream()
+        .asBroadcastStream();
+    _nursingCount$ = nursingService
+        .todayNursingCountStream()
+        .asBroadcastStream();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +82,7 @@ class MyBabyScreen extends StatelessWidget {
             ),
           ),
           StreamBuilder(
-            stream: solidService.todaySolidCountStream(),
+            stream: _solidCount$,
             builder: (context, snapshot) {
               int solidTime = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
@@ -87,7 +118,7 @@ class MyBabyScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           StreamBuilder(
-            stream: sleepService.todaySleepCountStream(),
+            stream: _sleepCount$,
             builder: (context, snapshot) {
               int sleepTime = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
@@ -121,7 +152,7 @@ class MyBabyScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           StreamBuilder(
-            stream: diaperService.todayDiaperCountStream(),
+            stream: _diaperCount$,
             builder: (context, snapshot) {
               int diaperTime = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
@@ -157,7 +188,7 @@ class MyBabyScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           StreamBuilder(
-            stream: pumpingService.todayPumpingCountStream(),
+            stream: _pumpingCount$,
             builder: (context, snapshot) {
               int pumpingTime = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
@@ -196,7 +227,7 @@ class MyBabyScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
           StreamBuilder(
-            stream: medicineService.todayMedicineCountStream(),
+            stream: _medicineCount$,
             builder: (context, snapshot) {
               int medicineCount = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(

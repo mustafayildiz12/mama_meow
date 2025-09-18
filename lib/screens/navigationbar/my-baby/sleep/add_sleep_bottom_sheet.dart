@@ -202,7 +202,6 @@ class _SleepExtendedMultiSliderBottomSheetState
                   padding: EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      const SizedBox(height: 8),
                       Container(
                         width: 44,
                         height: 5,

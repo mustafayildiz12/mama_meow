@@ -42,7 +42,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
+      initialChildSize: 0.7,
       minChildSize: 0.5,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
@@ -61,14 +61,10 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    bottom: 16,
-                  ),
+                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: Column(
                     children: [
+                      SizedBox(height: 16),
                       Container(
                         width: 40,
                         height: 4,

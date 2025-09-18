@@ -46,7 +46,7 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                     bottom: 16,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                   
                     children: [
                       Container(
                         width: 40,
@@ -59,21 +59,24 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                       ),
                       const SizedBox(height: 12),
 
-                      _ChipPickerSection<String?>(
-                        labelBuilder: (v) => v!,
-                        items: ["Left", "Right"],
-                        title: "Pick Side",
-                        value: _selectedSide,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSide = value;
-                            if (_selectedSide == "Left") {
-                              isLeft = true;
-                            } else {
-                              isLeft = false;
-                            }
-                          });
-                        },
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _ChipPickerSection<String?>(
+                          labelBuilder: (v) => v!,
+                          items: ["Left", "Right"],
+                          title: "Pick Side",
+                          value: _selectedSide,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSide = value;
+                              if (_selectedSide == "Left") {
+                                isLeft = true;
+                              } else {
+                                isLeft = false;
+                              }
+                            });
+                          },
+                        ),
                       ),
                       const SizedBox(height: 24),
 
