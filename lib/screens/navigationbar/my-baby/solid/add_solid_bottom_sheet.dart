@@ -1,10 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/models/activities/custom_solid_model.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/models/solid_food.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.dart';
+import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
@@ -16,6 +20,7 @@ class AddSolidBottomSheet extends StatefulWidget {
 
 class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
   String? _selectedSolid;
+  String? selectedCustomSolid;
   int _amount = 1;
   TimeOfDay _time = TimeOfDay.now();
   Reaction? _reaction;
@@ -25,39 +30,17 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     return DateFormat('HH:mm').format(dt);
   }
 
-  void _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-    );
-    if (picked != null) setState(() => _time = picked);
-  }
+  List<CustomSolidModel> customSolids = [];
 
-  Future<void> _save() async {
-    if (_selectedSolid == null || _amount <= 0) return;
-
-    final model = SolidModel(
-      solidName: _selectedSolid!,
-      solidAmount: _amount.toString(),
-      createdAt: DateTime.now().toIso8601String(),
-      eatTime: _eatTimeStr,
-      reactions: _reaction,
-    );
-
-    await solidService.addSolid(model);
-
-    Navigator.pop(context, true);
-    //  Navigator.of(context).pop(model);
+  @override
+  void initState() {
+    getPageData();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.5,
@@ -105,6 +88,107 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                             setState(() => _selectedSolid = value),
                       ),
                       const SizedBox(height: 12),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text("Custom Foods"),
+                              IconButton(
+                                onPressed: () async {
+                                  await showDialog(
+                                    context: context,
+
+                                    builder: (_) =>
+                                        const AddCustomSolidBottomSheet(),
+                                  ).then((v) async {
+                                    if (v != null) {
+                                      await getPageData();
+                                    }
+                                  });
+
+                                  // result != null ise başarılı kayıttır.
+                                },
+                                icon: Icon(Icons.add_box, color: Colors.white),
+                              ),
+                            ],
+                          ),
+
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                for (final item in customSolids) ...[
+                                  Container(
+                                    width: 100,
+                                    margin: EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: theme.scaffoldBackgroundColor,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: selectedCustomSolid == item.name
+                                            ? theme.primaryColorLight
+                                            : theme.dividerColor.withOpacity(
+                                                0.6,
+                                              ),
+                                        width: selectedCustomSolid == item.name
+                                            ? 1.2
+                                            : 0.8,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: theme.shadowColor.withOpacity(
+                                            selectedCustomSolid == item.name
+                                                ? 0.12
+                                                : 0.06,
+                                          ),
+                                          blurRadius:
+                                              selectedCustomSolid == item.name
+                                              ? 12
+                                              : 8,
+                                          spreadRadius: 1,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                            child: CachedNetworkImage(
+                                              imageUrl: item.solidLink,
+                                              width: 48,
+                                              height: 48,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      Icon(Icons.error),
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(item.name),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
 
                       // Miktar +/-
                       Row(
@@ -236,6 +320,46 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
       case Reaction.allergicOrSensitivity:
         return Icons.warning_amber;
     }
+  }
+
+  void _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null) setState(() => _time = picked);
+  }
+
+  Future<void> _save() async {
+    if (_selectedSolid == null || _amount <= 0) return;
+
+    final model = SolidModel(
+      solidName: _selectedSolid!,
+      solidAmount: _amount.toString(),
+      createdAt: DateTime.now().toIso8601String(),
+      eatTime: _eatTimeStr,
+      reactions: _reaction,
+    );
+
+    await solidService.addSolid(model);
+
+    Navigator.pop(context, true);
+    //  Navigator.of(context).pop(model);
+  }
+
+  Future<void> getPageData() async {
+    List<CustomSolidModel> items = await addCustomSolidService
+        .getCustomSolids();
+
+    setState(() {
+      customSolids = items;
+    });
   }
 }
 

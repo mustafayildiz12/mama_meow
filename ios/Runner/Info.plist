@@ -7,7 +7,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to let you upload images and ask the AI questions.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Sesinizi metne dönüştürmek için mikrofon erişimi gerekiyor.</string>
+	<string>Microphone access is required to convert your voice to text.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to pick image for ai</string>
 	<key>CFBundleDevelopmentRegion</key>
