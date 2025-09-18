@@ -42,13 +42,6 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
                 label: 'My Baby',
                 index: 1,
               ),
-              /*
-              _buildNavItem(
-                icon: Icons.restaurant_menu,
-                label: 'Meal Plan',
-                index: 2,
-              ),
-              */
               _buildNavItem(icon: Icons.menu_book, label: 'Learn', index: 2),
               _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
             ],

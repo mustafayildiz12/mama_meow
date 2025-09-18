@@ -56,6 +56,38 @@ class SolidService {
     return sleeps;
   }
 
+  /// Belirli bir tarih aralığındaki solid'leri getirir (anahtar = epoch ms)
+  Future<List<SolidModel>> getUserSolidsInRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final user = authenticationService.getUser()!;
+    final ref = _realtimeDatabase.ref('solids').child(user.uid);
+
+    final startMs = start.toLocal().millisecondsSinceEpoch.toString();
+    final endMs = end.toLocal().millisecondsSinceEpoch.toString();
+
+    final snap = await ref.orderByKey().startAt(startMs).endAt(endMs).get();
+
+    final list = <SolidModel>[];
+    for (final child in snap.children) {
+      final val = child.value;
+      if (val is Map) {
+        final map = Map<String, dynamic>.from(val);
+        // DB'ye yazarken createdAt alanı map'te yoksa key'den üretelim:
+        map.putIfAbsent(
+          'createdAt',
+          () => DateTime.fromMillisecondsSinceEpoch(
+            int.parse(child.key!),
+            isUtc: false,
+          ).toIso8601String(),
+        );
+        list.add(SolidModel.fromMap(map));
+      }
+    }
+    return list;
+  }
+
   Stream<int> todaySolidCountStream() {
     final user = authenticationService.getUser()!;
     final ref = FirebaseDatabase.instance.ref('solids').child(user.uid);
@@ -73,9 +105,35 @@ class SolidService {
   }
 }
 
-extension _Today on DateTime {
+extension DateParts on DateTime {
   DateTime get startOfDay => DateTime(year, month, day);
   DateTime get endOfDay => DateTime(year, month, day, 23, 59, 59, 999);
+
+  /// TR için Pazartesi başlangıç
+  DateTime get startOfWeekTR {
+    // DateTime.monday = 1
+    final diff = weekday - DateTime.monday; // Pazartesi ise 0
+    return DateTime(year, month, day).subtract(Duration(days: diff)).startOfDay;
+  }
+
+  DateTime get endOfWeekTR =>
+      startOfWeekTR.add(const Duration(days: 6)).endOfDay;
+
+  // Aylık
+  DateTime get startOfMonth => DateTime(year, month, 1).startOfDay;
+  DateTime get endOfMonth {
+    final firstNextMonth = (month == 12)
+        ? DateTime(year + 1, 1, 1)
+        : DateTime(year, month + 1, 1);
+    return firstNextMonth.subtract(const Duration(milliseconds: 1));
+  }
+
+  int get daysInMonth {
+    final firstNextMonth = (month == 12)
+        ? DateTime(year + 1, 1, 1)
+        : DateTime(year, month + 1, 1);
+    return firstNextMonth.subtract(const Duration(days: 1)).day;
+  }
 }
 
 final SolidService solidService = SolidService();

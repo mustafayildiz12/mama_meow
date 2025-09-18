@@ -267,7 +267,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
 
           const SizedBox(height: 16),
           StreamBuilder(
-            stream: nursingService.todayNursingCountStream(),
+            stream: _nursingCount$,
             builder: (context, snapshot) {
               int nursingCount = snapshot.hasData ? snapshot.data! : 0;
               return _babyCard(
