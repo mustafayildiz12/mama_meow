@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -227,11 +228,21 @@ class _RegisterPageState extends State<RegisterPage> {
                                   isLoading = false;
                                 });
                                 if (isSucees) {
-                                  await Navigator.pushNamedAndRemoveUntil(
-                                    context,
-                                    AppRoutes.navigationBarPage,
-                                    (route) => false,
-                                  );
+                                  bool isUserPremium = InAppPurchaseService()
+                                      .checkUserHaveProduct();
+                                  if (isUserPremium) {
+                                    await Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      AppRoutes.navigationBarPage,
+                                      (route) => false,
+                                    );
+                                  } else {
+                                    await Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      AppRoutes.trialPage,
+                                      (route) => false,
+                                    );
+                                  }
                                 }
                               }
                             },

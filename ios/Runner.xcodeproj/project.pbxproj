@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		02E0ECEFEB066C6A60087A63 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 651F741BB1A303B56847FEDB /* Pods_RunnerTests.framework */; };
+		068CE3112E7EF1AC00DADCFB /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 068CE3102E7EF1AC00DADCFB /* StoreKit.framework */; };
+		06CC7F502E7F7F790046E5F5 /* config.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 06CC7F4F2E7F7F790046E5F5 /* config.storekit */; };
+		06CC7F522E7F80540046E5F5 /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 06CC7F512E7F80540046E5F5 /* StoreKitTestCertificate.cer */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -43,6 +46,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		068CE3102E7EF1AC00DADCFB /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		06CC7F4F2E7F7F790046E5F5 /* config.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = config.storekit; sourceTree = "<group>"; };
+		06CC7F512E7F80540046E5F5 /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -75,6 +81,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F604F2E12E679DD6E0E0CDA3 /* Pods_Runner.framework in Frameworks */,
+				068CE3112E7EF1AC00DADCFB /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +131,8 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
+				06CC7F4F2E7F7F790046E5F5 /* config.storekit */,
+				06CC7F512E7F80540046E5F5 /* StoreKitTestCertificate.cer */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
@@ -161,6 +170,7 @@
 		E8117D09CE6D1749649BFE4E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				068CE3102E7EF1AC00DADCFB /* StoreKit.framework */,
 				3CFA72787A65748DB3F2B09C /* Pods_Runner.framework */,
 				651F741BB1A303B56847FEDB /* Pods_RunnerTests.framework */,
 			);
@@ -262,6 +272,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06CC7F502E7F7F790046E5F5 /* config.storekit in Resources */,
+				06CC7F522E7F80540046E5F5 /* StoreKitTestCertificate.cer in Resources */,
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
@@ -481,6 +493,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yildiz.mamameow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -664,6 +677,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yildiz.mamameow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -687,6 +701,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yildiz.mamameow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

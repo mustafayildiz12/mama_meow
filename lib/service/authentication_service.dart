@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_utils/src/extensions/export.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
 import 'package:mama_meow/service/database_service.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 /// AuthenticationService, kullanıcı kimlik doğrulama işlemlerini yöneten servis sınıfıdır.
@@ -167,6 +167,7 @@ class AuthenticationService {
     bool isSuccess = false;
     try {
       await firebaseAuth.signOut();
+      await InAppPurchaseService().logoutSubs();
 
       final User? currentUser = getUser();
 

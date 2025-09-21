@@ -8,11 +8,18 @@ import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/firebase_options.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 
 class AppInitService {
   static Future<void> initApp() async {
     await init();
+    await initPurchase();
     await initRoute();
+  }
+
+  static initPurchase() async {
+    final iap = InAppPurchaseService();
+    await iap.initPlatformState(); // ÖNEMLİ: await
   }
 
   static Future<void> init() async {
@@ -35,7 +42,12 @@ class AppInitService {
           .getAdminBasicInfoFromRealTime(user.uid);
 
       if (isUserExist) {
-        AppRoutes.initialRoute = AppRoutes.navigationBarPage;
+        bool isUserPremium = InAppPurchaseService().checkUserHaveProduct();
+        if (isUserPremium) {
+          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
+        } else {
+          AppRoutes.initialRoute = AppRoutes.trialPage;
+        }
       }
     } else {
       bool? getStarted = await infoStorage.read("getStarted");
