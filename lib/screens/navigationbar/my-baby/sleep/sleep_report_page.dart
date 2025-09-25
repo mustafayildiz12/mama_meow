@@ -622,11 +622,12 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+     // color: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
+          color: Color(0xFFF6F1E9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.black12),
           boxShadow: const [

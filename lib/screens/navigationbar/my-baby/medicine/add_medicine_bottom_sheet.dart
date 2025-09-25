@@ -339,7 +339,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                         child: Row(
                           children: [
                             Expanded(
-                              flex: 3,
+                              flex: 6,
                               child: TextField(
                                 controller: _amountController,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -352,7 +352,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              flex: 2,
+                              flex: 5,
                               child: DropdownButtonFormField<String>(
                                 initialValue: _selectedAmountType,
                                 decoration: const InputDecoration(

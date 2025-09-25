@@ -46,7 +46,7 @@ class AppInitService {
         if (isUserPremium) {
           AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         } else {
-          AppRoutes.initialRoute = AppRoutes.trialPage;
+          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         }
       }
     } else {

@@ -90,7 +90,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
                 title: 'Solid',
                 subtitle: 'Today: $solidTime times',
                 gradient: LinearGradient(
-                  colors: [Colors.orange.shade200, Colors.yellow.shade200],
+                  colors: [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
                 ),
                 textColor: Colors.orange.shade700,
                 bgColor: Colors.orange.shade50,
@@ -196,7 +196,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
                 title: 'Pumping',
                 subtitle: 'Today: $pumpingTime times',
                 gradient: LinearGradient(
-                  colors: [Colors.pink.shade50, Colors.pink.shade100],
+                  colors: [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
                 ),
                 textColor: Colors.pink.shade700,
                 bgColor: Colors.pink.shade50,
@@ -235,7 +235,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
                 title: 'Medicine',
                 subtitle: 'Today: $medicineCount times',
                 gradient: LinearGradient(
-                  colors: [Colors.red.shade100, Colors.pink.shade200],
+                  colors: [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
                 ),
                 textColor: Colors.red.shade700,
                 bgColor: Colors.red.shade50,
@@ -275,7 +275,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
                 title: 'Nursing',
                 subtitle: 'Today: $nursingCount times',
                 gradient: LinearGradient(
-                  colors: [Colors.green.shade100, Colors.teal.shade200],
+                  colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
                 ),
                 textColor: Colors.green.shade700,
                 bgColor: Colors.green.shade50,
