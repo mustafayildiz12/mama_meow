@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart' show CupertinoSegmentedControl;
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -33,9 +33,14 @@ class _SolidReportPageState extends State<SolidReportPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.shade200, Colors.yellow.shade200],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF8FAFC), // #f8fafc
+            Color(0xFFF1F5F9),
+          ],
         ),
       ),
       child: Scaffold(
@@ -43,45 +48,129 @@ class _SolidReportPageState extends State<SolidReportPage> {
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
-          leadingWidth: 36,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.arrow_back_ios),
+            ),
+          ),
           title: Text(
-            _mode == ReportMode.today
-                ? "Today's Solid Report"
-                : _mode == ReportMode.week
-                ? "This Week's Solid Report"
-                : "This Month's Solid Report",
-            style: TextStyle(fontSize: 18),
+            "🥄   Food Reports",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: _Segmented(
-                  value: _mode,
-                  onChanged: (m) => setState(() => _mode = m),
-                ),
+              padding: const EdgeInsets.only(right: 20.0),
+              child: Text(
+                "📤",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,
-          child: _mode == ReportMode.today
-              ? todayBody()
-              : _mode == ReportMode.week
-              ? weeklyBody()
-              : monthlyBody(),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12, top: 12),
+                child: Center(
+                  child: GlassSegmented(
+                    value: _mode,
+                    onChanged: (m) => setState(() => _mode = m),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _mode == ReportMode.today
+                    ? todayBody()
+                    : _mode == ReportMode.week
+                    ? weeklyBody()
+                    : monthlyBody(),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget nutritionTips() {
+    return _SectionCard(
+      title: "AI Nutrition Tips",
+      leading: "🤖",
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("💡", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Excellent variety! Try introducing more finger foods to develop fine motor skills",
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("🌟", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Your baby seems to love sweet foods. Gradually mix in vegetables for balanced taste",
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("🍽️", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Consider iron-rich foods like spinach or lentils - perfect age for this nutrition!",
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget monthlyBody() {
     final now = DateTime.now();
-    final monthLabel = DateFormat(
-      "LLLL yyyy",
-      'en_US',
-    ).format(now); // Örn: Eylül 2025
 
     return FutureBuilder<List<SolidModel>>(
       future: _futureMonth,
@@ -114,8 +203,9 @@ class _SolidReportPageState extends State<SolidReportPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             _SectionCard(
-              title: "This Month • $monthLabel",
-              subtitle: "Monthly summary",
+              title: "Feeding Overview",
+              subtitle: "",
+              leading: "🍽️",
               child: Row(
                 children: [
                   Expanded(
@@ -138,32 +228,11 @@ class _SolidReportPageState extends State<SolidReportPage> {
 
             _SectionCard(
               title: "By day of month",
+              leading: "🌈",
               subtitle: "Total amount per day (1–${now.daysInMonth})",
               child: SizedBox(
                 height: 240,
-                child: SfCartesianChart(
-                  backgroundColor: Colors.transparent,
-                  primaryXAxis: CategoryAxis(
-                    majorGridLines: const MajorGridLines(width: 0),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    majorGridLines: const MajorGridLines(width: 0.4),
-                    axisLine: const AxisLine(width: 0),
-                  ),
-                  tooltipBehavior: TooltipBehavior(enable: true),
-                  enableAxisAnimation: true,
-                  series: [
-                    ColumnSeries<_KV, String>(
-                      dataSource: series,
-                      xValueMapper: (e, _) => e.k,
-                      yValueMapper: (e, _) => e.v,
-                      dataLabelSettings: const DataLabelSettings(
-                        isVisible: false,
-                      ),
-                      name: 'Amount',
-                    ),
-                  ],
-                ),
+                child: FoodChartCard(series: series),
               ),
             ),
             const SizedBox(height: 16),
@@ -171,6 +240,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "By food type (month)",
               subtitle: "Totals by solid",
+              leading: "🎯",
               child: SizedBox(
                 height: 240,
                 child: SfCircularChart(
@@ -199,6 +269,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Top foods this month",
               subtitle: "Most eaten solids",
+              leading: "⏰",
               child: Column(
                 children: [
                   for (final e in foods.take(8))
@@ -210,6 +281,8 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            nutritionTips(),
           ],
         );
       },
@@ -292,17 +365,15 @@ class _SolidReportPageState extends State<SolidReportPage> {
         );
         final mealsWeek = weekSolids.length;
 
-        final rangeLabel =
-            "${DateFormat('d MMM', 'en_US').format(monday)} – ${DateFormat('d MMM', 'en_US').format(monday.add(const Duration(days: 6)))}";
-
         final int maxFood = foodList.isEmpty ? 0 : foodList.first.v;
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             _SectionCard(
-              title: "This Week • $rangeLabel",
-              subtitle: "Weekly summary",
+              title: "Feeding Overview",
+              subtitle: "",
+              leading: "🍽️",
               child: Row(
                 children: [
                   Expanded(
@@ -323,31 +394,10 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "By day of week",
               subtitle: "Total amount per day",
+              leading: "🌈",
               child: SizedBox(
                 height: 220,
-                child: SfCartesianChart(
-                  backgroundColor: Colors.transparent,
-                  primaryXAxis: CategoryAxis(
-                    majorGridLines: const MajorGridLines(width: 0),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    majorGridLines: const MajorGridLines(width: 0.4),
-                    axisLine: const AxisLine(width: 0),
-                  ),
-                  tooltipBehavior: TooltipBehavior(enable: true),
-                  enableAxisAnimation: true,
-                  series: [
-                    ColumnSeries<_KV, String>(
-                      dataSource: daySeries,
-                      xValueMapper: (e, _) => e.k,
-                      yValueMapper: (e, _) => e.v,
-                      dataLabelSettings: const DataLabelSettings(
-                        isVisible: true,
-                      ),
-                      name: 'Amount',
-                    ),
-                  ],
-                ),
+                child: FoodChartCard(series: daySeries),
               ),
             ),
             const SizedBox(height: 16),
@@ -355,6 +405,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "By food type (week)",
               subtitle: "Totals by solid",
+              leading: "🎯",
               child: SizedBox(
                 height: 240,
                 child: SfCircularChart(
@@ -383,6 +434,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Reactions (week)",
               subtitle: "Count of reactions",
+              leading: "😋",
               child: SizedBox(
                 height: 220,
                 child: SfCartesianChart(
@@ -415,6 +467,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Top foods this week",
               subtitle: "Most eaten solids",
+              leading: "⏰",
               child: Column(
                 children: [
                   for (final e in foodList.take(6))
@@ -520,6 +573,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Distribution by hour",
               subtitle: "When solids were eaten (00–23)",
+              leading: "⏰",
               child: SizedBox(
                 height: 220,
                 child: SfCartesianChart(
@@ -553,6 +607,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "By food type",
               subtitle: "Total amount by solid",
+              leading: "🎯",
               child: SizedBox(
                 height: 240,
                 child: SfCircularChart(
@@ -581,6 +636,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Reactions",
               subtitle: "Love it, meh, hated it, allergic/sensitivity",
+              leading: "😋",
               child: SizedBox(
                 height: 220,
                 child: SfCartesianChart(
@@ -613,6 +669,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
             _SectionCard(
               title: "Top foods today",
               subtitle: "Most eaten solids",
+              leading: "⏰",
               child: Column(
                 children: [
                   for (final e in byFoodList.take(6))
@@ -737,32 +794,142 @@ class _SolidReportPageState extends State<SolidReportPage> {
 }
 
 // Ayrı, küçük bir segmented bileşeni:
-class _Segmented extends StatelessWidget {
+class GlassSegmented extends StatelessWidget {
   final ReportMode value;
   final ValueChanged<ReportMode> onChanged;
 
-  const _Segmented({required this.value, required this.onChanged});
+  const GlassSegmented({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoSegmentedControl<ReportMode>(
-      groupValue: value,
-      onValueChanged: onChanged,
-      padding: const EdgeInsets.all(2),
-      children: const {
-        ReportMode.today: Padding(
-          padding: EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-          child: Text('Today', style: TextStyle(fontSize: 12)),
+    final theme = Theme.of(context);
+    // Renkleri kolay değiştirebilmen için tanımlar:
+    final bgColor = Colors.white.withValues(
+      alpha: 0.8,
+    ); // rgba(255,255,255,0.8)
+    final borderColor = Colors.white.withValues(
+      alpha: 0.3,
+    ); // rgba(255,255,255,0.3)
+    final activeFill = const Color(0xFFA8E6CF); // aktif buton zemini
+    final inactiveFg = theme.textTheme.bodyMedium?.color; // pasif buton yazısı
+    final activeFg = Colors.white.withValues(alpha: 0.9); // aktif buton yazısı
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(25, 0, 25, 0), // CSS'teki margin
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // blur(20px)
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            padding: const EdgeInsets.all(4), // CSS'teki padding: 4px
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Daily',
+                    selected: value == ReportMode.today,
+                    onTap: () => onChanged(ReportMode.today),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Weekly',
+                    selected: value == ReportMode.week,
+                    onTap: () => onChanged(ReportMode.week),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Monthly',
+                    selected: value == ReportMode.month,
+                    onTap: () => onChanged(ReportMode.month),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        ReportMode.week: Padding(
-          padding: EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-          child: Text('Week', style: TextStyle(fontSize: 12)),
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color activeFill;
+  final Color? inactiveFg;
+  final Color activeFg;
+
+  const _SegmentButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.activeFill,
+    required this.inactiveFg,
+    required this.activeFg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? activeFill : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.06),
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? activeFg : inactiveFg,
+                ),
+              ),
+            ),
+          ),
         ),
-        ReportMode.month: Padding(
-          padding: EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-          child: Text('Month', style: TextStyle(fontSize: 12)),
-        ),
-      },
+      ),
     );
   }
 }
@@ -771,6 +938,67 @@ class _KV {
   final String k;
   final int v;
   _KV(this.k, this.v);
+}
+
+class FoodChartCard extends StatelessWidget {
+  final List<_KV> series;
+  const FoodChartCard({super.key, required this.series});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SfCartesianChart(
+        backgroundColor: Colors.transparent,
+        plotAreaBackgroundColor: Colors.transparent,
+        primaryXAxis: CategoryAxis(
+          majorGridLines: const MajorGridLines(width: 0),
+          axisLine: const AxisLine(width: 0),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        primaryYAxis: NumericAxis(
+          majorGridLines: const MajorGridLines(width: 0.4),
+          axisLine: const AxisLine(width: 0),
+        ),
+        tooltipBehavior: TooltipBehavior(enable: true),
+        enableAxisAnimation: true,
+        series: <CartesianSeries<_KV, String>>[
+          ColumnSeries<_KV, String>(
+            dataSource: series,
+            xValueMapper: (e, _) => e.k,
+            yValueMapper: (e, _) => e.v,
+            // Her bar için farklı renk:
+            pointColorMapper: (e, _) => _colorFor(e.v),
+            // Barları yatayda genişlet:
+            width: 0.85, // 0..1 (daha büyük = daha kalın)
+            spacing: 0.10, // barlar arası boşluk
+            borderRadius: BorderRadius.circular(8),
+            dataLabelSettings: const DataLabelSettings(isVisible: false),
+            name: 'Amount',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // CSS'teki sınıflara benzer renklendirme:
+  // vegetables, fruits, grains(az biraz daha parlak), proteins
+  Color _colorFor(int count) {
+    if (count >= 20) {
+      return const Color(0xFF2ECC71); // y
+    } else if (count >= 10 && count < 20) {
+      return const Color(0xFFFF7F50); // mercan
+    } else if (count >= 5 && count < 10) {
+      // Biraz daha parlak/aydınlık
+      final base = const Color(0xFFF1C40F);
+      final hsl = HSLColor.fromColor(base);
+      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
+    } else if (count < 5) {
+      return const Color(0xFF3498DB);
+    } else {
+      return Colors.teal;
+    }
+  }
 }
 
 /// ---- UI PARTIALS ----
@@ -846,7 +1074,8 @@ class _HeaderCard extends StatelessWidget {
     return _SectionCard(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       title: "Today • $dateLabel",
-      subtitle: "Summary of solids",
+      subtitle: "",
+      leading: "🍽️",
       child: Row(
         children: [
           Expanded(
@@ -875,35 +1104,21 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 78,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.all(8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
             style: Theme.of(
               context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.black54),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const Spacer(),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.kDeepOrange,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -916,10 +1131,12 @@ class _SectionCard extends StatelessWidget {
   final String? subtitle;
   final Widget child;
   final EdgeInsets padding;
+  final String leading;
 
   const _SectionCard({
     required this.title,
     required this.child,
+    required this.leading,
     this.subtitle,
 
     this.padding = const EdgeInsets.all(16),
@@ -927,50 +1144,58 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 16,
-              offset: Offset(0, 8),
-            ),
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFA8E6CF),
+            Colors.white.withValues(alpha: 0.9),
           ],
+          stops: const [0.2, 1.0], // %20'de yeşil, %100'de beyaz
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+              ),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF88d8c0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(leading, style: TextStyle(fontSize: 24)),
               ),
             ],
-            const SizedBox(height: 12),
-            child,
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
           ],
-        ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
@@ -1014,9 +1239,11 @@ class _TopFoodTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                    backgroundColor: const Color(
+                      0xFFA8E6CF,
+                    ).withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.kDeepOrange,
+                      const Color(0xFFA8E6CF),
                     ),
                   ),
                 ),
@@ -1028,7 +1255,7 @@ class _TopFoodTile extends StatelessWidget {
             "$value",
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              color: AppColors.kDeepOrange,
+              color: const Color(0xFFA8E6CF),
             ),
           ),
         ],
