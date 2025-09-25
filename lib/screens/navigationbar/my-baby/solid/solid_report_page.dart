@@ -50,9 +50,14 @@ class _SolidReportPageState extends State<SolidReportPage> {
           backgroundColor: Colors.transparent,
           leading: Padding(
             padding: const EdgeInsets.only(left: 8.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.arrow_back_ios),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.arrow_back_ios),
+              ),
             ),
           ),
           title: Text(

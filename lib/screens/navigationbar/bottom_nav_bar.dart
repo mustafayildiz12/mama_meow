@@ -1,7 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mama_meow/screens/navigationbar/home/home_screen.dart';
 import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
-import 'package:mama_meow/screens/navigationbar/meal-plan/meal_plan_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/my_baby_screen.dart';
 import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
 
@@ -27,11 +28,13 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: SafeArea(
+        bottom: Platform.isAndroid ? true : false,
         child: Container(
           decoration: const BoxDecoration(
             border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
             color: Colors.white,
           ),
+
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

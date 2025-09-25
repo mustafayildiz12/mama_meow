@@ -17,6 +17,7 @@ void runMyApp() {
       title: 'MamaMeow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: "Nunito",
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       initialRoute: AppRoutes.initialRoute,
