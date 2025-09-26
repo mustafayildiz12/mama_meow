@@ -2,7 +2,7 @@ class MedicineModel {
   final String startTime;
   final String medicineName;
   final String amountType;
-  final double amount;
+  final int amount;
   final String createdAt;
 
   MedicineModel({
@@ -26,7 +26,7 @@ class MedicineModel {
       startTime: map['startTime'] as String,
       medicineName: map['medicineName'] as String,
       createdAt: map['createdAt'] as String,
-      amount: map['amount'] as double,
+      amount: map['amount'] as int,
       amountType: map['amountType'] as String,
     );
   }

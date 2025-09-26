@@ -93,8 +93,8 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
     return medicineName != null && 
            medicineName.isNotEmpty && 
            amount.isNotEmpty &&
-           double.tryParse(amount) != null &&
-           double.parse(amount) > 0;
+           int.tryParse(amount) != null &&
+           int.parse(amount) > 0;
   }
 
   Future<void> _saveMedicine() async {
@@ -104,7 +104,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
         ? _customMedicineController.text.trim()
         : _selectedMedicineName!;
     
-    final amount = double.parse(_amountController.text.trim());
+    final amount = int.parse(_amountController.text.trim());
     
     final medicine = MedicineModel(
       startTime: _formatTime(_selectedTime),

@@ -225,6 +225,7 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
                   dataSource: byHour,
                   xValueMapper: (e, _) => e.k,
                   yValueMapper: (e, _) => e.v,
+                  pointColorMapper: (datum, index) => Color(0xFF059669),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
                   name: 'Count',
                 ),
