@@ -322,7 +322,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
-                builder: (context) => const JournalPage(),
+                builder: (context) => const JournalDiaryPage(),
               );
             },
           ),

@@ -1,16 +1,18 @@
 class JournalModel {
   final String noteText;
   final String createdAt; // ISO format timestamp
-  final String noteDate; // yyyy-MM-dd format for grouping
-  final String noteId; // unique identifier
+  final String noteDate;  // yyyy-MM-dd format for grouping
+  final String noteId;    // unique identifier
 
   JournalModel({
     required this.noteText,
     required this.createdAt,
     required this.noteDate,
     required this.noteId,
-  }) : assert(noteText.isNotEmpty && noteText.length <= 500, 
-              'Note text must be between 1 and 500 characters');
+  }) : assert(
+          noteText.isNotEmpty && noteText.length <= 500,
+          'Note text must be between 1 and 500 characters',
+        );
 
   factory JournalModel.fromJson(Map<String, dynamic> json) {
     return JournalModel(
@@ -34,7 +36,6 @@ class JournalModel {
   factory JournalModel.create({required String noteText}) {
     final now = DateTime.now();
     final timestamp = now.millisecondsSinceEpoch.toString();
-    
     return JournalModel(
       noteText: noteText,
       createdAt: now.toIso8601String(),
@@ -55,5 +56,27 @@ class JournalModel {
     final dateTime = DateTime.parse(createdAt);
     return '${dateTime.hour.toString().padLeft(2, '0')}:'
            '${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// ----- NEW: copyWith -----
+  JournalModel copyWith({
+    String? noteText,
+    String? createdAt,
+    String? noteDate,
+    String? noteId,
+  }) {
+    final newText = noteText ?? this.noteText;
+    // assert korumasını kuralı sürdürmek için burada da uyguluyoruz:
+    assert(
+      newText.isNotEmpty && newText.length <= 500,
+      'Note text must be between 1 and 500 characters',
+    );
+
+    return JournalModel(
+      noteText: newText,
+      createdAt: createdAt ?? this.createdAt,
+      noteDate: noteDate ?? this.noteDate,
+      noteId: noteId ?? this.noteId,
+    );
   }
 }

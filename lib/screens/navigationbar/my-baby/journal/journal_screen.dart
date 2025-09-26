@@ -1,430 +1,462 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'package:mama_meow/constants/app_colors.dart';
+
+import 'package:mama_meow/models/activities/solid_model.dart';
+import 'package:mama_meow/models/activities/sleep_model.dart';
+import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/models/activities/diaper_model.dart';
+import 'package:mama_meow/models/activities/pumping_model.dart';
+import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/models/activities/journal_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
-import 'package:mama_meow/service/activities/diaper_service.dart';
-import 'package:mama_meow/service/activities/journal_service.dart';
-import 'package:mama_meow/service/activities/medicine_service.dart';
-import 'package:mama_meow/service/activities/nursing_service.dart';
-import 'package:mama_meow/service/activities/pumping_service.dart';
-import 'package:mama_meow/service/activities/sleep_service.dart';
+
 import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/service/activities/sleep_service.dart';
+import 'package:mama_meow/service/activities/nursing_service.dart';
+import 'package:mama_meow/service/activities/diaper_service.dart';
+import 'package:mama_meow/service/activities/pumping_service.dart';
+import 'package:mama_meow/service/activities/medicine_service.dart';
+import 'package:mama_meow/service/activities/journal_service.dart';
 
-// Senin servislerin:
+import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
 
-// (Opsiyonel) Toplam aktivite için combineLatest kullanacaksan:
-// dependencies: rxdart: ^0.27.7 (pubspec.yaml)
-// import 'package:rxdart/rxdart.dart';
+class JournalDiaryPage extends StatefulWidget {
+  const JournalDiaryPage({super.key});
 
-class JournalPage extends StatelessWidget {
-  const JournalPage({super.key});
+  @override
+  State<JournalDiaryPage> createState() => _JournalDiaryPageState();
+}
 
-  String _todayText() {
+class _JournalDiaryPageState extends State<JournalDiaryPage> {
+  late Future<_TodayBundle> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadToday();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _future = _loadToday());
+    await _future;
+  }
+
+  Future<_TodayBundle> _loadToday() async {
+    final now = DateTime.now().toLocal();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+    // Solid: hazır aralık metodu var
+    final solids = await solidService.getUserSolidsInRange(start, end);
+
+    // Pumping & Medicine: servislerde today* metotlarını eklemiştik
+    final pumpings = await pumpingService.todayPumpings();
+    final medicines = await medicineService.todayMedicines();
+
+    // Sleep / Nursing / Diaper: listeyi alıp bugüne filtrele
+    final sleepsAll = await sleepService.getSleepList();
+    final sleeps = sleepsAll.where((s) {
+      final dateOnly = s.sleepDate.split(' ').first;
+      final key = DateFormat('yyyy-MM-dd').format(now);
+      return dateOnly == key;
+    }).toList();
+
+    final nursingsAll = await nursingService.getNursingList();
+    final nursings = nursingsAll.where((n) {
+      final dt = _tryParseIso(n.createdAt);
+      if (dt == null) return false;
+      return dt.isAfter(start.subtract(const Duration(milliseconds: 1))) &&
+          dt.isBefore(end.add(const Duration(milliseconds: 1)));
+    }).toList();
+
+    final diapersAll = await diaperService.getDiaperList();
+    final diapers = diapersAll.where((d) {
+      final dt = _tryParseIso(d.createdAt);
+      if (dt == null) return false;
+      return dt.isAfter(start.subtract(const Duration(milliseconds: 1))) &&
+          dt.isBefore(end.add(const Duration(milliseconds: 1)));
+    }).toList();
+
+    // Notes: bugünün notları (varsa en yenisini gösteririz)
+    final notes = await journalService
+        .todayNotesOnce(); // küçük yardımcı ekleyebilirsin; yoksa stream alıp first kullan
+    return _TodayBundle(
+      solids: solids,
+      sleeps: sleeps,
+      nursings: nursings,
+      diapers: diapers,
+      pumpings: pumpings,
+      medicines: medicines,
+      note: notes.isNotEmpty ? notes.last : null,
+    );
+  }
+
+  String _todayHeaderTR() {
     final now = DateTime.now();
-    // Türkçe biçim (örn: 13 Eylül 2025, Cumartesi)
-    final locale = 'en_EN';
-    final date = DateFormat('d MMMM y, EEEE', locale).format(now);
-    return "Today • $date";
+    // 26 Eylül Cuma
+    final d = DateFormat('d MMMM', 'en_US').format(now);
+    final w = DateFormat('EEEE', 'en_US').format(now);
+    return "$d ${_capitalizeTR(w)}";
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // (Opsiyonel) Toplam Aktivite için combineLatest:
-    // final totalStream = Rx.combineLatest4<int, int, int, int, int>(
-    //   sleepService.todaySleepCountStream(),
-    //   solidService.todaySolidCountStream(),
-    //   pumpingService.todayPumpingCountStream(),
-    //   diaperService.todayDiaperCountStream(),
-    //   (a, b, c, d) => a + b + c + d,
-    // );
-
     return DraggableScrollableSheet(
       initialChildSize: 0.92,
-      minChildSize: 0.6,
-      maxChildSize: 0.96,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
       builder: (context, scrollController) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.kLightOrange,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
           ),
-          boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _todayText(),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // (Opsiyonel) Toplam Aktivite kartı
-              // StreamBuilder<int>(
-              //   stream: totalStream,
-              //   builder: (context, snapshot) {
-              //     final count = snapshot.data ?? 0;
-              //     return _TotalCard(count: count);
-              //   },
-              // ),
-              // const SizedBox(height: 12),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 2x2 grid — responsive olarak Wrap kullanalım
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          _SummaryCard<int>(
-                            title: "Sleep",
-                            icon: Icons.nightlight_round,
-                            stream: sleepService.todaySleepCountStream(),
-                            color: Colors.blue.shade200.withValues(alpha: 0.6),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Solid",
-                            icon: Icons.restaurant,
-                            stream: solidService.todaySolidCountStream(),
-                            color: Colors.orange.shade200.withValues(
-                              alpha: 0.6,
-                            ),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Pumping",
-                            icon: Icons.published_with_changes,
-                            stream: pumpingService.todayPumpingCountStream(),
-                            color: Colors.pink.shade200.withValues(alpha: 0.6),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Diaper",
-                            icon: Icons.baby_changing_station,
-                            stream: diaperService.todayDiaperCountStream(),
-                            color: Colors.green.shade200.withValues(alpha: 0.6),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Medicine",
-                            icon: Icons.medication,
-                            stream: medicineService.todayMedicineCountStream(),
-                            color: Colors.red.shade200.withValues(alpha: 0.6),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Nursing",
-                            icon: Icons.child_care,
-                            stream: nursingService.todayNursingCountStream(),
-                            color: Colors.teal.shade200.withValues(alpha: 0.6),
-                            valueBuilder: (v) => "$v",
-                          ),
-                          _SummaryCard<int>(
-                            title: "Notes",
-                            icon: Icons.edit_note,
-                            stream: journalService.todayNoteCountStream(),
-                            color: Colors.purple.shade200.withValues(
-                              alpha: 0.6,
-                            ),
-                            valueBuilder: (v) => "$v",
-                          ),
-                        ],
+            ),
+            title: const Text(
+              "📓 Journal",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: FutureBuilder<_TodayBundle>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                if (snap.hasError) {
+                  return _errorBox(snap.error.toString());
+                }
+                final data = snap.data!;
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  children: [
+                    Text(
+                      _todayHeaderTR(),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade800,
                       ),
+                    ),
+                    const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
+                    // SOLID
+                    _CategoryCard(
+                      title: "Solid",
+                      icon: Icons.restaurant,
+                      color: Colors.orange.shade200,
+                      emptyText: "Bugün solid kaydı yok.",
+                      children: [
+                        for (int i = 0; i < data.solids.length; i++)
+                          _NumberedEntry(
+                            index: i + 1,
+                            title: data.solids[i].solidName,
+                            bullets: [
+                              "Amount: ${data.solids[i].solidAmount}",
+                              _clockLine(data.solids[i].eatTime),
+                              if (data.solids[i].reactions != null)
+                                "Reaction: ${data.solids[i].reactions!.name}",
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                      // Today's Notes Section
-                      Text(
-                        "Today's Notes",
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple.shade700,
+                    // SLEEP
+                    _CategoryCard(
+                      title: "Sleep",
+                      icon: Icons.nightlight_round,
+                      color: Colors.blue.shade200,
+                      emptyText: "Bugün uyku kaydı yok.",
+                      children: [..._sleepEntries(data.sleeps)],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // NURSING
+                    _CategoryCard(
+                      title: "Nursing",
+                      icon: Icons.child_care,
+                      color: Colors.teal.shade200,
+                      emptyText: "Bugün emzirme kaydı yok.",
+                      children: [
+                        for (int i = 0; i < data.nursings.length; i++)
+                          _NumberedEntry(
+                            index: i + 1,
+                            title:
+                                "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
+                            bullets: [
+                              if (data.nursings[i].duration > 0)
+                                "Süre: ${_fmtMin(data.nursings[i].duration)}",
+                              if ((data.nursings[i].amountType).isNotEmpty &&
+                                  data.nursings[i].amount > 0)
+                                "Miktar: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
+                              if ((data.nursings[i].milkType ?? '').isNotEmpty)
+                                "Süt türü: ${data.nursings[i].milkType}",
+                              _clockLine(data.nursings[i].startTime),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // DIAPER
+                    _CategoryCard(
+                      title: "Diaper",
+                      icon: Icons.baby_changing_station,
+                      color: Colors.green.shade200,
+                      emptyText: "Bugün alt değiştirme kaydı yok.",
+                      children: [
+                        for (int i = 0; i < data.diapers.length; i++)
+                          _NumberedEntry(
+                            index: i + 1,
+                            title: data.diapers[i].diaperName,
+                            bullets: [
+                              _clockLine(
+                                _bestTimeFromISO(data.diapers[i].createdAt) ??
+                                    data.diapers[i].diaperTime,
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // PUMPING
+                    _CategoryCard(
+                      title: "Pumping",
+                      icon: Icons.published_with_changes,
+                      color: Colors.pink.shade200,
+                      emptyText: "Bugün pumping kaydı yok.",
+                      children: [
+                        for (int i = 0; i < data.pumpings.length; i++)
+                          _NumberedEntry(
+                            index: i + 1,
+                            title: data.pumpings[i].isLeft ? "Left" : "Right",
+                            bullets: [
+                              "Süre: ${_fmtMin(data.pumpings[i].duration)}",
+                              _clockLine(
+                                _bestTimeFromISO(data.pumpings[i].createdAt) ??
+                                    data.pumpings[i].startTime,
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // MEDICINE
+                    _CategoryCard(
+                      title: "Medicine",
+                      icon: Icons.medication,
+                      color: Colors.red.shade200,
+                      emptyText: "Bugün ilaç kaydı yok.",
+                      children: [
+                        for (int i = 0; i < data.medicines.length; i++)
+                          _NumberedEntry(
+                            index: i + 1,
+                            title: data.medicines[i].medicineName,
+                            bullets: [
+                              "Miktar: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
+                              _clockLine(
+                                _bestTimeFromISO(data.medicines[i].createdAt) ??
+                                    data.medicines[i].startTime,
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+                    Divider(color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+
+                    // BUGÜNÜN NOTU
+                    Text(
+                      "Daily Note",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.purple.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (data.note != null)
+                      _NotePreview(note: data.note!)
+                    else
+                      _EmptyNoteHint(),
+
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Notes List
-                      StreamBuilder(
-                        stream: journalService.todayNotesStream(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(32),
-                                child: CircularProgressIndicator(),
+                        onPressed: () async {
+                          await showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
                               ),
-                            );
-                          }
-
-                          if (snapshot.hasError) {
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    color: Colors.red.shade600,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Failed to load notes',
-                                      style: TextStyle(
-                                        color: Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-
-                          final notes = snapshot.data ?? [];
-
-                          if (notes.isEmpty) {
-                            return Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.shade50,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.purple.shade200,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.note_add_outlined,
-                                    size: 48,
-                                    color: Colors.purple.shade400,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No notes yet today',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.purple.shade700,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tap "Add Note" to capture your thoughts',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.purple.shade600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-
-                          return Column(
-                            children: notes
-                                .map((note) => _NoteCard(note: note))
-                                .toList(),
-                          );
+                            ),
+                            builder: (context) =>
+                                const AddJournalNoteBottomSheet(),
+                          ).then((v) {
+                            // not eklenmiş olabilir → yenile
+                            if (v == true) {
+                              _refresh();
+                            }
+                          });
                         },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Add Note Button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () async {
-                    await showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(16),
+                        icon: const Icon(Icons.edit_note),
+                        label: Text(
+                          data.note == null ? "Add Note" : "Edit Note",
                         ),
                       ),
-                      builder: (context) => const AddJournalNoteBottomSheet(),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Note'),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(child: SizedBox()),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(
-                          Colors.grey.shade200,
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Back"),
                     ),
-                  ),
-                ],
-              ),
-
-              // İsteğe bağlı: “Detaya git” butonu (zaten ayrı detay sayfan var demiştin)
-              // Align(
-              //   alignment: Alignment.centerRight,
-              //   child: TextButton.icon(
-              //     onPressed: () {
-              //       // Navigator.push(context, MaterialPageRoute(builder: (_) => const DetailedReportPage()));
-              //     },
-              //     icon: const Icon(Icons.chevron_right),
-              //     label: const Text("Detaylı rapora git"),
-              //   ),
-              // ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-/// Tek bir özet kutucuğu (stream ile gerçek zamanlı)
-class _SummaryCard<T> extends StatelessWidget {
-  const _SummaryCard({
-    required this.title,
+  // ---- helpers ----
 
-    required this.icon,
-    required this.stream,
-    required this.color,
-    required this.valueBuilder,
-  });
+  static DateTime? _tryParseIso(String s) {
+    try {
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  final String title;
+  static String? _bestTimeFromISO(String iso) {
+    final dt = _tryParseIso(iso);
+    return dt != null ? DateFormat('HH:mm').format(dt) : null;
+  }
 
-  final IconData icon;
-  final Stream<T> stream;
-  final Color color;
-  final String Function(T value) valueBuilder;
+  List<Widget> _sleepEntries(List<SleepModel> sleeps) {
+    // kronolojik sırala
+    final sorted = [...sleeps]
+      ..sort((a, b) {
+        final aDt = _combine(a.sleepDate, a.startTime);
+        final bDt = _combine(b.sleepDate, b.startTime);
+        return (aDt ?? DateTime(0)).compareTo(bDt ?? DateTime(0));
+      });
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // genişlik: ekrana göre 2 sütun gibi dursun
-    final double maxWidth =
-        (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.dividerColor.withValues(alpha: 0.6),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.shadowColor.withValues(alpha: 0.08),
-              blurRadius: 12,
-              spreadRadius: 1,
-              offset: const Offset(0, 2),
-            ),
+    final out = <Widget>[];
+    for (int i = 0; i < sorted.length; i++) {
+      final s = sorted[i];
+      final durMin = _durationMin(s);
+      out.add(
+        _NumberedEntry(
+          index: i + 1,
+          title: "${s.startTime} – ${s.endTime}",
+          bullets: [
+            if (durMin > 0) "Süre: ${_fmtMin(durMin)}",
+            if ((s.howItHappened ?? '').isNotEmpty) "Nasıl: ${s.howItHappened}",
+            if ((s.startOfSleep ?? '').isNotEmpty)
+              "Başlangıç: ${s.startOfSleep}",
+            if ((s.endOfSleep ?? '').isNotEmpty) "Bitiş: ${s.endOfSleep}",
           ],
+        ),
+      );
+    }
+    return out;
+  }
+
+  static DateTime? _combine(String dateStr, String hhmm) {
+    try {
+      final dateOnly = dateStr.split(' ').first; // yyyy-MM-dd
+      final ymd = DateFormat('yyyy-MM-dd').parseStrict(dateOnly);
+      final p = hhmm.split(':');
+      final h = int.parse(p[0]), m = int.parse(p[1]);
+      return DateTime(ymd.year, ymd.month, ymd.day, h, m);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static int _durationMin(SleepModel s) {
+    final a = _combine(s.sleepDate, s.startTime);
+    var b = _combine(s.sleepDate, s.endTime);
+    if (a == null || b == null) return 0;
+    if (b.isBefore(a)) b = b.add(const Duration(days: 1));
+    return b.difference(a).inMinutes;
+  }
+
+  static String _fmtMin(int minutes) {
+    final h = minutes ~/ 60, m = minutes % 60;
+    if (minutes == 0) return "0 dk";
+    if (h == 0) return "$m dk";
+    if (m == 0) return "$h sa";
+    return "$h sa $m dk";
+  }
+
+  static String _clockLine(String timeHHmm) => "⏰ $timeHHmm";
+
+  static String _capitalizeTR(String s) {
+    if (s.isEmpty) return s;
+    // TR özel durumlar için kaba ama yeterli
+    final first = s.characters.first.toUpperCase();
+    return first + s.characters.skip(1).join();
+  }
+
+  Widget _errorBox(String msg) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red.shade200),
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24),
-            ),
-            const SizedBox(width: 12),
+            Icon(Icons.error_outline, color: Colors.red.shade600),
+            const SizedBox(width: 8),
             Expanded(
-              child: StreamBuilder<T>(
-                stream: stream,
-                builder: (context, snapshot) {
-                  final isLoading = !snapshot.hasData && !snapshot.hasError;
-                  final valueText = snapshot.hasData
-                      ? valueBuilder(snapshot.data as T)
-                      : (snapshot.hasError ? "—" : "…");
-
-                  return Column(
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (child, anim) =>
-                            ScaleTransition(scale: anim, child: child),
-                        child: isLoading
-                            ? const SizedBox(
-                                key: ValueKey('loading'),
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                valueText,
-                                key: ValueKey(valueText),
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+              child: Text(msg, style: TextStyle(color: Colors.red.shade700)),
             ),
           ],
         ),
@@ -433,82 +465,229 @@ class _SummaryCard<T> extends StatelessWidget {
   }
 }
 
-/// Individual note card widget
-class _NoteCard extends StatelessWidget {
-  const _NoteCard({required this.note});
+// --- küçük view parçaları ---
 
-  final JournalModel note;
+class _CategoryCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final String emptyText;
+  final List<Widget> children;
+
+  const _CategoryCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.emptyText,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
+        color: Colors.white70,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.purple.shade200, width: 1),
-        boxShadow: [
+        border: Border.all(color: Colors.grey),
+        boxShadow: const [
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.08),
-            blurRadius: 8,
-            spreadRadius: 1,
-            offset: const Offset(0, 2),
+            color: Colors.black12,
+            blurRadius: 12,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with time
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.purple.shade100,
+                  color: color,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 14,
-                      color: Colors.purple.shade700,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      note.formattedTime,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.purple.shade700,
-                      ),
-                    ),
-                  ],
+                child: Icon(icon, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const Spacer(),
-              Icon(Icons.edit_note, size: 20, color: Colors.purple.shade400),
             ],
           ),
+          const SizedBox(height: 10),
+          if (children.isEmpty)
+            Text(
+              emptyText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.black54,
+              ),
+            )
+          else
+            Column(children: children),
+        ],
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 12),
+class _NumberedEntry extends StatelessWidget {
+  final int index;
+  final String title;
+  final List<String> bullets;
+  const _NumberedEntry({
+    required this.index,
+    required this.title,
+    required this.bullets,
+  });
 
-          // Note content
-          Text(
-            note.noteText,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              height: 1.4,
-              color: Colors.grey.shade800,
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // index badge
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.kLightOrange,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: AppColors.kDeepOrange.withValues(alpha: 0.2),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              "$index",
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                for (final b in bullets.where((e) => e.trim().isNotEmpty))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      "• $b",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _NotePreview extends StatelessWidget {
+  final JournalModel note;
+  const _NotePreview({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Son Not • ${note.formattedTime}",
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: Colors.purple.shade700,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(note.noteText, style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyNoteHint extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.note_add_outlined, color: Colors.purple.shade400),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "There are no notes for today yet. You can write something using ‘Add Note’.",
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.purple.shade700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tek payload
+class _TodayBundle {
+  final List<SolidModel> solids;
+  final List<SleepModel> sleeps;
+  final List<NursingModel> nursings;
+  final List<DiaperModel> diapers;
+  final List<PumpingModel> pumpings;
+  final List<MedicineModel> medicines;
+  final JournalModel? note;
+  _TodayBundle({
+    required this.solids,
+    required this.sleeps,
+    required this.nursings,
+    required this.diapers,
+    required this.pumpings,
+    required this.medicines,
+    required this.note,
+  });
 }
