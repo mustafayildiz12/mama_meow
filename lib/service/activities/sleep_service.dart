@@ -4,13 +4,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
-/// TercihService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
-/// Kullanıcı tercihleri, sınav bilgileri ve diğer verilerin yönetimini sağlar.
 class SleepService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
-  /// Yeni bir kullanıcıyı Firebase'e ekler.
-  /// @param user - Eklenecek kullanıcı modeli
   Future<void> addSleep(SleepModel sleepModel) async {
     final user = authenticationService.getUser()!;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
@@ -21,44 +17,85 @@ class SleepService {
         .set(sleepModel.toJson());
   }
 
+  /// Tüm kayıtlar (anahtar aralığı olmadan okuma)
   Future<List<SleepModel>> getSleepList() async {
     final List<SleepModel> sleeps = [];
-
     final user = authenticationService.getUser()!;
-    final DatabaseReference ref = _realtimeDatabase
-        .ref('sleeps')
-        .child(user.uid);
+    final DatabaseReference ref =
+        _realtimeDatabase.ref('sleeps').child(user.uid);
 
     final DataSnapshot snapshot = await ref.get();
 
     if (snapshot.exists) {
       final raw = snapshot.value;
-
       if (raw is Map) {
         for (final value in raw.values) {
           if (value is Map) {
-            final map = Map<String, dynamic>.from(value);
-            final model = SleepModel.fromJson(map);
-
-            sleeps.add(model);
+            sleeps.add(SleepModel.fromJson(Map<String, dynamic>.from(value)));
           }
         }
-      } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
-      else if (raw is List) {
+      } else if (raw is List) {
         for (final item in raw) {
           if (item is Map) {
-            final map = Map<String, dynamic>.from(item);
-            final model = SleepModel.fromJson(map);
-
-            sleeps.add(model);
+            sleeps.add(SleepModel.fromJson(Map<String, dynamic>.from(item)));
           }
         }
       }
     }
-
     return sleeps;
   }
 
+  /// Belirli bir tarih aralığındaki sleep'leri getirir (anahtar = epoch ms)
+  Future<List<SleepModel>> getUserSleepsInRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final user = authenticationService.getUser()!;
+    final ref = _realtimeDatabase.ref('sleeps').child(user.uid);
+
+    final startMs = start.toLocal().millisecondsSinceEpoch.toString();
+    final endMs = end.toLocal().millisecondsSinceEpoch.toString();
+
+    final snap = await ref.orderByKey().startAt(startMs).endAt(endMs).get();
+
+    final list = <SleepModel>[];
+    for (final child in snap.children) {
+      final val = child.value;
+      if (val is Map) {
+        final map = Map<String, dynamic>.from(val);
+        // createdAt alanı map’te yoksa key’den üretmek istersen:
+        map.putIfAbsent(
+          'createdAt',
+          () => DateTime.fromMillisecondsSinceEpoch(
+            int.parse(child.key!),
+            isUtc: false,
+          ).toIso8601String(),
+        );
+        list.add(SleepModel.fromJson(map));
+      }
+    }
+    return list;
+  }
+
+  /// Günlük
+  Future<List<SleepModel>> todaySleeps() async {
+    final now = DateTime.now().toLocal();
+    return getUserSleepsInRange(now.startOfDay, now.endOfDay);
+  }
+
+  /// Haftalık (TR: Pazartesi başlangıç)
+  Future<List<SleepModel>> weekSleeps() async {
+    final now = DateTime.now().toLocal();
+    return getUserSleepsInRange(now.startOfWeekTR, now.endOfWeekTR);
+  }
+
+  /// Aylık
+  Future<List<SleepModel>> monthSleeps() async {
+    final now = DateTime.now().toLocal();
+    return getUserSleepsInRange(now.startOfMonth, now.endOfMonth);
+  }
+
+  /// Bugünkü kayıt sayısı (stream)
   Stream<int> todaySleepCountStream() {
     final user = authenticationService.getUser()!;
     final ref = FirebaseDatabase.instance.ref('sleeps').child(user.uid);
@@ -76,9 +113,24 @@ class SleepService {
   }
 }
 
-extension _Today on DateTime {
+extension DateParts on DateTime {
   DateTime get startOfDay => DateTime(year, month, day);
   DateTime get endOfDay => DateTime(year, month, day, 23, 59, 59, 999);
+
+  DateTime get startOfWeekTR {
+    final diff = weekday - DateTime.monday; // Pazartesi=1
+    return DateTime(year, month, day).subtract(Duration(days: diff)).startOfDay;
+  }
+
+  DateTime get endOfWeekTR => startOfWeekTR.add(const Duration(days: 6)).endOfDay;
+
+  DateTime get startOfMonth => DateTime(year, month, 1).startOfDay;
+  DateTime get endOfMonth {
+    final firstNextMonth = (month == 12)
+        ? DateTime(year + 1, 1, 1)
+        : DateTime(year, month + 1, 1);
+    return firstNextMonth.subtract(const Duration(milliseconds: 1));
+  }
 }
 
 final SleepService sleepService = SleepService();

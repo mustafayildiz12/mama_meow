@@ -81,7 +81,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12, top: 12),
                 child: Center(
-                  child: GlassSegmented(
+                  child: _GlassSegmented(
                     value: _mode,
                     onChanged: (m) => setState(() => _mode = m),
                   ),
@@ -799,11 +799,11 @@ class _SolidReportPageState extends State<SolidReportPage> {
 }
 
 // Ayrı, küçük bir segmented bileşeni:
-class GlassSegmented extends StatelessWidget {
+class _GlassSegmented extends StatelessWidget {
   final ReportMode value;
   final ValueChanged<ReportMode> onChanged;
 
-  const GlassSegmented({
+  const _GlassSegmented({
     super.key,
     required this.value,
     required this.onChanged,
