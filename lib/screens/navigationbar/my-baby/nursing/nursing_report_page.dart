@@ -261,7 +261,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
                   yValueMapper: (e, _) => e.v,
                   dataLabelMapper: (e, _) => e.v == 0 ? "" : e.v.toString(),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  color: Colors.teal,
+                  pointColorMapper: (e, _) => byHourColor(e.v),
                   name: 'Count',
                 ),
               ],
@@ -287,6 +287,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
                   dataSource: sideList,
                   xValueMapper: (e, _) => e.k,
                   yValueMapper: (e, _) => e.v,
+                  pointColorMapper: (e, _) => sideChartColor(e.v),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
                   explode: true,
                   explodeIndex: 0,
@@ -318,6 +319,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
                   dataSource: feedingTypeList,
                   xValueMapper: (e, _) => e.k,
                   yValueMapper: (e, _) => e.v,
+                  pointColorMapper: (e, _) => feedingTypesColor(e.v),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
                   name: 'Count',
                 ),
@@ -381,6 +383,13 @@ class _NursingReportPageState extends State<NursingReportPage> {
                     dataSource: amountTypeList,
                     xValueMapper: (e, _) => e.k,
                     yValueMapper: (e, _) => e.v,
+                    pointColorMapper: (datum, index) {
+                      if (index == 0) {
+                        return Colors.pinkAccent;
+                      } else {
+                        return Colors.teal;
+                      }
+                    },
                     dataLabelSettings: const DataLabelSettings(isVisible: true),
                     name: 'Amount',
                   ),
@@ -410,8 +419,134 @@ class _NursingReportPageState extends State<NursingReportPage> {
             ],
           ),
         ),
+        SizedBox(height: 16),
+        nursingTips(),
       ],
     );
+  }
+
+  Widget nursingTips() {
+    return _SectionCard(
+      title: "AI Nursing Tips",
+      leading: "🤖",
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.pinkAccent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("💡", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Your feeding intervals are very consistent. This helps establish a great routine!",
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.pinkAccent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("🌡️", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Your baby seems to love sweet foods. Gradually mix in vegetables for balanced taste",
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.pinkAccent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text("💪", style: TextStyle(fontSize: 20)),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Consider iron-rich foods like spinach or lentils - perfect age for this nutrition!",
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color byHourColor(int count) {
+    if (count >= 2) {
+      return const Color(0xFF2ECC71); // y
+    } else if (count >= 1 && count < 2) {
+      return const Color(0xFFFF7F50); // mercan
+    } else if (count >= 0.5 && count < 1) {
+      // Biraz daha parlak/aydınlık
+      final base = const Color(0xFFF1C40F);
+      final hsl = HSLColor.fromColor(base);
+      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
+    } else if (count < 0.5) {
+      return const Color(0xFF3498DB);
+    } else {
+      return Colors.teal;
+    }
+  }
+
+  Color sideChartColor(int count) {
+    if (count >= 20) {
+      return const Color(0xFF2ECC71); // y
+    } else if (count >= 10 && count < 20) {
+      return const Color(0xFFFF7F50); // mercan
+    } else if (count >= 5 && count < 10) {
+      // Biraz daha parlak/aydınlık
+      final base = const Color(0xFFF1C40F);
+      final hsl = HSLColor.fromColor(base);
+      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
+    } else if (count < 5) {
+      return const Color(0xFF3498DB);
+    } else {
+      return Colors.teal;
+    }
+  }
+
+  Color feedingTypesColor(int count) {
+    if (count >= 20) {
+      return const Color(0xFF2ECC71); // y
+    } else if (count >= 10 && count < 20) {
+      return const Color(0xFFFF7F50); // mercan
+    } else if (count >= 5 && count < 10) {
+      // Biraz daha parlak/aydınlık
+      final base = const Color(0xFFF1C40F);
+      final hsl = HSLColor.fromColor(base);
+      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
+    } else if (count < 5) {
+      return const Color(0xFF3498DB);
+    } else {
+      return Colors.teal;
+    }
   }
 
   // ---- Helpers ----
@@ -537,7 +672,6 @@ class _SectionCard extends StatelessWidget {
     required this.leading,
     this.padding = const EdgeInsets.all(16),
     this.subtitle,
-    
   });
   @override
   Widget build(BuildContext context) {
@@ -573,7 +707,7 @@ class _SectionCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFb5c8e8),
+                  color: const Color(0xFFff9aa2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,

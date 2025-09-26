@@ -484,6 +484,8 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            nutritionTips(),
           ],
         );
       },
@@ -686,6 +688,8 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            nutritionTips(),
           ],
         );
       },

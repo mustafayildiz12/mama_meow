@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -6,231 +7,275 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 
+// GlassSegmented widget'ını kendi dosyandan import et.
+enum ReportMode { today, week, month }
+
 class DiaperReportPage extends StatefulWidget {
   const DiaperReportPage({super.key});
-
   @override
   State<DiaperReportPage> createState() => _DiaperReportPageState();
 }
 
 class _DiaperReportPageState extends State<DiaperReportPage> {
-  late Future<List<DiaperModel>> _futureToday;
+  ReportMode _mode = ReportMode.today;
+  late Future<List<DiaperModel>> _future;
 
   @override
   void initState() {
     super.initState();
-    _futureToday = _fetchTodayDiapers();
+    _future = _fetchByMode(_mode);
+  }
+
+  Future<List<DiaperModel>> _fetchByMode(ReportMode mode) {
+    switch (mode) {
+      case ReportMode.today:
+        return diaperService.todayDiapers();
+      case ReportMode.week:
+        return diaperService.weekDiapers();
+      case ReportMode.month:
+        return diaperService.monthDiapers();
+    }
   }
 
   Future<void> _refresh() async {
-    setState(() => _futureToday = _fetchTodayDiapers());
-    await _futureToday;
+    setState(() => _future = _fetchByMode(_mode));
+    await _future;
   }
 
-  Future<List<DiaperModel>> _fetchTodayDiapers() async {
-    final all = await diaperService.getDiaperList();
-
+  String _rangeLabel(ReportMode mode) {
     final now = DateTime.now();
-    final todayKey = DateFormat('yyyy-MM-dd').format(now);
-
-    // createdAt ISO-8601 → sadece bugünküleri al
-    return all.where((d) {
-      final dt = DateTime.tryParse(d.createdAt);
-      if (dt == null) return false;
-      final key = DateFormat('yyyy-MM-dd').format(dt);
-      return key == todayKey;
-    }).toList();
+    if (mode == ReportMode.today) {
+      return DateFormat('EEEE, d MMM').format(now);
+    } else if (mode == ReportMode.week) {
+      final s = now.startOfWeekTR, e = now.endOfWeekTR;
+      return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
+    } else {
+      final s = now.startOfMonth, e = now.endOfMonth;
+      return "${DateFormat('MMM yyyy').format(s)} (1–${DateFormat('d').format(e)})";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final todayStr = DateFormat('EEEE, d MMM').format(DateTime.now());
-    return Scaffold(
-      backgroundColor: AppColors.kLightOrange,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppColors.kLightOrange,
-        title: const Text("Today's Diaper Report"),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: FutureBuilder<List<DiaperModel>>(
-          future: _futureToday,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingView();
-            }
-            if (snapshot.hasError) {
-              return _CenteredMessage(
-                emoji: '⚠️',
-                title: 'Something went wrong',
-                subtitle: snapshot.error.toString(),
-              );
-            }
-            final diapers = snapshot.data ?? [];
-            if (diapers.isEmpty) {
-              return const _CenteredMessage(
-                emoji: '🧷',
-                title: 'No diaper changes today',
-                subtitle: 'Log a diaper change to see insights here.',
-              );
-            }
-
-            // ---- Aggregations ----
-            // Saat dağılımı (0..23)
-            final byHourRaw = <int, int>{}; // 0..23 -> count
-            // Tip dağılımı
-            final byType = <String, int>{}; // wet/dirty/mixed/other
-            // Zaman çizelgesi için sıralı liste
-            final sortedByTime = [...diapers]
-              ..sort((a, b) {
-                final aDt =
-                    DateTime.tryParse(a.createdAt) ??
-                    DateTime.fromMillisecondsSinceEpoch(0);
-                final bDt =
-                    DateTime.tryParse(b.createdAt) ??
-                    DateTime.fromMillisecondsSinceEpoch(0);
-                return aDt.compareTo(bDt);
-              });
-
-            // Son değiştirme saati
-            String lastChange = '-';
-            if (sortedByTime.isNotEmpty) {
-              final last = sortedByTime.last;
-              final dt = DateTime.tryParse(last.createdAt);
-              if (dt != null) {
-                lastChange = DateFormat('HH:mm').format(dt);
-              } else {
-                // fallback: diaperTime
-                lastChange = last.diaperTime;
-              }
-            }
-
-            // Ortalama ve en uzun aralık (dakika)
-            final gaps = _computeGapsInMinutes(sortedByTime);
-            final avgGapMin = gaps.isEmpty
-                ? 0
-                : (gaps.reduce((a, b) => a + b) / gaps.length).round();
-            final maxGapMin = gaps.isEmpty
-                ? 0
-                : gaps.reduce((a, b) => a > b ? a : b);
-
-            for (final d in diapers) {
-              final h = _hourFromRecord(d);
-              byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-              final name = _normalize(d.diaperName);
-              final typeKey = _typeKey(name);
-              byType[typeKey] = (byType[typeKey] ?? 0) + 1;
-            }
-
-            // Saat 0..23 eksiksiz ve sıralı
-            final byHour = <_KV>[];
-            for (int h = 0; h < 24; h++) {
-              byHour.add(
-                _KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)),
-              );
-            }
-
-            // Tip listesi
-            final byTypeList =
-                byType.entries.map((e) => _KV(e.key, e.value)).toList()
-                  ..sort((a, b) => b.v.compareTo(a.v));
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                _HeaderCard(
-                  dateLabel: todayStr,
-                  total: diapers.length.toString(),
-                  lastChange: lastChange,
-                  avgGap: _fmtMin(avgGapMin),
-                  maxGap: _fmtMin(maxGapMin),
-                ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "Distribution by hour",
-                  subtitle: "When diaper changes happened (00–23)",
-                  child: SizedBox(
-                    height: 220,
-                    child: SfCartesianChart(
-                      backgroundColor: Colors.transparent,
-                      primaryXAxis: CategoryAxis(
-                        majorGridLines: const MajorGridLines(width: 0),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        majorGridLines: const MajorGridLines(width: 0.4),
-                        axisLine: const AxisLine(width: 0),
-                      ),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      enableAxisAnimation: true,
-                      series: [
-                        ColumnSeries<_KV, String>(
-                          dataSource: byHour,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          name: 'Count',
-                        ),
-                      ],
-                    ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.arrow_back_ios),
+              ),
+            ),
+          ),
+          title: const Text(
+            "🚼  Diaper Reports",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          actions: const [
+            Padding(
+              padding: EdgeInsets.only(right: 20.0),
+              child: Text(
+                "📤",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12, top: 12),
+                child: Center(
+                  child: _GlassSegmented(
+                    value: _mode,
+                    onChanged: (m) => setState(() {
+                      _mode = m;
+                      _future = _fetchByMode(_mode);
+                    }),
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "By diaper type",
-                  subtitle: "wet / dirty / mixed / poo / pee",
-                  child: SizedBox(
-                    height: 240,
-                    child: SfCircularChart(
-                      backgroundColor: Colors.transparent,
-                      legend: const Legend(
-                        isVisible: true,
-                        overflowMode: LegendItemOverflowMode.wrap,
-                      ),
-                      series: <CircularSeries<_KV, String>>[
-                        PieSeries<_KV, String>(
-                          dataSource: byTypeList,
-                          xValueMapper: (e, _) => e.k,
-                          yValueMapper: (e, _) => e.v,
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                          ),
-                          explode: true,
-                          explodeIndex: 0,
-                        ),
-                      ],
-                    ),
-                  ),
+              ),
+              Expanded(
+                child: FutureBuilder<List<DiaperModel>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _LoadingView();
+                    }
+                    if (snapshot.hasError) {
+                      return _CenteredMessage(
+                        emoji: '⚠️',
+                        title: 'Bir şeyler ters gitti',
+                        subtitle: snapshot.error.toString(),
+                      );
+                    }
+                    final diapers = snapshot.data ?? [];
+                    if (diapers.isEmpty) {
+                      return const _CenteredMessage(
+                        emoji: '🧷',
+                        title: 'Kayıt bulunamadı',
+                        subtitle:
+                            'Bu aralık için bez değişimi eklediğinde burada göreceksin.',
+                      );
+                    }
+                    return _buildReportBody(context, diapers);
+                  },
                 ),
-                const SizedBox(height: 16),
-
-                _SectionCard(
-                  title: "Timeline",
-                  subtitle: "Chronological diaper changes",
-                  child: Column(
-                    children: [
-                      for (final d in sortedByTime)
-                        _TimelineTile(time: _bestTime(d), label: d.diaperName),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ---- Helpers ----
+  // ---- RAPOR GÖVDESİ (seçili aralığa uygulanır) ----
+  Widget _buildReportBody(BuildContext context, List<DiaperModel> diapers) {
+    final byHourRaw = <int, int>{}; // 0..23 -> count
+    final byType = <String, int>{}; // wet/dirty/mixed/pee/poop/other
 
+    final sortedByTime = [...diapers]
+      ..sort((a, b) {
+        final aDt =
+            DateTime.tryParse(a.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bDt =
+            DateTime.tryParse(b.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return aDt.compareTo(bDt);
+      });
+
+    // Son değişim saati
+    String lastChange = '-';
+    if (sortedByTime.isNotEmpty) {
+      final dt = DateTime.tryParse(sortedByTime.last.createdAt);
+      lastChange = dt != null
+          ? DateFormat('HH:mm').format(dt)
+          : sortedByTime.last.diaperTime;
+    }
+
+    // Ortalama ve max aralık (dakika)
+    final gaps = _computeGapsInMinutes(sortedByTime);
+    final avgGapMin = gaps.isEmpty
+        ? 0
+        : (gaps.reduce((a, b) => a + b) / gaps.length).round();
+    final maxGapMin = gaps.isEmpty ? 0 : gaps.reduce((a, b) => a > b ? a : b);
+
+    // Dağılımlar
+    for (final d in diapers) {
+      final h = _hourFromRecord(d);
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      final typeKey = _typeKey(_normalize(d.diaperName));
+      byType[typeKey] = (byType[typeKey] ?? 0) + 1;
+    }
+
+    final byHour = <_KV>[];
+    for (int h = 0; h < 24; h++) {
+      byHour.add(_KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)));
+    }
+    final byTypeList = byType.entries.map((e) => _KV(e.key, e.value)).toList()
+      ..sort((a, b) => b.v.compareTo(a.v));
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        _HeaderCard(
+          dateLabel: _rangeLabel(_mode),
+          total: diapers.length.toString(),
+          lastChange: lastChange,
+          avgGap: _fmtMin(avgGapMin),
+          maxGap: _fmtMin(maxGapMin),
+        ),
+        const SizedBox(height: 16),
+
+        _SectionCard(
+          title: "Distribution by hour",
+          subtitle: "When diaper changes happened (00–23)",
+          child: SizedBox(
+            height: 220,
+            child: SfCartesianChart(
+              backgroundColor: Colors.transparent,
+              primaryXAxis: CategoryAxis(
+                majorGridLines: const MajorGridLines(width: 0),
+              ),
+              primaryYAxis: NumericAxis(
+                majorGridLines: const MajorGridLines(width: 0.4),
+                axisLine: const AxisLine(width: 0),
+              ),
+              tooltipBehavior: TooltipBehavior(enable: true),
+              enableAxisAnimation: true,
+              series: [
+                ColumnSeries<_KV, String>(
+                  dataSource: byHour,
+                  xValueMapper: (e, _) => e.k,
+                  yValueMapper: (e, _) => e.v,
+                  dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  name: 'Count',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _SectionCard(
+          title: "By diaper type",
+          subtitle: "wet / dirty / mixed / pee / poop",
+          child: SizedBox(
+            height: 240,
+            child: SfCircularChart(
+              backgroundColor: Colors.transparent,
+              legend: const Legend(
+                isVisible: true,
+                overflowMode: LegendItemOverflowMode.wrap,
+              ),
+              series: <CircularSeries<_KV, String>>[
+                PieSeries<_KV, String>(
+                  dataSource: byTypeList,
+                  xValueMapper: (e, _) => e.k,
+                  yValueMapper: (e, _) => e.v,
+                  dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  explode: true,
+                  explodeIndex: 0,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _SectionCard(
+          title: "Timeline",
+          subtitle: "Chronological diaper changes for ${_rangeLabel(_mode)}",
+          child: Column(
+            children: [
+              for (final d in sortedByTime)
+                _TimelineTile(time: _bestTime(d), label: d.diaperName),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---- Helpers ----
   int _hourFromRecord(DiaperModel d) {
-    // Öncelik createdAt (ISO), yoksa diaperTime "HH:mm"
     final dt = DateTime.tryParse(d.createdAt);
     if (dt != null) return dt.hour;
     final hh = int.tryParse(d.diaperTime.split(':').first);
@@ -239,11 +284,9 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
 
   String _bestTime(DiaperModel d) {
     final dt = DateTime.tryParse(d.createdAt);
-    if (dt != null) return DateFormat('HH:mm').format(dt);
-    return d.diaperTime;
+    return dt != null ? DateFormat('HH:mm').format(dt) : d.diaperTime;
   }
 
-  // Değişimler arası boşluklar (dakika)
   List<int> _computeGapsInMinutes(List<DiaperModel> sorted) {
     final out = <int>[];
     for (int i = 1; i < sorted.length; i++) {
@@ -259,10 +302,12 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
   String _normalize(String s) => s.trim().toLowerCase();
 
   String _typeKey(String name) {
-    if (name.contains('pee')) return "pee";
-    if (name.contains('poo')) return "poop";
+    if (name.contains('pee')) return 'pee';
+    if (name.contains('poo') || name.contains('poop') || name.contains('dirty'))
+      return 'poop';
     if (name.contains('mixed')) return 'mixed';
-     if (name.contains('dry')) return 'dry';
+    if (name.contains('wet')) return 'wet';
+    if (name.contains('dry')) return 'dry';
     return 'other';
   }
 
@@ -276,22 +321,19 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
   }
 }
 
-/// Key-Value yardımcı model
 class _KV {
   final String k;
   final int v;
   _KV(this.k, this.v);
 }
 
-/// ---- UI PARTIALS (Solid/Sleep ile aynı stil) ----
+// ---- UI PARTIALS (senin stilde) ----
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
-
   @override
-  Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
-  }
+  Widget build(BuildContext context) =>
+      const Center(child: CircularProgressIndicator());
 }
 
 class _CenteredMessage extends StatelessWidget {
@@ -303,7 +345,6 @@ class _CenteredMessage extends StatelessWidget {
     required this.title,
     this.subtitle,
   });
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -348,56 +389,53 @@ class _SectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
-
     this.padding = const EdgeInsets.all(16),
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 16,
-              offset: Offset(0, 8),
-            ),
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFA8E6CF),
+            Colors.white.withValues(alpha: 0.9),
           ],
+          stops: const [0.2, 1.0], // %20'de yeşil, %100'de beyaz
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
               ),
             ],
-            const SizedBox(height: 12),
-            child,
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
           ],
-        ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
@@ -421,23 +459,19 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-      title: "Today • $dateLabel",
+      padding: const EdgeInsets.fromLTRB(8, 18, 8, 16),
+      title: "Range • $dateLabel",
       subtitle: "Summary of diaper changes",
       child: Row(
         children: [
           Expanded(
             child: _StatTile(title: "Total", value: total),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 2),
           Expanded(
-            child: _StatTile(title: "Last change", value: lastChange),
+            child: _StatTile(title: "Avg", value: avgGap),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(title: "Avg interval", value: avgGap),
-          ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 2),
           Expanded(
             child: _StatTile(title: "Longest", value: maxGap),
           ),
@@ -455,36 +489,23 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 78,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      height: 86,
+      padding: const EdgeInsets.all(8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.black54),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-
+          const Spacer(),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.kDeepOrange,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -514,7 +535,7 @@ class _TimelineTile extends StatelessWidget {
             time,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              color: AppColors.kDeepOrange,
+              color: Color(0xFFA8E6CF),
             ),
           ),
           const SizedBox(width: 12),
@@ -527,6 +548,146 @@ class _TimelineTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GlassSegmented extends StatelessWidget {
+  final ReportMode value;
+  final ValueChanged<ReportMode> onChanged;
+
+  const _GlassSegmented({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Renkleri kolay değiştirebilmen için tanımlar:
+    final bgColor = Colors.white.withValues(
+      alpha: 0.8,
+    ); // rgba(255,255,255,0.8)
+    final borderColor = Colors.white.withValues(
+      alpha: 0.3,
+    ); // rgba(255,255,255,0.3)
+    final activeFill = const Color(0xFFA8E6CF); // aktif buton zemini
+    final inactiveFg = theme.textTheme.bodyMedium?.color; // pasif buton yazısı
+    final activeFg = Colors.white.withValues(alpha: 0.9); // aktif buton yazısı
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(25, 0, 25, 0), // CSS'teki margin
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // blur(20px)
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            padding: const EdgeInsets.all(4), // CSS'teki padding: 4px
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Daily',
+                    selected: value == ReportMode.today,
+                    onTap: () => onChanged(ReportMode.today),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Weekly',
+                    selected: value == ReportMode.week,
+                    onTap: () => onChanged(ReportMode.week),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Monthly',
+                    selected: value == ReportMode.month,
+                    onTap: () => onChanged(ReportMode.month),
+                    activeFg: activeFg,
+                    inactiveFg: inactiveFg,
+                    activeFill: activeFill,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color activeFill;
+  final Color? inactiveFg;
+  final Color activeFg;
+
+  const _SegmentButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.activeFill,
+    required this.inactiveFg,
+    required this.activeFg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? activeFill : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.06),
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? activeFg : inactiveFg,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
