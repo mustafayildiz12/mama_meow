@@ -442,7 +442,17 @@ class _AskMeowViewState extends State<AskMeowView> {
                   runSpacing: 8,
                   children: _miaAnswer!.actions.map((a) {
                     return Chip(
-                      label: Text(a),
+                      label: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              a,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                            ),
+                          ),
+                        ],
+                      ),
                       backgroundColor: theme.colorScheme.primaryContainer
                           .withOpacity(0.25),
                       shape: RoundedRectangleBorder(
@@ -586,7 +596,10 @@ class _AskMeowViewState extends State<AskMeowView> {
 
       // önerileri getir
       final sug = await _gpt.getSuggestions(question: q, language: "English");
-      setState(() => _suggestions = sug);
+      setState(() {
+        _suggestions = sug;
+        imageBytes = null;
+      });
     } catch (e) {
       setState(() => _miaAnswer = null);
     } finally {

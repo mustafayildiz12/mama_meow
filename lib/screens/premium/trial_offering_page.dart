@@ -1,11 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/premium/premium_bottom_sheet.dart';
-import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class TrialOfferingPage extends StatefulWidget {
@@ -16,7 +14,7 @@ class TrialOfferingPage extends StatefulWidget {
 }
 
 class _TrialOfferingPageState extends State<TrialOfferingPage> {
-  final InAppPurchaseService _iap = InAppPurchaseService();
+ 
 
   final List<_Feature> features = [
     _Feature(
@@ -208,6 +206,7 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
             ),
           ),
         ),
+         const SizedBox(height: 16),
       ],
     );
   }

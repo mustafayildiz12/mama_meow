@@ -4,32 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 
-/// A full-screen podcast player page that displays podcast information and provides audio playback controls.
-///
-/// This widget creates an immersive podcast listening experience with:
-/// - Large podcast cover image display
-/// - Audio playback controls (play/pause)
-/// - Progress slider with seek functionality
-/// - Playback speed control options
-/// - Loop mode toggle
-/// - Real-time duration and position updates
-///
-/// **Usage Example:**
-/// ```dart
-/// Navigator.push(
-///   context,
-///   MaterialPageRoute(
-///     builder: (context) => DisplayPodcastPage(
-///       podcast: Podcast(
-///         title: "My Podcast",
-///         description: "A great podcast about parenting",
-///         audioUrl: "https://example.com/audio.mp3",
-///         icon: "https://example.com/cover.jpg",
-///       ),
-///     ),
-///   ),
-/// );
-/// ```
+
 class DisplayPodcastPage extends StatefulWidget {
   /// The podcast model containing all necessary information for playback and display
   final Podcast podcast;
@@ -40,21 +15,7 @@ class DisplayPodcastPage extends StatefulWidget {
   /// The current index in the podcast list
   final int currentIndex;
 
-  /// Creates a new DisplayPodcastPage instance.
-  ///
-  /// **Parameters:**
-  /// - [podcast]: Required. The podcast model containing title, description, audioUrl, and icon
-  /// - [podcastList]: Required. The complete list of podcasts for navigation
-  /// - [currentIndex]: Required. The current podcast index in the list
-  ///
-  /// **Example:**
-  /// ```dart
-  /// DisplayPodcastPage(
-  ///   podcast: myPodcastInstance,
-  ///   podcastList: allPodcasts,
-  ///   currentIndex: 0,
-  /// )
-  /// ```
+
   const DisplayPodcastPage({
     super.key,
     required this.podcast,
@@ -310,14 +271,15 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               ),
             ),
             Spacer(),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 8),
 
             Text(
               p.description,
               style: const TextStyle(color: Colors.black87, fontSize: 16),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // --- Slider ve süreler StreamBuilder ile ---
             StreamBuilder<Duration?>(
@@ -363,7 +325,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Playback speed control
             Row(
@@ -400,7 +362,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Playback controls with skip buttons
             Row(
@@ -411,11 +373,13 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                   icon: Icon(
                     Icons.skip_previous,
                     size: 36,
-                    color: _hasPrevious ? Colors.pink.shade500 : Colors.grey.shade400,
+                    color: _hasPrevious
+                        ? Colors.pink.shade500
+                        : Colors.grey.shade400,
                   ),
                   onPressed: _hasPrevious ? _playPrevious : null,
                 ),
-                
+
                 // 10 seconds backward
                 IconButton(
                   icon: Icon(
@@ -445,13 +409,15 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                   ),
                   onPressed: _skipForward,
                 ),
-                
+
                 // Next podcast button
                 IconButton(
                   icon: Icon(
                     Icons.skip_next,
                     size: 36,
-                    color: _hasNext ? Colors.pink.shade500 : Colors.grey.shade400,
+                    color: _hasNext
+                        ? Colors.pink.shade500
+                        : Colors.grey.shade400,
                   ),
                   onPressed: _hasNext ? _playNext : null,
                 ),
@@ -619,65 +585,5 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     }
   }
 
-  /// Navigates to the previous podcast in the list.
-  ///
-  /// This method switches to the previous podcast if available, stops current playback,
-  /// updates the UI state, and loads the new podcast audio.
-  ///
-  /// **Behavior:**
-  /// - Stops current audio playback
-  /// - Updates currentIndex and currentPodcast
-  /// - Resets playback state
-  /// - Loads new audio file
-  ///
-  /// **Requirements:**
-  /// - currentIndex must be > 0
-  void _goToPreviousPodcast() async {
-    if (currentIndex <= 0) return;
 
-    // Stop current playback
-    await _player.stop();
-
-    // Update to previous podcast
-    setState(() {
-      currentIndex--;
-      currentPodcast = widget.podcastList[currentIndex];
-      isPlaying = false;
-      playbackSpeed = 1.0;
-    });
-
-    // Load new audio
-    await _initAudio();
-  }
-
-  /// Navigates to the next podcast in the list.
-  ///
-  /// This method switches to the next podcast if available, stops current playback,
-  /// updates the UI state, and loads the new podcast audio.
-  ///
-  /// **Behavior:**
-  /// - Stops current audio playback
-  /// - Updates currentIndex and currentPodcast
-  /// - Resets playback state
-  /// - Loads new audio file
-  ///
-  /// **Requirements:**
-  /// - currentIndex must be < podcastList.length - 1
-  void _goToNextPodcast() async {
-    if (currentIndex >= widget.podcastList.length - 1) return;
-
-    // Stop current playback
-    await _player.stop();
-
-    // Update to next podcast
-    setState(() {
-      currentIndex++;
-      currentPodcast = widget.podcastList[currentIndex];
-      isPlaying = false;
-      playbackSpeed = 1.0;
-    });
-
-    // Load new audio
-    await _initAudio();
-  }
 }
