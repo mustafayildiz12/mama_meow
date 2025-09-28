@@ -61,8 +61,10 @@ class AuthenticationService {
         customSnackBar.warning("User not found");
       } else if (e.code == 'wrong-password') {
         customSnackBar.warning("Wrong Password");
+      } else if (e.code == "invalid-credential") {
+        customSnackBar.warning("Invalid Credentials");
       } else {
-        customSnackBar.warning("Wrong Password");
+        customSnackBar.warning("Could not log in");
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -116,6 +118,10 @@ class AuthenticationService {
         customSnackBar.warning("User not found");
       } else if (e.code == 'wrong-password') {
         customSnackBar.warning("Wrong Password");
+      } else if (e.code == "email-already-in-use") {
+        customSnackBar.warning("Email already in use");
+      } else {
+        customSnackBar.warning("Unable to register");
       }
     }
     return isSuccess;

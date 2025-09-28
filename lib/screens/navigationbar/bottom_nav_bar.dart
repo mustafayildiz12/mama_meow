@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mama_meow/screens/navigationbar/home/home_screen.dart';
 import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/my_baby_screen.dart';
@@ -40,11 +41,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(icon: Icons.pets, label: 'Ask Meow', index: 0),
-              _buildNavItem(
-                icon: Icons.child_friendly,
-                label: 'My Baby',
-                index: 1,
-              ),
+              _buildNavItemSvg(label: "My Baby", index: 1),
               _buildNavItem(icon: Icons.menu_book, label: 'Learn', index: 2),
               _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
             ],
@@ -75,6 +72,43 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 20, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItemSvg({required String label, required int index}) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? Colors.pink.shade600 : Colors.grey.shade600;
+    final bgColor = isSelected ? Colors.pink.shade50 : Colors.transparent;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(
+              "assets/baby.svg",
+              width: 24,
+              height: 24,
+              color: color,
+            ),
             const SizedBox(height: 4),
             Text(
               label,

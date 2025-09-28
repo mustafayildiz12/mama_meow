@@ -17,7 +17,7 @@ class LearnPage extends StatefulWidget {
 
 class _LearnPageState extends State<LearnPage> {
   String searchTerm = '';
-  String selectedCategory = 'all';
+  String selectedCategory = 'All';
 
   bool isLoading = false;
 
@@ -25,11 +25,19 @@ class _LearnPageState extends State<LearnPage> {
 
   final categories = [
     {'id': 'all', 'label': 'All', 'icon': '🎧'},
-    {'id': 'sleep', 'label': 'Sleep', 'icon': '💤'},
-    {'id': 'feeding', 'label': 'Feeding', 'icon': '🍼'},
-    {'id': 'growth', 'label': 'Growth', 'icon': '📏'},
-    {'id': 'diaper', 'label': 'Diaper', 'icon': '👶'},
-    {'id': 'journal', 'label': 'Journal', 'icon': '📔'},
+    {'id': 'infantcare', 'label': 'Infant Care', 'icon': '💤'},
+    {'id': 'feeding', 'label': '0-6 Months', 'icon': '🍼'},
+    {'id': 'growth', 'label': 'Toddler Care', 'icon': '📏'},
+    {'id': 'diaper', 'label': 'Common Ilnesses', 'icon': '👶'},
+    {'id': 'journal', 'label': 'Pregnancy', 'icon': '📔'},
+    {'id': 'Childbirth', 'label': 'Childbirth', 'icon': '📔'},
+    {'id': 'Healthaspects', 'label': 'Health Aspects', 'icon': '📔'},
+    {'id': 'childsleep', 'label': 'Child Sleep', 'icon': '📔'},
+    {'id': 'babycare', 'label': 'Baby Care', 'icon': '📔'},
+    {'id': 'motorskills', 'label': 'Motor Skills', 'icon': '📔'},
+    {'id': 'sleep', 'label': 'Sleep', 'icon': '📔'},
+    {'id': 'infanthealth', 'label': 'Infant Health', 'icon': '📔'},
+    {'id': 'childdevelopment', 'label': 'Child Development', 'icon': '📔'},
   ];
 
   @override
@@ -45,7 +53,7 @@ class _LearnPageState extends State<LearnPage> {
           p.title.toLowerCase().contains(searchTerm.toLowerCase()) ||
           p.subtitle.toLowerCase().contains(searchTerm.toLowerCase());
       final matchesCategory =
-          selectedCategory == 'all' || p.category == selectedCategory;
+          selectedCategory == 'All' || p.category.contains(selectedCategory);
       return matchesSearch && matchesCategory;
     }).toList();
 
@@ -125,14 +133,14 @@ class _LearnPageState extends State<LearnPage> {
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: categories.map((c) {
-                            final selected = selectedCategory == c['id'];
+                            final selected = selectedCategory == c['label'];
                             return Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: ChoiceChip(
                                 label: Text(c['label']!),
                                 selected: selected,
                                 onSelected: (_) =>
-                                    setState(() => selectedCategory = c['id']!),
+                                    setState(() => selectedCategory = c['label']!),
                                 selectedColor: Colors.purple.shade400,
                                 labelStyle: TextStyle(
                                   color: selected

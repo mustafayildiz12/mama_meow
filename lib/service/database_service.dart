@@ -2,10 +2,9 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
-import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 /// TercihService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
@@ -30,6 +29,8 @@ class DatabaseService {
         await localStorage.write("username", userModel.userName);
         isExist = true;
         currentMeowUser = userModel;
+
+        await InAppPurchaseService().loginSubscription();
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -80,6 +81,13 @@ class DatabaseService {
           isSuccess = true;
         });
     return isSuccess;
+  }
+
+  Future<void> updateBaby(MeowUserModel? meowUserModel) async {
+    await _realtimeDatabase.ref("users").child(meowUserModel!.uid!).update({
+      "babyName": meowUserModel.babyName,
+      "ageRange": meowUserModel.ageRange,
+    });
   }
 }
 

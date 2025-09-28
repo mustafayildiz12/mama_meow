@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -101,6 +104,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _nameController,
+                            textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
                               hintText: "Enter your name",
                               border: OutlineInputBorder(
@@ -132,6 +136,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
                               hintText: "Enter your email",
                               border: OutlineInputBorder(
@@ -163,8 +168,12 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
                             validator: (value) =>
                                 globalFunctions.nonEmptyRule(value),
+                            onFieldSubmitted: (value) async {
+                              await handleRegister();
+                            },
                             decoration: InputDecoration(
                               hintText: "Enter your password",
                               suffixIcon: IconButton(
@@ -206,59 +215,26 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
 
                           const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Register logic here
-                              final name = _nameController.text.trim();
-                              final email = _emailController.text.trim();
-                              final password = _passwordController.text;
-
-                              if (globalFunctions.validateAndSave(formKey)) {
-                                setState(() {
-                                  isLoading = true;
-                                });
-                                bool isSucees = await authenticationService
-                                    .registerAndSaveUser(
-                                      email: email,
-                                      password: password,
-                                      name: name,
-                                      context: context,
-                                    );
-                                setState(() {
-                                  isLoading = false;
-                                });
-                                if (isSucees) {
-                                  bool isUserPremium = InAppPurchaseService()
-                                      .checkUserHaveProduct();
-                                  if (isUserPremium) {
-                                    await Navigator.pushNamedAndRemoveUntil(
-                                      context,
-                                      AppRoutes.navigationBarPage,
-                                      (route) => false,
-                                    );
-                                  } else {
-                                    await Navigator.pushNamedAndRemoveUntil(
-                                      context,
-                                      AppRoutes.trialPage,
-                                      (route) => false,
-                                    );
-                                  }
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF472B6),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 8,
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                await handleRegister();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF472B6),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                              child: const Text(
+                                "Create Account",
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
-                            ),
-                            child: const Text(
-                              "Create Account",
-                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -308,5 +284,53 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  Future<void> handleRegister() async {
+    // Register logic here
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (globalFunctions.validateAndSave(formKey)) {
+      setState(() {
+        isLoading = true;
+      });
+      bool isSucees = await authenticationService.registerAndSaveUser(
+        email: email,
+        password: password,
+        name: name,
+        context: context,
+      );
+      setState(() {
+        isLoading = false;
+      });
+
+      if (isSucees) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const BabyInfoModal(),
+        ).then((v) async {
+          if (v == true) {
+            await databaseService.updateBaby(currentMeowUser);
+          }
+          bool isUserPremium = InAppPurchaseService().checkUserHaveProduct();
+          if (isUserPremium) {
+            await Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.navigationBarPage,
+              (route) => false,
+            );
+          } else {
+            await Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.trialPage,
+              (route) => false,
+            );
+          }
+        });
+      }
+    }
   }
 }

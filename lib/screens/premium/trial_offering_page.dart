@@ -2,7 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/premium/premium_bottom_sheet.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class TrialOfferingPage extends StatefulWidget {
   const TrialOfferingPage({super.key});
@@ -12,7 +16,7 @@ class TrialOfferingPage extends StatefulWidget {
 }
 
 class _TrialOfferingPageState extends State<TrialOfferingPage> {
-  String? _error;
+  final InAppPurchaseService _iap = InAppPurchaseService();
 
   final List<_Feature> features = [
     _Feature(
@@ -43,6 +47,34 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
     ),
   ];
 
+  bool isTrial = false;
+
+  void checkIsTrial() async {
+    int? trialCount = infoStorage.read("trialCount");
+    if (trialCount == null) {
+      setState(() {
+        isTrial = true;
+      });
+    } else if (trialCount < 4) {
+      setState(() {
+        isTrial = true;
+      });
+    }
+  }
+
+  Future<void> _startTrial() async {
+    try {
+      await infoStorage.write("trialCount", 1);
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.navigationBarPage,
+        (_) => false,
+      );
+    } catch (e) {
+      customSnackBar.error("Failed to start free trial");
+    }
+  }
+
   void _showSubscriptionOptions() {
     showModalBottomSheet(
       context: context,
@@ -55,48 +87,20 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
   }
 
   @override
+  void initState() {
+    checkIsTrial();
+    ;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.kLightOrange,
-      body: SafeArea(
-        child: _error != null
-            ? _buildErrorView()
-            : _buildMainContent(theme, screenHeight),
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.exclamationmark_triangle,
-              size: 64,
-              color: Colors.redAccent,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "error.loading_products".tr,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+      body: SafeArea(child: _buildMainContent(theme, screenHeight)),
     );
   }
 
@@ -108,7 +112,7 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-             const SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               "Explore Premium Features",
               style: theme.textTheme.headlineMedium?.copyWith(
@@ -143,6 +147,38 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
   Widget _buildActionButtons() {
     return Column(
       children: [
+        if (isTrial) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 2,
+              ),
+              onPressed: _startTrial,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(CupertinoIcons.play_circle),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Free Trial",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         // Subscribe Button
         SizedBox(
           width: double.infinity,
@@ -184,7 +220,7 @@ class _TrialOfferingPageState extends State<TrialOfferingPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

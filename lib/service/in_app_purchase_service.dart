@@ -4,7 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
+import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -98,7 +98,12 @@ class InAppPurchaseService {
     try {
       List<StoreProduct> items = await Purchases.getProducts(
         productCategory: ProductCategory.subscription,
-        ['premium_monthly', 'premium_yearly', 'apple_monthly', 'apple_yearly'],
+        [
+          'mama_monthly',
+          'mama_yearly',
+          'mama_apple_monthly',
+          'mama_apple_yearly',
+        ],
       );
 
       return items;
@@ -157,13 +162,13 @@ class InAppPurchaseService {
       );
       customerInfo = purchaseProduct.customerInfo;
       if (customerInfo!.activeSubscriptions.isNotEmpty) {
-        customSnackBar.success("paywall.snackbar.purchase_success".tr);
+        customSnackBar.success("Purchase success");
         Navigator.pop(context);
       }
     } catch (e) {
       // Kullanıcı iptal etmiş olabilir vs.
       debugPrint("Purchase error: $e");
-      customSnackBar.error("paywall.snackbar.purchase_failed".tr);
+      customSnackBar.error("Purchase failed");
     }
   }
 
@@ -182,6 +187,17 @@ class InAppPurchaseService {
       }
     }
 
+    return false;
+  }
+
+  Future<bool> isTrial() async {
+    int? trialCount = infoStorage.read("trialCount");
+
+    // demek ki ücretsiz deniyor uygulamayı
+    if (trialCount != null && trialCount < 4) {
+      await infoStorage.write("trialCount", trialCount + 1);
+      return true;
+    }
     return false;
   }
 
@@ -256,13 +272,13 @@ class InAppPurchaseService {
       customerInfo = purchaseResult.customerInfo;
 
       if (customerInfo!.activeSubscriptions.isNotEmpty) {
-        customSnackBar.success("paywall.snackbar.purchase_success".tr);
+        customSnackBar.success("Purchase success");
         isPurchaseSuccess = true;
       }
     } catch (e) {
       isPurchaseSuccess = false;
       debugPrint("Purchase error: $e");
-      customSnackBar.error("paywall.snackbar.purchase_failed".tr);
+      customSnackBar.error("Purchase failed");
     }
     return isPurchaseSuccess;
   }

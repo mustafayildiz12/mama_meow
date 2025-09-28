@@ -4,6 +4,7 @@ import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,6 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) =>
                                   globalFunctions.emailValidator(value),
+                              textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
                                 hintText: "Enter your email",
                                 border: OutlineInputBorder(
@@ -131,6 +140,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               obscureText: _obscurePassword,
                               validator: (value) =>
                                   globalFunctions.nonEmptyRule(value),
+                              onFieldSubmitted: (value) async {
+                                await handleLogin();
+                              },
                               decoration: InputDecoration(
                                 hintText: "Enter your password",
                                 suffixIcon: IconButton(
@@ -163,43 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             ElevatedButton(
                               onPressed: () async {
-                                final email = _emailController.text.trim();
-                                final password = _passwordController.text;
-                                if (globalFunctions.validateAndSave(formKey)) {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-                                  int isSuccess = await authenticationService
-                                      .login(
-                                        context,
-                                        email: email,
-                                        password: password,
-                                      );
-
-                                  setState(() {
-                                    isLoading = false;
-                                  });
-                                  if (isSuccess == 1) {
-                                    bool isUserPremium = InAppPurchaseService()
-                                        .checkUserHaveProduct();
-                                    if (isUserPremium) {
-                                      await Navigator.pushNamedAndRemoveUntil(
-                                        context,
-                                        AppRoutes.navigationBarPage,
-                                        (route) => false,
-                                      );
-                                    } else {
-                                      await Navigator.pushNamedAndRemoveUntil(
-                                        context,
-                                        AppRoutes.trialPage,
-                                        (route) => false,
-                                      );
-                                    }
-                                  } else if (isSuccess == 2) {
-                                    await authenticationService
-                                        .logoutFromFirebase();
-                                  }
-                                }
+                                await handleLogin();
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFF472B6),
@@ -264,5 +240,47 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (globalFunctions.validateAndSave(formKey)) {
+      setState(() {
+        isLoading = true;
+      });
+
+      int isSuccess = await authenticationService.login(
+        context,
+        email: email,
+        password: password,
+      );
+
+      setState(() {
+        isLoading = false;
+      });
+      if (isSuccess == 1) {
+        InAppPurchaseService iap = InAppPurchaseService();
+        bool isUserPremium =
+            await iap.checkUserHaveProduct() || await iap.isTrial();
+        if (isUserPremium) {
+          await Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.navigationBarPage,
+            (route) => false,
+          );
+        } else {
+          await Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.trialPage,
+            (route) => false,
+          );
+        }
+      } else if (isSuccess == 2) {
+        await authenticationService.logoutFromFirebase();
+      }
+    } else {
+      customSnackBar.warning("Please fill required fields");
+    }
   }
 }

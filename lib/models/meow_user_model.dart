@@ -18,7 +18,7 @@ class MeowUserModel {
       userEmail: map["userEmail"],
       status: map["status"],
       createDateTimeStamp: map["createDateTimeStamp"] ?? 0,
-
+      ageRange: map['ageRange'],
       babyName: map['babyName'],
     );
   }

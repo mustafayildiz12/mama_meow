@@ -137,7 +137,7 @@ class _PremiumBottomSheetPlayMontiState
                   const SizedBox(height: 8),
                   FilledButton.tonal(
                     onPressed: _loadOfferings,
-                    child: Text("paywall.retry".tr),
+                    child: Text("Try Again"),
                   ),
                 ] else
                   Expanded(
@@ -345,7 +345,7 @@ class _PremiumBottomSheetPlayMontiState
                     TextButton(
                       onPressed: () async {
                         final uri = Uri.parse(
-                          "https://kuyumcu-fd31a.firebaseapp.com/#/playMontiPolicy",
+                          "https://kuyumcu-fd31a.firebaseapp.com/#/mamaMeowPolicy",
                         );
                         if (await canLaunchUrl(uri)) {
                           await launchUrl(
@@ -489,7 +489,7 @@ class _PremiumBottomSheetPlayMontiState
                       border: Border.all(color: const Color(0xFF16A34A)),
                     ),
                     child: Text(
-                      "paywall.trial.pill".trParams({"days": trialDays}),
+                      "7-Day Free Trial",
                       style: const TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,

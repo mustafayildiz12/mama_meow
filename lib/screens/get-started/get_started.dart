@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
-import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
 
 class GetStartedPage extends StatefulWidget {
@@ -129,14 +128,8 @@ class _GetStartedPageState extends State<GetStartedPage>
                     );
 
                     if (isTermsAccepted) {
-                      await showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => const BabyInfoModal(),
-                      ).then((_) async {
-                        await infoStorage.write("getStarted", true);
-                        await Navigator.pushNamed(context, AppRoutes.loginPage);
-                      });
+                      await infoStorage.write("getStarted", true);
+                      await Navigator.pushNamed(context, AppRoutes.loginPage);
                     }
                   },
                   child: const Text(

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mama_meow/constants/app_constants.dart';
@@ -15,6 +16,19 @@ class AppInitService {
     await init();
     await initPurchase();
     await initRoute();
+    _initSetSystemUIOverlayStyle();
+  }
+
+  static void _initSetSystemUIOverlayStyle() {
+    // İçerik status/nav barın arkasına uzansın:
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top],
+    );
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(statusBarColor: Colors.white),
+    );
   }
 
   static initPurchase() async {
@@ -42,11 +56,13 @@ class AppInitService {
           .getAdminBasicInfoFromRealTime(user.uid);
 
       if (isUserExist) {
-        bool isUserPremium = InAppPurchaseService().checkUserHaveProduct();
+        InAppPurchaseService iap = InAppPurchaseService();
+        bool isUserPremium =
+            await iap.checkUserHaveProduct() || await iap.isTrial();
         if (isUserPremium) {
           AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         } else {
-          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
+          AppRoutes.initialRoute = AppRoutes.trialPage;
         }
       }
     } else {

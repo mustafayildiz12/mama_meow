@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/models/meow_user_model.dart';
 
 class BabyInfoModal extends StatefulWidget {
   final VoidCallback? onContinue;
@@ -249,7 +248,7 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                       onPressed:
                           widget.onContinue ??
                           () {
-                            currentMeowUser = MeowUserModel(
+                            currentMeowUser = currentMeowUser?.copyWith(
                               babyName: _nameController.text,
                               ageRange: selectedAge,
                             );
