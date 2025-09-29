@@ -35,6 +35,7 @@ class AskMeowView extends StatefulWidget {
 }
 
 class _AskMeowViewState extends State<AskMeowView> {
+  ScrollController pageScrollController = ScrollController();
   final _controller = TextEditingController();
   final _gpt = GptService();
 
@@ -69,6 +70,7 @@ class _AskMeowViewState extends State<AskMeowView> {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
+        controller: pageScrollController,
         child: Column(
           children: [
             Center(
@@ -213,17 +215,20 @@ class _AskMeowViewState extends State<AskMeowView> {
                             Icons.camera_alt,
                             color: Colors.teal,
                           ),
-                          onPressed: () async {
-                            XFile? image = await pickImage();
+                          onPressed: !_isLoading
+                              ? () async {
+                                  XFile? image = await pickImage();
 
-                            Uint8List? imageByte = await image?.readAsBytes();
-                            String? mimeTypeImage = image?.mimeType;
+                                  Uint8List? imageByte = await image
+                                      ?.readAsBytes();
+                                  String? mimeTypeImage = image?.mimeType;
 
-                            setState(() {
-                              imageBytes = imageByte;
-                              mimeType = mimeTypeImage;
-                            });
-                          },
+                                  setState(() {
+                                    imageBytes = imageByte;
+                                    mimeType = mimeTypeImage;
+                                  });
+                                }
+                              : null,
                         ),
                         IconButton.filledTonal(
                           style: ButtonStyle(
@@ -239,7 +244,7 @@ class _AskMeowViewState extends State<AskMeowView> {
                                 ? Colors.white
                                 : Colors.deepPurple,
                           ),
-                          onPressed: onMicPressed,
+                          onPressed: !_isLoading ? onMicPressed : null,
                         ),
 
                         // Kayıt göstergesi: süre + seviye çubuğu + "REC" noktası
@@ -300,12 +305,14 @@ class _AskMeowViewState extends State<AskMeowView> {
                                   top: -6,
                                   right: -6,
                                   child: InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        imageBytes = null;
-                                        mimeType = null;
-                                      });
-                                    },
+                                    onTap: !_isLoading
+                                        ? () {
+                                            setState(() {
+                                              imageBytes = null;
+                                              mimeType = null;
+                                            });
+                                          }
+                                        : null,
                                     child: Icon(
                                       Icons.cancel,
                                       color: Colors.black87,
@@ -390,8 +397,8 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   Widget _answerCard() {
     // Hiçbir cevap yok ve yükleme de yoksa gizle
-    if (_miaAnswer == null) {
-      return const SizedBox.shrink();
+    if (_miaAnswer == null && _isLoading) {
+      return CircularProgressIndicator();
     }
 
     final theme = Theme.of(context);
@@ -581,6 +588,11 @@ class _AskMeowViewState extends State<AskMeowView> {
   Future<void> _ask(String? presetQuestion) async {
     final q = (presetQuestion ?? _controller.text).trim();
     if (q.isEmpty) return;
+    await pageScrollController.animateTo(
+      pageScrollController.position.maxScrollExtent,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeIn,
+    );
 
     setState(() {
       _isLoading = true;
