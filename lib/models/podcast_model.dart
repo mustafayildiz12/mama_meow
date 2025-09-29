@@ -7,6 +7,8 @@ class Podcast {
   final String description;
   final String audioUrl;
   final String icon;
+  final String source;
+  final String creator;
 
   Podcast({
     required this.id,
@@ -14,7 +16,8 @@ class Podcast {
     required this.subtitle,
     required this.duration,
     required this.category,
-
+    required this.source,
+    required this.creator,
     required this.description,
     required this.audioUrl,
     required this.icon,
@@ -32,6 +35,8 @@ class Podcast {
       description: json['description'] as String,
       audioUrl: json['audioUrl'] as String,
       icon: json['icon'] as String,
+      source: json['source'] as String,
+      creator: json['creator'] as String,
     );
   }
 
@@ -46,6 +51,7 @@ class Podcast {
       'description': description,
       'audioUrl': audioUrl,
       'icon': icon,
+      'creator': creator,
     };
   }
 }

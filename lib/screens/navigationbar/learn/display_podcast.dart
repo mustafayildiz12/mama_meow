@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/podcast_model.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 
 class DisplayPodcastPage extends StatefulWidget {
   /// The podcast model containing all necessary information for playback and display
@@ -14,7 +14,6 @@ class DisplayPodcastPage extends StatefulWidget {
 
   /// The current index in the podcast list
   final int currentIndex;
-
 
   const DisplayPodcastPage({
     super.key,
@@ -254,7 +253,80 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
         centerTitle: true,
         backgroundColor: AppColors.pink500,
       ),
-      body: Padding(
+      bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Previous podcast button
+                IconButton(
+                  icon: Icon(
+                    Icons.skip_previous,
+                    size: 36,
+                    color: _hasPrevious
+                        ? Colors.pink.shade500
+                        : Colors.grey.shade400,
+                  ),
+                  onPressed: _hasPrevious ? _playPrevious : null,
+                ),
+
+                // 10 seconds backward
+                IconButton(
+                  icon: Icon(
+                    Icons.replay_10,
+                    size: 32,
+                    color: Colors.pink.shade500,
+                  ),
+                  onPressed: _skipBackward,
+                ),
+
+                // Play/Pause button
+                IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    size: 64,
+                    color: Colors.pink.shade500,
+                  ),
+                  onPressed: togglePlay,
+                ),
+
+                // 10 seconds forward
+                IconButton(
+                  icon: Icon(
+                    Icons.forward_10,
+                    size: 32,
+                    color: Colors.pink.shade500,
+                  ),
+                  onPressed: _skipForward,
+                ),
+
+                // Next podcast button
+                IconButton(
+                  icon: Icon(
+                    Icons.skip_next,
+                    size: 36,
+                    color: _hasNext
+                        ? Colors.pink.shade500
+                        : Colors.grey.shade400,
+                  ),
+                  onPressed: _hasNext ? _playNext : null,
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                "These AI-generated podcasts are for informational purposes only. For comprehensive information, please consult the original sources. Our summaries don't replace professional medical advice. We credit all original authors and encourage supporting their work.",
+                style: TextStyle(fontSize: 9, height: 1),
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -270,7 +342,6 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                 errorWidget: (context, url, error) => Icon(Icons.error),
               ),
             ),
-            Spacer(),
 
             const SizedBox(height: 8),
 
@@ -280,7 +351,6 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-
             // --- Slider ve süreler StreamBuilder ile ---
             StreamBuilder<Duration?>(
               stream: _player.durationStream,
@@ -363,64 +433,36 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
             ),
 
             const SizedBox(height: 8),
-
-            // Playback controls with skip buttons
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Previous podcast button
-                IconButton(
-                  icon: Icon(
-                    Icons.skip_previous,
-                    size: 36,
-                    color: _hasPrevious
-                        ? Colors.pink.shade500
-                        : Colors.grey.shade400,
-                  ),
-                  onPressed: _hasPrevious ? _playPrevious : null,
+                Text(
+                  "Creator: ",
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
+                Expanded(child: Text("${p.creator}")),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text("Source: ", style: TextStyle(fontWeight: FontWeight.w600)),
 
-                // 10 seconds backward
-                IconButton(
-                  icon: Icon(
-                    Icons.replay_10,
-                    size: 32,
-                    color: Colors.pink.shade500,
+                if (p.source.contains("http")) ...[
+                  TextButton(
+                    onPressed: () {
+                      if (_player.playing) {
+                        _player.pause();
+                      }
+                      launchUrl(Uri.parse(p.source));
+                    },
+                    child: Text(
+                      "${p.source}",
+                      style: TextStyle(decoration: TextDecoration.underline),
+                    ),
                   ),
-                  onPressed: _skipBackward,
-                ),
-
-                // Play/Pause button
-                IconButton(
-                  icon: Icon(
-                    isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    size: 64,
-                    color: Colors.pink.shade500,
-                  ),
-                  onPressed: togglePlay,
-                ),
-
-                // 10 seconds forward
-                IconButton(
-                  icon: Icon(
-                    Icons.forward_10,
-                    size: 32,
-                    color: Colors.pink.shade500,
-                  ),
-                  onPressed: _skipForward,
-                ),
-
-                // Next podcast button
-                IconButton(
-                  icon: Icon(
-                    Icons.skip_next,
-                    size: 36,
-                    color: _hasNext
-                        ? Colors.pink.shade500
-                        : Colors.grey.shade400,
-                  ),
-                  onPressed: _hasNext ? _playNext : null,
-                ),
+                ] else ...[
+                  Expanded(child: Text("${p.source}", maxLines: 1)),
+                ],
               ],
             ),
           ],
@@ -584,6 +626,4 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
       ).showSnackBar(SnackBar(content: Text('İleri sarma başarısız: $e')));
     }
   }
-
-
 }

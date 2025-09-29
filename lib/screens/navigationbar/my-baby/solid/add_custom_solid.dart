@@ -58,7 +58,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Görsel seçilemedi: $e")));
+      ).showSnackBar(SnackBar(content: Text("Image could not be selected: $e")));
     }
   }
 
@@ -77,7 +77,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
     if (!_formKey.currentState!.validate()) return;
     if (!kIsWeb && _file == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lütfen bir fotoğraf seçin.")),
+        const SnackBar(content: Text("Please pick an image.")),
       );
       return;
     }
@@ -117,14 +117,14 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Asset başarıyla eklendi.")),
+          const SnackBar(content: Text("Success")),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Hata: $e")));
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -151,7 +151,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
               ),
             ),
             const Text(
-              "Yeni Asset Ekle",
+              "Add New Food",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
@@ -161,16 +161,14 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
                 controller: _nameCtrl,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: "Asset Adı",
+                  labelText: "Food Name",
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
-                    return "Lütfen bir ad girin";
+                    return "input food name";
                   }
-                  if (v.trim().length < 2) {
-                    return "En az 2 karakter olmalı";
-                  }
+
                   return null;
                 },
               ),
@@ -182,7 +180,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _loading ? null : _pickImage,
                     icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text("Fotoğraf Seç"),
+                    label: const Text("Pick Image"),
                   ),
                 ),
               ],
@@ -206,7 +204,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text("Yükle ve Kaydet"),
+                    : const Text("Upload and Save"),
               ),
             ),
           ],

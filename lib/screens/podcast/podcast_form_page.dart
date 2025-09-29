@@ -345,6 +345,8 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
 
       // 2) Podcast modelini oluştur
       final podcast = Podcast(
+        source: "",
+        creator: "",
         id: id,
         title: _titleCtrl.text.trim(),
         subtitle: _subtitleCtrl.text.trim(),

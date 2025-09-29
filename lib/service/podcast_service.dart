@@ -112,6 +112,8 @@ class PodcastService {
       description: base.description,
       audioUrl: audioUrl,
       icon: iconUrl,
+      source: base.source,
+      creator: base.creator,
     );
     return updated;
   }
@@ -141,7 +143,8 @@ class PodcastService {
       subtitle: podcast.subtitle,
       duration: podcast.duration,
       category: podcast.category,
-
+      source: podcast.source,
+      creator: podcast.creator,
       description: podcast.description,
       audioUrl: audioUrl,
       icon: podcast.icon,

@@ -183,7 +183,7 @@ class _SleepExtendedMultiSliderBottomSheetState
     final hasOverlap = _hasOverlapAfterSplit();
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.92,
+      initialChildSize: 0.85,
       minChildSize: 0.5,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
