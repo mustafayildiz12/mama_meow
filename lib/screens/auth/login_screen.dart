@@ -260,22 +260,11 @@ class _LoginScreenState extends State<LoginScreen> {
         isLoading = false;
       });
       if (isSuccess == 1) {
-        InAppPurchaseService iap = InAppPurchaseService();
-        bool isUserPremium =
-            await iap.checkUserHaveProduct() || await iap.isTrial();
-        if (isUserPremium) {
-          await Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.navigationBarPage,
-            (route) => false,
-          );
-        } else {
-          await Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.trialPage,
-            (route) => false,
-          );
-        }
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.navigationBarPage,
+          (route) => false,
+        );
       } else if (isSuccess == 2) {
         await authenticationService.logoutFromFirebase();
       }

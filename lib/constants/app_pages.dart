@@ -5,7 +5,7 @@ import 'package:mama_meow/screens/auth/register_screen.dart';
 import 'package:mama_meow/screens/get-started/get_started.dart';
 import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
 import 'package:mama_meow/screens/podcast/podcast_form_page.dart';
-import 'package:mama_meow/screens/premium/trial_offering_page.dart';
+import 'package:mama_meow/screens/premium/premium_paywall.dart';
 
 class AppPages {
   static List<GetPage<dynamic>>? pages = [
@@ -21,6 +21,6 @@ class AppPages {
       name: AppRoutes.uploadPodcastPage,
       page: () => const PodcastFormPage(),
     ),
-    GetPage(name: AppRoutes.trialPage, page: () => const TrialOfferingPage()),
+    GetPage(name: AppRoutes.premiumPaywall, page: () => const PremiumPaywall()),
   ];
 }

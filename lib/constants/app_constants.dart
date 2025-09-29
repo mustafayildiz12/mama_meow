@@ -6,3 +6,5 @@ final GetStorage infoStorage = GetStorage("info");
 
 MeowUserModel? currentMeowUser;
 
+ bool isTrial = false;
+

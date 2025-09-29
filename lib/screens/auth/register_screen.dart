@@ -5,7 +5,6 @@ import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
-import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -315,20 +314,12 @@ class _RegisterPageState extends State<RegisterPage> {
           if (v == true) {
             await databaseService.updateBaby(currentMeowUser);
           }
-          bool isUserPremium = InAppPurchaseService().checkUserHaveProduct();
-          if (isUserPremium) {
-            await Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.navigationBarPage,
-              (route) => false,
-            );
-          } else {
-            await Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.trialPage,
-              (route) => false,
-            );
-          }
+
+          await Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.navigationBarPage,
+            (route) => false,
+          );
         });
       }
     }

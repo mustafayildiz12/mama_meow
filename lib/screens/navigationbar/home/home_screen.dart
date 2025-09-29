@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/mia_answer_model.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -55,6 +57,14 @@ class _AskMeowViewState extends State<AskMeowView> {
   Timer? _timer;
   StreamSubscription<Amplitude>? _ampSub;
   double _amp = 0.0; // -160..0 dB civarı gelir, biz basit normalize edeceğiz
+
+  bool isUserPremium = false;
+
+  @override
+  void initState() {
+    checkUserPremium();
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -585,37 +595,55 @@ class _AskMeowViewState extends State<AskMeowView> {
     );
   }
 
-  Future<void> _ask(String? presetQuestion) async {
-    final q = (presetQuestion ?? _controller.text).trim();
-    if (q.isEmpty) return;
-    await pageScrollController.animateTo(
-      pageScrollController.position.maxScrollExtent,
-      duration: Duration(milliseconds: 500),
-      curve: Curves.easeIn,
-    );
-
+  Future<void> checkUserPremium() async {
+    InAppPurchaseService iap = InAppPurchaseService();
+    bool isP = await iap.isPremium();
     setState(() {
-      _isLoading = true;
+      isUserPremium = isP;
     });
+  }
 
-    try {
-      final res = await _gpt.askMia(
-        q,
-        imageBytes: imageBytes,
-        imageMimeType: mimeType ?? "image/png",
-      );
-      setState(() => _miaAnswer = res);
-
-      // önerileri getir
-      final sug = await _gpt.getSuggestions(question: q, language: "English");
-      setState(() {
-        _suggestions = sug;
-        imageBytes = null;
+  Future<void> _ask(String? presetQuestion) async {
+    if (!isUserPremium) {
+      await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
+        v,
+      ) async {
+        if (v != null && v == true) {
+          await checkUserPremium();
+        }
       });
-    } catch (e) {
-      setState(() => _miaAnswer = null);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      final q = (presetQuestion ?? _controller.text).trim();
+      if (q.isEmpty) return;
+      await pageScrollController.animateTo(
+        pageScrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeIn,
+      );
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final res = await _gpt.askMia(
+          q,
+          imageBytes: imageBytes,
+          imageMimeType: mimeType ?? "image/png",
+        );
+        setState(() => _miaAnswer = res);
+
+        // önerileri getir
+        final sug = await _gpt.getSuggestions(question: q, language: "English");
+        setState(() {
+          _suggestions = sug;
+          imageBytes = null;
+        });
+      } catch (e) {
+        setState(() => _miaAnswer = null);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 

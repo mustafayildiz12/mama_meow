@@ -2,7 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DisplayPodcastPage extends StatefulWidget {
@@ -55,6 +57,8 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   /// Current index in the podcast list
   late int currentIndex;
 
+  bool isUserPremium = false;
+
   /// Initializes the audio player and sets up stream listeners for real-time UI updates.
   ///
   /// This method:
@@ -69,11 +73,14 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   /// - `playingStream`: Updates UI when playback starts/stops
   /// - `playerStateStream`: Handles completion events and auto-replay
   /// - `loopModeStream`: Syncs loop toggle state with player
+  ///
+  ///
   @override
   void initState() {
     super.initState();
     currentPodcast = widget.podcast;
     currentIndex = widget.currentIndex;
+    checkUserPremium();
     _player = AudioPlayer();
     _initAudio();
 
@@ -110,6 +117,14 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   void dispose() {
     _player.dispose();
     super.dispose();
+  }
+
+  Future<void> checkUserPremium() async {
+    InAppPurchaseService iap = InAppPurchaseService();
+    bool isP = await iap.isPremium();
+    setState(() {
+      isUserPremium = isP;
+    });
   }
 
   /// Navigates to the previous podcast in the playlist.
@@ -186,7 +201,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
       await _player.setUrl(currentPodcast.audioUrl);
 
       // Start playing
-      await _player.play();
+      if (isUserPremium) {
+        await _player.play();
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -323,6 +340,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                 style: TextStyle(fontSize: 9, height: 1),
               ),
             ),
+            SizedBox(height: 4),
           ],
         ),
       ),
@@ -532,13 +550,22 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   ///
   /// **Usage:**
   /// Called when the user taps the play/pause button in the UI
-  void togglePlay() {
-    if (_player.playing) {
-      _player.pause();
+  Future<void> togglePlay() async {
+    if (isUserPremium) {
+      if (_player.playing) {
+        _player.pause();
+      } else {
+        _player.play();
+      }
     } else {
-      _player.play();
+      await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
+        v,
+      ) async {
+        if (v != null && v == true) {
+          await checkUserPremium();
+        }
+      });
     }
-    // isPlaying updates are handled by playingStream listener
   }
 
   /// Changes the playback speed of the audio player.

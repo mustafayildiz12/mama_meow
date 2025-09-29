@@ -62,7 +62,7 @@ class AppInitService {
         if (isUserPremium) {
           AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         } else {
-          AppRoutes.initialRoute = AppRoutes.trialPage;
+          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         }
       }
     } else {
@@ -72,6 +72,15 @@ class AppInitService {
       } else {
         AppRoutes.initialRoute = AppRoutes.getStartedPage;
       }
+    }
+  }
+
+  void checkIsTrial() {
+    int? trialCount = infoStorage.read("trialCount");
+    if (trialCount == null) {
+      isTrial = true;
+    } else if (trialCount < 4) {
+      isTrial = true;
     }
   }
 }
