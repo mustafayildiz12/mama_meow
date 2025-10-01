@@ -8,6 +8,7 @@ import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/models/solid_food.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
@@ -125,15 +126,16 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     });
   }
 
-  void _inc(_PickedItem k) => setState(() => _picked[k] = (_picked[k] ?? 1) + 1);
+  void _inc(_PickedItem k) =>
+      setState(() => _picked[k] = (_picked[k] ?? 1) + 1);
   void _dec(_PickedItem k) => setState(() {
-        final v = (_picked[k] ?? 1) - 1;
-        if (v <= 0) {
-          _picked.remove(k);
-        } else {
-          _picked[k] = v;
-        }
-      });
+    final v = (_picked[k] ?? 1) - 1;
+    if (v <= 0) {
+      _picked.remove(k);
+    } else {
+      _picked[k] = v;
+    }
+  });
 
   bool _isSelectedRecent(SolidFood f) =>
       _picked.keys.any((k) => !k.isCustom && k.name == f.name);
@@ -230,20 +232,41 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
               // (4) Search
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: (v) => setState(() => _query = v),
-                  decoration: InputDecoration(
-                    hintText: "Search solids...",
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: theme.scaffoldBackgroundColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black12.withOpacity(.2)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        onChanged: (v) => setState(() => _query = v),
+                        decoration: InputDecoration(
+                          hintText: "Search solids...",
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: theme.scaffoldBackgroundColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.black12.withOpacity(.2),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                        ),
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
+                    IconButton(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SolidRemindersManagerPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.alarm_add), // or Icons.alarm_add
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
@@ -285,11 +308,15 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                             onPressed: () async {
                               await showDialog(
                                 context: context,
-                                builder: (_) => const AddCustomSolidBottomSheet(),
+                                builder: (_) =>
+                                    const AddCustomSolidBottomSheet(),
                               );
                               await getPageData();
                             },
-                            icon: const Icon(Icons.add_box, color: Colors.white),
+                            icon: const Icon(
+                              Icons.add_box,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -329,19 +356,27 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                               child: ListTile(
                                 leading: _ThumbIcon(item: k),
                                 title: Text(k.name),
-                                subtitle: Text(k.isCustom ? "Custom" : "Recent"),
+                                subtitle: Text(
+                                  k.isCustom ? "Custom" : "Recent",
+                                ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       onPressed: () => _dec(k),
-                                      icon: const Icon(Icons.remove_circle_outline),
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                      ),
                                     ),
-                                    Text("$qty",
-                                        style: const TextStyle(fontSize: 16)),
+                                    Text(
+                                      "$qty",
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
                                     IconButton(
                                       onPressed: () => _inc(k),
-                                      icon: const Icon(Icons.add_circle_outline),
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                      ),
                                     ),
                                     IconButton(
                                       onPressed: () {
@@ -402,8 +437,9 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                     Expanded(
                       child: OutlinedButton(
                         style: ButtonStyle(
-                          backgroundColor:
-                              WidgetStatePropertyAll(Colors.grey.shade200),
+                          backgroundColor: WidgetStatePropertyAll(
+                            Colors.grey.shade200,
+                          ),
                         ),
                         onPressed: () => Navigator.pop(context),
                         child: const Text("Back"),
@@ -436,9 +472,9 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Colors.black87,
-          ),
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
     );
   }
 }
@@ -470,10 +506,7 @@ class _ThumbIcon extends StatelessWidget {
       return SizedBox(
         width: 40,
         height: 40,
-        child: SvgPicture.asset(
-          item.thumb ?? "",
-          fit: BoxFit.contain,
-        ),
+        child: SvgPicture.asset(item.thumb ?? "", fit: BoxFit.contain),
       );
     }
   }
@@ -527,8 +560,11 @@ class _CustomCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                placeholder: (context, url) => const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
                 errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
             ),
@@ -538,8 +574,9 @@ class _CustomCard extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style:
-                  Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -664,10 +701,9 @@ class _FoodChipTile extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),

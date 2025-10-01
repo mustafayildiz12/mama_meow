@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 
 /// ---- Sabitler ----
@@ -263,12 +264,26 @@ class _SleepExtendedMultiSliderBottomSheetState
                         padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
                         child: Row(
                           children: [
-                            Text(
-                              "Total: ${_fmtDuration(total)}",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: Text(
+                                "Total: ${_fmtDuration(total)}",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
+                            ),
+                            IconButton(
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const SleepRemindersManagerPage(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.alarm_add),
                             ),
                           ],
                         ),

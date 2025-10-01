@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 
 class AddDiaperBottomSheet extends StatefulWidget {
@@ -55,6 +56,25 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DiaperRemindersManagerPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.alarm_add,
+                            ), // veya Icons.alarm_add
+                          ),
+                        ],
+                      ),
 
                       _ChipPickerSection<String?>(
                         labelBuilder: (v) => v!,

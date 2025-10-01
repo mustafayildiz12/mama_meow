@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_reminder_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
+import 'package:mama_meow/service/prefs/nursing_prefs.dart';
 
 /// Nursing side options
 class NursingSides {
@@ -47,6 +50,16 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
   TimeOfDay _selectedTime = TimeOfDay.now();
   final TextEditingController _durationController = TextEditingController();
   double _amount = 0.0;
+
+  NursingReminderSettings? _reminder; // mevcut ayar (ikon rengi vs için)
+
+  @override
+  void initState() {
+    super.initState();
+    ReminderPrefs.load().then((s) {
+      if (mounted) setState(() => _reminder = s);
+    });
+  }
 
   @override
   void dispose() {
@@ -212,13 +225,36 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text(
-                        'Add Nursing',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Add Nursing',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
                             ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const NursingRemindersManagerPage(),
+                                ),
+                              );
+                            },
+                            icon: Icon(
+                              Icons.alarm_add,
+                              color: (_reminder?.enabled ?? false)
+                                  ? Colors.teal
+                                  : null,
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
                         DateFormat('EEEE, d MMM').format(DateTime.now()),

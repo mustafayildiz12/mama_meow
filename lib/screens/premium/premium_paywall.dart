@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:purchases_flutter/models/package_wrapper.dart';
@@ -416,15 +415,15 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
       case PremiumType.monthly:
         title = "Monthly Plan";
         subtitle = "Includes a 7 day free trial. Auto-renews unless canceled.";
-        perText = "Billed once per year";
+        perText = "Billed monthly";
 
         break;
       case PremiumType.yearly:
-        title = "Yearly Plan";
+        title = "Annual Plan";
         subtitle = "Includes a 14 day free trial. Auto-renews unless canceled.";
         // Yıllık plan genelde en popüler
         chipText = "MOST POPULAR"; // "En Popüler" vb.
-        perText = "Billed monthly";
+        perText = "Billed once per year";
         break;
     }
 

@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/medicine_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 
 /// Medicine amount types
 class MedicineAmountTypes {
-  static const List<String> types = [
-    'oz',
-    'ml',
-    'tea spoon',
-    'drops',
-  ];
+  static const List<String> types = ['oz', 'ml', 'tea spoon', 'drops'];
 }
 
 /// Common medicine names
@@ -28,10 +24,7 @@ class CommonMedicines {
 class AddMedicineBottomSheet extends StatefulWidget {
   final DateTime selectedDate;
 
-  const AddMedicineBottomSheet({
-    super.key,
-    required this.selectedDate,
-  });
+  const AddMedicineBottomSheet({super.key, required this.selectedDate});
 
   @override
   State<AddMedicineBottomSheet> createState() => _AddMedicineBottomSheetState();
@@ -40,8 +33,9 @@ class AddMedicineBottomSheet extends StatefulWidget {
 class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
   final TextEditingController _medicineNameController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _customMedicineController = TextEditingController();
-  
+  final TextEditingController _customMedicineController =
+      TextEditingController();
+
   String? _selectedMedicineName;
   String _selectedAmountType = MedicineAmountTypes.types.first;
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -85,27 +79,27 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
   }
 
   bool _isFormValid() {
-    final medicineName = _isCustomMedicine 
+    final medicineName = _isCustomMedicine
         ? _customMedicineController.text.trim()
         : _selectedMedicineName;
     final amount = _amountController.text.trim();
-    
-    return medicineName != null && 
-           medicineName.isNotEmpty && 
-           amount.isNotEmpty &&
-           int.tryParse(amount) != null &&
-           int.parse(amount) > 0;
+
+    return medicineName != null &&
+        medicineName.isNotEmpty &&
+        amount.isNotEmpty &&
+        int.tryParse(amount) != null &&
+        int.parse(amount) > 0;
   }
 
   Future<void> _saveMedicine() async {
     if (!_isFormValid()) return;
 
-    final medicineName = _isCustomMedicine 
+    final medicineName = _isCustomMedicine
         ? _customMedicineController.text.trim()
         : _selectedMedicineName!;
-    
+
     final amount = int.parse(_amountController.text.trim());
-    
+
     final medicine = MedicineModel(
       startTime: _formatTime(_selectedTime),
       medicineName: medicineName,
@@ -157,7 +151,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('EEEE, d MMM').format(widget.selectedDate);
-    
+
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.5,
@@ -172,9 +166,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
             ),
-            boxShadow: const [
-              BoxShadow(blurRadius: 16, color: Colors.black12)
-            ],
+            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
           ),
           child: Column(
             children: [
@@ -197,19 +189,38 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
-                      Text(
-                        'Add Medicine',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Add Medicine',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const MedicineRemindersManagerPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.alarm_add),
+                          ),
+                        ],
                       ),
                       Text(
                         dateStr,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.black54,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
                       ),
                       const SizedBox(height: 24),
 
@@ -272,7 +283,8 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                                         }
                                       });
                                     },
-                                    controlAffinity: ListTileControlAffinity.leading,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
                                   ),
                                 ),
                                 Expanded(
@@ -289,13 +301,14 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                                         }
                                       });
                                     },
-                                    controlAffinity: ListTileControlAffinity.leading,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            
+
                             if (_isCustomMedicine) ...[
                               TextField(
                                 controller: _customMedicineController,
@@ -309,8 +322,11 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
-                                  children: CommonMedicines.names.map((medicine) {
-                                    final isSelected = _selectedMedicineName == medicine;
+                                  children: CommonMedicines.names.map((
+                                    medicine,
+                                  ) {
+                                    final isSelected =
+                                        _selectedMedicineName == medicine;
                                     return Padding(
                                       padding: const EdgeInsets.only(right: 8),
                                       child: _MedicineChip(
@@ -342,7 +358,10 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                               flex: 6,
                               child: TextField(
                                 controller: _amountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                 decoration: const InputDecoration(
                                   labelText: 'Amount',
                                   border: OutlineInputBorder(),
@@ -362,7 +381,10 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                                 items: MedicineAmountTypes.types.map((type) {
                                   return DropdownMenuItem(
                                     value: type,
-                                    child: Text(type,overflow: TextOverflow.ellipsis,),
+                                    child: Text(
+                                      type,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   );
                                 }).toList(),
                                 onChanged: (value) {
@@ -381,7 +403,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                   ),
                 ),
               ),
-              
+
               // Bottom buttons
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -402,8 +424,8 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _isFormValid() 
-                              ? AppColors.kDeepOrange 
+                          backgroundColor: _isFormValid()
+                              ? AppColors.kDeepOrange
                               : Colors.grey,
                         ),
                         onPressed: _isFormValid() ? _saveMedicine : null,
@@ -428,10 +450,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -442,11 +461,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black12),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
         ],
       ),
       child: Column(

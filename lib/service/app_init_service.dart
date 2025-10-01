@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -10,13 +12,51 @@ import 'package:mama_meow/firebase_options.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/service/motification_service.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class AppInitService {
   static Future<void> initApp() async {
     await init();
     await initPurchase();
     await initRoute();
+    await initNotification();
     _initSetSystemUIOverlayStyle();
+  }
+
+  static Future<void> initNotification() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await requestAndroidNotificationPermission();
+
+    // 1) TZ veritabanını yükle
+    tz.initializeTimeZones(); // 2025b IANA veritabanı dâhil. :contentReference[oaicite:2]{index=2}
+
+    // 2) Cihazın timezone adını al (örn. "Europe/Istanbul")
+    String timeZoneName = "UTC";
+    try {
+      var xx = await FlutterTimezone.getLocalTimezone();
+      timeZoneName = xx.identifier;
+    } catch (_) {
+      timeZoneName = 'UTC'; // güvenli geri dönüş
+    }
+    print("Timezone: $timeZoneName");
+
+    // 3) Yerel lokasyonu ayarla
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
+
+    // Notifications
+    await NotificationService.instance.init();
+  }
+
+  static Future<void> requestAndroidNotificationPermission() async {
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+    flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
   }
 
   static void _initSetSystemUIOverlayStyle() {

@@ -4,6 +4,19 @@
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 <uses-permission android:name="com.android.vending.BILLING" />
 
+ <!-- Android 13+ (API 33): runtime notification izni -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <!-- Android 12+ (API 31): exact (dakik) alarm kurmak için -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+  <!-- (Opsiyonel) Cihaz yeniden başlatınca alarmları yeniden kurmak istersen -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+  <!-- (Opsiyonel) Titreşim kullanıyorsan -->
+  <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:label="MamaMeow"
         android:name="${applicationName}"
@@ -34,6 +47,20 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+          <receiver
+    android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+    android:exported="false" />
+
+  <!-- Yeniden başlatma sonrası tekrar planlamak için -->
+  <receiver
+    android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+    android:exported="false">
+    <intent-filter>
+      <action android:name="android.intent.action.BOOT_COMPLETED"/>
+      <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+    </intent-filter>
+  </receiver>
+        
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

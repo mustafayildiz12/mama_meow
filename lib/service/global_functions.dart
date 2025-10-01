@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class GlobalFunction {
@@ -137,9 +138,6 @@ class GlobalFunction {
     final imageExtensions = ['.pdf'];
     return imageExtensions.any((ext) => fileName.toLowerCase().endsWith(ext));
   }
-
-
-
 
   String checkNullableFloatString(String? nullableFloatString) {
     if (nullableFloatString != null) {

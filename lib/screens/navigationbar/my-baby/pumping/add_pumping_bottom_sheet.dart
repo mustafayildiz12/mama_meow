@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 
 class AddPumpingBottomSheet extends StatefulWidget {
@@ -46,7 +47,6 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                     bottom: 16,
                   ),
                   child: Column(
-                   
                     children: [
                       Container(
                         width: 40,
@@ -58,6 +58,26 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                         ),
                       ),
                       const SizedBox(height: 12),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PumpingRemindersManagerPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.alarm,
+                            ), // veya uygun başka bir ikon
+                          ),
+                        ],
+                      ),
 
                       Align(
                         alignment: Alignment.centerLeft,

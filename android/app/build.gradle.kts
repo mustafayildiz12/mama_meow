@@ -27,6 +27,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
+         //? https://github.com/MaikuB/flutter_local_notifications/issues/2389
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -40,7 +43,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 6
+        versionCode = 7
         versionName = flutter.versionName
     }
 
@@ -66,6 +69,9 @@ flutter {
 dependencies {
     // ...
     implementation("com.google.android.material:material:1.12.0")
+
+        //? https://github.com/MaikuB/flutter_local_notifications/issues/2389
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // ...
 }
 
