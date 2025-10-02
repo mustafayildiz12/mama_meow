@@ -60,6 +60,25 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   bool isUserPremium = false;
 
+  List<QuickQuestionModel> quickQuestionList = [
+    QuickQuestionModel(
+      emoji: "💩",
+      question: "Is my baby's poop color normal? 🙀",
+    ),
+    QuickQuestionModel(
+      emoji: "🌙",
+      question: "How often should I feed my newborn? 🐾",
+    ),
+    QuickQuestionModel(
+      emoji: "💝",
+      question: "Breastfeeding problems and solutions? 🐱",
+    ),
+    QuickQuestionModel(
+      emoji: "🍼",
+      question: "Baby sleep regression - what to do? 😹",
+    ),
+  ];
+
   @override
   void initState() {
     checkUserPremium();
@@ -146,35 +165,23 @@ class _AskMeowViewState extends State<AskMeowView> {
                             color: Color(0xFFEC4899),
                           ),
                           onPressed: () {
-                            // gelecekte: listeyi karıştır
+                          
                           },
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Column(
-                      children: [
-                        _quickQuestionTile(
-                          '💩',
-                          "Is my baby's poop color normal? 🙀",
-                          [Colors.blue.shade100, Colors.purple.shade100],
-                        ),
-                        _quickQuestionTile(
-                          '🌙',
-                          "How often should I feed my newborn? 🐾",
-                          [Colors.green.shade100, Colors.teal.shade100],
-                        ),
-                        _quickQuestionTile(
-                          '💝',
-                          "Breastfeeding problems and solutions? 🐱",
-                          [Colors.red.shade100, Colors.pink.shade100],
-                        ),
-                        _quickQuestionTile(
-                          '🍼',
-                          "Baby sleep regression - what to do? 😹",
-                          [Colors.orange.shade100, Colors.yellow.shade100],
-                        ),
-                      ],
+                      children: List.generate(quickQuestionList.length, (
+                        index,
+                      ) {
+                        QuickQuestionModel question = quickQuestionList[index];
+                        return _quickQuestionTile(
+                          question.emoji,
+                          question.question,
+                          quickColors(index),
+                        );
+                      }),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -358,12 +365,23 @@ class _AskMeowViewState extends State<AskMeowView> {
 
             // Answer area
             _answerCard(),
-
-            const SizedBox(height: 80),
           ],
         ),
       ),
     );
+  }
+
+  List<Color>? quickColors(int index) {
+    if (index == 0) {
+      return [Colors.blue.shade100, Colors.purple.shade100];
+    } else if (index == 1) {
+      return [Colors.green.shade100, Colors.teal.shade100];
+    } else if (index == 2) {
+      return [Colors.red.shade100, Colors.pink.shade100];
+    } else if (index == 3) {
+      return [Colors.orange.shade100, Colors.yellow.shade100];
+    }
+    return null;
   }
 
   String _formatDuration(Duration d) {
@@ -373,7 +391,11 @@ class _AskMeowViewState extends State<AskMeowView> {
     return hh > 0 ? '$hh:$mm:$ss' : '$mm:$ss';
   }
 
-  Widget _quickQuestionTile(String emoji, String question, List<Color> colors) {
+  Widget _quickQuestionTile(
+    String emoji,
+    String question,
+    List<Color>? colors,
+  ) {
     return InkWell(
       onTap: () async {
         _controller.text = question;
@@ -384,7 +406,7 @@ class _AskMeowViewState extends State<AskMeowView> {
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: colors),
+          gradient: colors != null ? LinearGradient(colors: colors) : null,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFFBCFE8)),
         ),
@@ -575,15 +597,21 @@ class _AskMeowViewState extends State<AskMeowView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: _suggestions
                     .map(
-                      (s) => Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber.shade200),
+                      (s) => InkWell(
+                        onTap: () async {
+                          _controller.text = s;
+                          await _ask(s);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber.shade200),
+                          ),
+                          child: Text("👉 $s"),
                         ),
-                        child: Text("👉 $s"),
                       ),
                     )
                     .toList(),
@@ -752,6 +780,13 @@ class _AskMeowViewState extends State<AskMeowView> {
       await _startRecording();
     }
   }
+}
+
+class QuickQuestionModel {
+  final String emoji;
+  final String question;
+
+  QuickQuestionModel({required this.emoji, required this.question});
 }
 
 // ---- Kaynak ListTile ----

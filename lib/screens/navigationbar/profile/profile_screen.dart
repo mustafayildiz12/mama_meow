@@ -1,13 +1,29 @@
 // ProfilePage UI generated from provided HTML
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/screens/get-started/modals/update_baby_info_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool isUserPremium = false;
+
+  @override
+  void initState() {
+    checkUserPremium();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,96 +61,98 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildUserInfoCard(),
                 _buildBabyCard(),
-                //   _buildUsageCard(),
-                //   _buildPremiumCard(),
                 _buildAboutCard(),
-
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            TextButton(
-                              onPressed: () async {
-                                bool isSuccess = await authenticationService
-                                    .logoutFromFirebase();
-
-                                if (isSuccess) {
-                                  Navigator.pushNamedAndRemoveUntil(
-                                    context,
-                                    AppRoutes.loginPage,
-                                    (_) => false,
-                                  );
-                                }
-                              },
-                              child: Text("Logout"),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog.adaptive(
-                                      title: Text("Delete Account?"),
-                                      content: Text(
-                                        "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
-                                      ),
-                                      actions: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: OutlinedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            },
-                                            child: Text("Back"),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: OutlinedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context, true);
-                                            },
-                                            child: Text("Delete"),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ).then((value) async {
-                                  if (value == true) {
-                                    bool isSuccess = await databaseService
-                                        .deleteAccount(context);
-                                    if (isSuccess) {
-                                      Navigator.pushNamedAndRemoveUntil(
-                                        context,
-                                        AppRoutes.loginPage,
-                                        (_) => false,
-                                      );
-                                    }
-                                  }
-                                });
-                              },
-                              child: Text("Delete Account"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildPremiumCard(),
+                settingsCard(),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Card settingsCard() {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    bool isSuccess = await authenticationService
+                        .logoutFromFirebase();
+
+                    if (isSuccess) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.loginPage,
+                        (_) => false,
+                      );
+                    }
+                  },
+                  child: Text("Logout"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog.adaptive(
+                          title: Text("Delete Account?"),
+                          content: Text(
+                            "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
+                          ),
+                          actions: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: Text("Back"),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                },
+                                child: Text("Delete"),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ).then((value) async {
+                      if (value == true) {
+                        bool isSuccess = await databaseService.deleteAccount(
+                          context,
+                        );
+                        if (isSuccess) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.loginPage,
+                            (_) => false,
+                          );
+                        }
+                      }
+                    });
+                  },
+                  child: Text("Delete Account"),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -157,6 +175,7 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildUserInfoCard() {
     return Card(
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 12),
@@ -231,135 +250,77 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildBabyCard() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                SvgPicture.asset("assets/baby.svg"),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            "Baby Name: ",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            "${currentMeowUser?.babyName ?? "?"}",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            "Age Range: ",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            "${currentMeowUser?.ageRange ?? ""}",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUsageCard() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.calendar_today, size: 20, color: Color(0xFF2563EB)),
-                SizedBox(width: 8),
-                Text(
-                  "Today's Usage",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: const [
-                Column(
+    return InkWell(
+      onTap: () async {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const UpdateBabyInfoModal(),
+        ).then((v) async {
+          if (v == true) {
+            await databaseService.updateBaby(currentMeowUser);
+            setState(() {});
+          }
+        });
+      },
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 4,
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SvgPicture.asset("assets/baby.svg"),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "1",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2563EB),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          "Baby Name: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          "${currentMeowUser?.babyName ?? "?"}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Questions Asked",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          "Age Range: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          "${currentMeowUser?.ageRange ?? ""}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Column(
-                  children: [
-                    Text(
-                      "∞",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Remaining",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+              ),
+              Icon(Icons.arrow_forward_ios, color: AppColors.pink500),
+            ],
+          ),
         ),
       ),
     );
@@ -367,39 +328,88 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildPremiumCard() {
     return Card(
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Row(
-              children: [
-                Icon(Icons.card_giftcard, size: 20, color: Color(0xFF16A34A)),
-                SizedBox(width: 8),
-                Text(
-                  "Premium Features",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
+        child: isUserPremium
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.card_giftcard,
+                        size: 20,
+                        color: Color(0xFF16A34A),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        "Premium Features",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  _FeatureBullet("Complete Baby Tracking"),
+                  _FeatureBullet("Expert Podcast Library"),
+                  _FeatureBullet("AI-Powered Asistant"),
+                  _FeatureBullet("Priority support"),
+                ],
+              )
+            : Center(
+                child: InkWell(
+                  onTap: () async {
+                    await bePremium();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(seconds: 1),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.pink,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.pink.withOpacity(0.6),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.star, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          "Be Premium",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 12),
-            _FeatureBullet("Unlimited questions"),
-            _FeatureBullet("No ads"),
-            _FeatureBullet("Priority support"),
-          ],
-        ),
+              ),
       ),
     );
   }
 
   Widget _buildAboutCard() {
     return Card(
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 12),
@@ -439,6 +449,24 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> checkUserPremium() async {
+    InAppPurchaseService iap = InAppPurchaseService();
+    bool isP = await iap.isPremium();
+    setState(() {
+      isUserPremium = isP;
+    });
+  }
+
+  Future<void> bePremium() async {
+    await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
+      v,
+    ) async {
+      if (v != null && v == true) {
+        await checkUserPremium();
+      }
+    });
   }
 }
 
