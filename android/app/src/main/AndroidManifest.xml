@@ -9,7 +9,6 @@
 
   <!-- Android 12+ (API 31): exact (dakik) alarm kurmak için -->
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
   <!-- (Opsiyonel) Cihaz yeniden başlatınca alarmları yeniden kurmak istersen -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
