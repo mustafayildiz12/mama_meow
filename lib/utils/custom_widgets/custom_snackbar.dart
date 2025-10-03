@@ -1,6 +1,7 @@
 // ignore_for_file: file_names
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 
 class CustomSnackBar {
   factory CustomSnackBar() => _singleton;
@@ -8,7 +9,7 @@ class CustomSnackBar {
   static final CustomSnackBar _singleton = CustomSnackBar._internal();
 
   // Snackbar Görünüm Sabitleri
-  final Duration _duration = const Duration(seconds: 3, milliseconds: 500);
+  final Duration _duration = const Duration(seconds: 4, milliseconds: 500);
   final double _borderRadius = 8.0;
   final EdgeInsets _margin = const EdgeInsets.symmetric(
     horizontal: 12.0,
@@ -114,12 +115,23 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Warning",
       message: message,
+
       backgroundColor: Colors.orange.withValues(alpha: 0.75),
       icon: const Icon(
         Icons.warning_amber_rounded,
         color: Colors.white,
         size: 20,
       ),
+    );
+  }
+
+  Future<void> tips(String message) async {
+    _showSnackbar(
+      title: "Tips",
+      message: message,
+
+      backgroundColor: AppColors.pink500.withValues(alpha: 0.75),
+      icon: const Icon(Icons.info, color: Colors.white, size: 20),
     );
   }
 }

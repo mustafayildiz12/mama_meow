@@ -1,13 +1,16 @@
 // ProfilePage UI generated from provided HTML
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/update_baby_info_modal.dart';
+import 'package:mama_meow/screens/get-started/modals/update_email_password.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -135,15 +138,24 @@ class _ProfilePageState extends State<ProfilePage> {
                       },
                     ).then((value) async {
                       if (value == true) {
-                        bool isSuccess = await databaseService.deleteAccount(
-                          context,
-                        );
-                        if (isSuccess) {
-                          Navigator.pushNamedAndRemoveUntil(
+                        try {
+                          User? user = authenticationService.getUser();
+                          await user!.delete();
+                          bool isSuccess = await databaseService.deleteAccount(
                             context,
-                            AppRoutes.loginPage,
-                            (_) => false,
                           );
+                          if (isSuccess) {
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              AppRoutes.loginPage,
+                              (_) => false,
+                            );
+                          }
+                        } catch (e) {
+                          customSnackBar.error(
+                            "Account not deleted right now. Please try again later.",
+                          );
+                          customSnackBar.tips(e.toString());
                         }
                       }
                     });
@@ -174,76 +186,66 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildUserInfoCard() {
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE0E7FF),
-                    shape: BoxShape.circle,
+    return InkWell(
+      onTap: () async {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const UpdateEmailPasswordInfoModal(),
+        ).then((v) async {
+          if (v == true) {
+            await databaseService.updateBaby(currentMeowUser);
+            setState(() {});
+          }
+        });
+      },
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 4,
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE0E7FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person, color: Color(0xFF4F46E5)),
                   ),
-                  child: const Icon(Icons.person, color: Color(0xFF4F46E5)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currentMeowUser?.userName ?? "Guest",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentMeowUser?.userName ?? "Guest",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
                         ),
-                      ),
-                      Text(
-                        currentMeowUser?.userEmail ?? "",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
+                        Text(
+                          currentMeowUser?.userEmail ?? "",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            /*
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFEDE9FE), Color(0xFFFCE7F3)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.emoji_events, size: 20, color: Color(0xFF9333EA)),
-                  SizedBox(width: 8),
-                  Text(
-                    "Monthly Plan",
-                    style: TextStyle(
-                      color: Color(0xFF6B21A8),
-                      fontWeight: FontWeight.w500,
+                      ],
                     ),
                   ),
+                  Icon(Icons.arrow_forward_ios, color: AppColors.pink500),
                 ],
               ),
-            ),
-            */
-          ],
+            ],
+          ),
         ),
       ),
     );

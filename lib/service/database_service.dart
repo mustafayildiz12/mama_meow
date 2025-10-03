@@ -75,7 +75,7 @@ class DatabaseService {
     await _realtimeDatabase
         .ref("users")
         .child(currentMeowUser!.uid!)
-        .update({"status": 1})
+        .remove()
         .then((_) async {
           customSnackBar.success("Account Deleted");
           isSuccess = true;
@@ -87,7 +87,10 @@ class DatabaseService {
     await _realtimeDatabase.ref("users").child(meowUserModel!.uid!).update({
       "babyName": meowUserModel.babyName,
       "ageRange": meowUserModel.ageRange,
+      "userEmail": meowUserModel.userEmail,
+      "userPassword": meowUserModel.userPassword,
     });
+    customSnackBar.success("Saved successfully");
   }
 }
 

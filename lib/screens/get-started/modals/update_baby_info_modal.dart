@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 
 class UpdateBabyInfoModal extends StatefulWidget {
-  final VoidCallback? onContinue;
-  final VoidCallback? onSkip;
-
-  const UpdateBabyInfoModal({super.key, this.onContinue, this.onSkip});
+  const UpdateBabyInfoModal({super.key});
 
   @override
   State<UpdateBabyInfoModal> createState() => _UpdateBabyInfoModalState();

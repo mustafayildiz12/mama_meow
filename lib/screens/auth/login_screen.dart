@@ -265,6 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
           (route) => false,
         );
       } else if (isSuccess == 2) {
+        customSnackBar.warning("This account is deleted permanently");
         await authenticationService.logoutFromFirebase();
       }
     } else {
