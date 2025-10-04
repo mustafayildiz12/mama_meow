@@ -42,7 +42,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             children: [
               _buildNavItem(icon: Icons.pets, label: 'Ask Meow', index: 0),
               _buildNavItemSvg(label: "My Baby", index: 1),
-              _buildNavItem(icon: Icons.menu_book, label: 'Learn', index: 2),
+              _buildNavItemPng(label: 'Learn', index: 2),
               _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
             ],
           ),
@@ -71,7 +71,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: color),
+            Icon(icon, size: 20),
             const SizedBox(height: 4),
             Text(
               label,
@@ -103,12 +103,39 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(
-              "assets/baby.svg",
-              width: 24,
-              height: 24,
-              color: color,
+            SvgPicture.asset("assets/baby.svg", width: 24, height: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItemPng({required String label, required int index}) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? null : Colors.grey.shade600;
+    final bgColor = isSelected ? Colors.pink.shade50 : Colors.transparent;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset("assets/podcat.png", width: 24, height: 24),
             const SizedBox(height: 4),
             Text(
               label,

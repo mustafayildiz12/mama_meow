@@ -71,19 +71,31 @@ dependencies:
   flutter_local_notifications: ^19.4.2
   timezone: ^0.10.1
   flutter_timezone: ^5.0.0
+
+  flutter_launcher_icons: ^0.14.4
+
+
+flutter_launcher_icons:
+  #  image_path: "assets/images/icon-128x128.png"
+  image_path_android: "assets/full-logo.png"
+  image_path_ios: "assets/full-logo.png"
+  android: true # can specify file name here e.g. "ic_launcher"
+  ios: true # can specify file name here e.g. "My-Launcher-Icon"
+  adaptive_icon_background: "assets/full-logo.png" # only available for Android 8.0 devices and above
+  adaptive_icon_foreground: "assets/full-logo.png" # only available for Android 8.0 devices and above
+  adaptive_icon_foreground_inset: 16 # only available for Android 8.0 devices and above
+  adaptive_icon_monochrome: "assets/full-logo.png" # only available for Android 13 devices and above
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  remove_alpha_ios: true
+  background_color_ios: "#ffffff"
   
 
 
 dev_dependencies:
-  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 
-flutter_launcher_icons:
-  android: true          # veya "launcher_icon" kullanmak istiyorsan: android: "launcher_icon"
-  ios: false
-  image_path: "assets/logo.png"
-  min_sdk_android: 21
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
