@@ -1,6 +1,7 @@
 // ProfilePage UI generated from provided HTML
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
@@ -24,6 +25,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void initState() {
+     SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
+    );
     checkUserPremium();
     super.initState();
   }
@@ -290,7 +294,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                         Text(
-                          "${currentMeowUser?.babyName ?? "?"}",
+                          currentMeowUser?.babyName ?? "?",
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.black87,
@@ -309,7 +313,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                         Text(
-                          "${currentMeowUser?.ageRange ?? ""}",
+                          currentMeowUser?.ageRange ?? "",
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.black87,

@@ -6,7 +6,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminder
 import 'package:mama_meow/service/activities/pumping_service.dart';
 
 class AddPumpingBottomSheet extends StatefulWidget {
-  const AddPumpingBottomSheet();
+  const AddPumpingBottomSheet({super.key});
 
   @override
   State<AddPumpingBottomSheet> createState() => _AddPumpingBottomSheetState();
@@ -29,7 +29,9 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.kLightOrange,
+            gradient: LinearGradient(
+              colors: [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
+            ),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),

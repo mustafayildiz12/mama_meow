@@ -7,7 +7,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_m
 import 'package:mama_meow/service/activities/diaper_service.dart';
 
 class AddDiaperBottomSheet extends StatefulWidget {
-  const AddDiaperBottomSheet();
+  const AddDiaperBottomSheet({super.key});
 
   @override
   State<AddDiaperBottomSheet> createState() => _AddDiaperBottomSheetState();
@@ -27,7 +27,9 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.kLightOrange,
+            gradient: LinearGradient(
+              colors: [Colors.green.shade200, Colors.tealAccent.shade200],
+            ),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),

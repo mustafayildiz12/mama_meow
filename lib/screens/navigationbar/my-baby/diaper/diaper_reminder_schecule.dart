@@ -62,8 +62,8 @@ class DiaperReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Diaper Reminder',
-        'Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
+        'Diaper duty, mama! You got this 💪😺',
+        '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

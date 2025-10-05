@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/nursing_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_reminder_bottom_sheet.dart';
-import 'package:mama_meow/service/prefs/reminder_schedule.dart';
+import 'package:mama_meow/service/prefs/nursing_reminder_schedule.dart';
 
 
 class NursingRemindersManagerPage extends StatefulWidget {
@@ -24,13 +24,13 @@ class _NursingRemindersManagerPageState
   }
 
   Future<void> setTimeZone() async {
-    ReminderNotificationService.instance.init();
+    NursingReminderNotificationService.instance.init();
   }
 
   Future<void> _load() async {
     final list = await NursingRemindersStore.loadAll();
     setState(() => _items = list);
-    await ReminderNotificationService.instance.reapplyAll(_items);
+    await NursingReminderNotificationService.instance.reapplyAll(_items);
   }
 
   Future<void> _add() async {
@@ -54,7 +54,7 @@ class _NursingRemindersManagerPageState
     await NursingRemindersStore.saveAll(next);
     setState(() => _items = next);
 
-    await ReminderNotificationService.instance.scheduleItem(item);
+    await NursingReminderNotificationService.instance.scheduleItem(item);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Hatırlatıcı eklendi')));
@@ -82,8 +82,8 @@ class _NursingRemindersManagerPageState
     setState(() => _items = next);
 
     // önce eski planlarını temizle sonra yeni halini kur
-    await ReminderNotificationService.instance.cancelItem(it);
-    await ReminderNotificationService.instance.scheduleItem(updated);
+    await NursingReminderNotificationService.instance.cancelItem(it);
+    await NursingReminderNotificationService.instance.scheduleItem(updated);
 
     ScaffoldMessenger.of(
       context,
@@ -99,9 +99,9 @@ class _NursingRemindersManagerPageState
     setState(() => _items = next);
 
     if (v) {
-      await ReminderNotificationService.instance.scheduleItem(updated);
+      await NursingReminderNotificationService.instance.scheduleItem(updated);
     } else {
-      await ReminderNotificationService.instance.cancelItem(it);
+      await NursingReminderNotificationService.instance.cancelItem(it);
     }
   }
 
@@ -109,7 +109,7 @@ class _NursingRemindersManagerPageState
     final next = _items.where((e) => e.reminderId != it.reminderId).toList();
     await NursingRemindersStore.saveAll(next);
     setState(() => _items = next);
-    await ReminderNotificationService.instance.cancelItem(it);
+    await NursingReminderNotificationService.instance.cancelItem(it);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Hatırlatıcı silindi')));

@@ -120,7 +120,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                     if (snapshot.hasError) {
                       return _CenteredMessage(
                         emoji: '⚠️',
-                        title: 'Bir şeyler ters gitti',
+                        title: 'Something went wrong',
                         subtitle: snapshot.error.toString(),
                       );
                     }
@@ -128,9 +128,9 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                     if (medicines.isEmpty) {
                       return const _CenteredMessage(
                         emoji: '💊',
-                        title: 'Kayıt bulunamadı',
+                        title: 'No record found',
                         subtitle:
-                            'Bu aralık için ilaç eklediğinde burada göreceksin.',
+                            'You will see it here when you add medication for this period.',
                       );
                     }
                     return _buildReportBody(context, medicines);
@@ -613,7 +613,7 @@ class _HeaderCard extends StatelessWidget {
     return _SectionCard(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       title: "Medicine Overview ",
-      subtitle: "$dateLabel",
+      subtitle: dateLabel,
       child: Row(
         children: [
           Expanded(

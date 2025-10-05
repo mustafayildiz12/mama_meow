@@ -1,11 +1,10 @@
 import 'package:mama_meow/models/reminders/nursing_reminder_model.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
 
-class ReminderNotificationService {
-  ReminderNotificationService._();
-  static final ReminderNotificationService instance = ReminderNotificationService._();
+class NursingReminderNotificationService {
+  NursingReminderNotificationService._();
+  static final NursingReminderNotificationService instance = NursingReminderNotificationService._();
 
   final _plugin = FlutterLocalNotificationsPlugin();
 
@@ -58,8 +57,8 @@ class ReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Emzirme Hatırlatıcısı',
-        'Saat ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
+        'Time for a cozy cuddle & feed! 🤱🐾 MamaMeow’s got your back',
+        '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

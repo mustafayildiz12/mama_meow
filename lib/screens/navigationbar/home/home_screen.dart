@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/mia_answer_model.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
@@ -81,6 +82,9 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   @override
   void initState() {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(statusBarColor: Color(0xFFFFF1F5)),
+    );
     checkUserPremium();
     super.initState();
   }
@@ -164,9 +168,7 @@ class _AskMeowViewState extends State<AskMeowView> {
                             Icons.shuffle,
                             color: Color(0xFFEC4899),
                           ),
-                          onPressed: () {
-                          
-                          },
+                          onPressed: () {},
                         ),
                       ],
                     ),

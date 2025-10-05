@@ -82,8 +82,8 @@ class PumpingReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Pumping Reminder',
-        'Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
+        'Little paws need milk power! 🐾💖 Ready to pump?',
+        '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

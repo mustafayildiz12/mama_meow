@@ -38,12 +38,12 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
 
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          
             children: [
-              _buildNavItem(icon: Icons.pets, label: 'Ask Meow', index: 0),
-              _buildNavItemSvg(label: "My Baby", index: 1),
-              _buildNavItemPng(label: 'Learn', index: 2),
-              _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
+              Expanded(child: _buildNavItemPng(imagePath: "assets/foot.png", label: 'Ask Meow', index: 0)),
+              Expanded(child: _buildNavItemSvg(label: "My Baby", index: 1)),
+              Expanded(child: _buildNavItemPng(imagePath: "assets/podcat.png",label: 'Learn', index: 2)),
+              Expanded(child: _buildNavItemPng(imagePath: "assets/cat.png", label: 'Profile', index: 3)),
             ],
           ),
         ),
@@ -103,7 +103,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset("assets/baby.svg", width: 24, height: 24),
+            SvgPicture.asset("assets/baby.svg", width: 36, height: 36),
             const SizedBox(height: 4),
             Text(
               label,
@@ -119,9 +119,9 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     );
   }
 
-  Widget _buildNavItemPng({required String label, required int index}) {
+  Widget _buildNavItemPng({required String imagePath,required String label, required int index}) {
     final isSelected = _currentIndex == index;
-    final color = isSelected ? null : Colors.grey.shade600;
+    final color = isSelected ? Colors.pink : Colors.grey.shade600;
     final bgColor = isSelected ? Colors.pink.shade50 : Colors.transparent;
 
     return GestureDetector(
@@ -135,7 +135,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset("assets/podcat.png", width: 24, height: 24),
+            Image.asset(imagePath, width: 36, height: 36),
             const SizedBox(height: 4),
             Text(
               label,

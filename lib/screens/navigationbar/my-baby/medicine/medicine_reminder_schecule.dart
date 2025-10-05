@@ -82,8 +82,8 @@ class MedicineReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Medicine Reminder',
-        'Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
+        'Tiny dose, big love — don’t miss today’s meds 💖🐾',
+        '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

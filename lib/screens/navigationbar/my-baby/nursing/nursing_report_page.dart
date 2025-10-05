@@ -120,7 +120,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
                     if (snapshot.hasError) {
                       return _CenteredMessage(
                         emoji: '⚠️',
-                        title: 'Bir şeyler ters gitti',
+                        title: 'Something went wrong',
                         subtitle: snapshot.error.toString(),
                       );
                     }
@@ -128,9 +128,9 @@ class _NursingReportPageState extends State<NursingReportPage> {
                     if (nursings.isEmpty) {
                       return const _CenteredMessage(
                         emoji: '🍼',
-                        title: 'Kayıt bulunamadı',
+                        title: 'No record found',
                         subtitle:
-                            'Bu aralık için emzirme eklediğinde burada göreceksin.',
+                            'You will see it here when you add breastfeeding for this month.',
                       );
                     }
                     return _buildReportBody(context, nursings);

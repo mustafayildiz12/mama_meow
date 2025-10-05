@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
@@ -38,9 +39,9 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
 
   @override
   void initState() {
-    super.initState();
     // Eğer service zaten broadcast veriyorsa .asBroadcastStream() şart değil,
     // emin değilsen ekle (zararı yok):
+    updateTopUi();
     _solidCount$ = solidService.todaySolidCountStream().asBroadcastStream();
     _sleepCount$ = sleepService.todaySleepCountStream().asBroadcastStream();
     _diaperCount$ = diaperService.todayDiaperCountStream().asBroadcastStream();
@@ -53,6 +54,17 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
     _nursingCount$ = nursingService
         .todayNursingCountStream()
         .asBroadcastStream();
+    super.initState();
+  }
+
+  updateTopUi() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: Theme.of(context).scaffoldBackgroundColor,
+        ),
+      );
+    });
   }
 
   @override
@@ -81,6 +93,45 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
               ],
             ),
           ),
+          StreamBuilder(
+            stream: _nursingCount$,
+            builder: (context, snapshot) {
+              int nursingCount = snapshot.hasData ? snapshot.data! : 0;
+              return _babyCard(
+                emoji: '🍼',
+                title: 'Nursing',
+                subtitle: 'Today: $nursingCount times',
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
+                ),
+                textColor: Colors.green.shade700,
+                bgColor: Colors.green.shade50,
+                onReportPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NursingReportPage(),
+                    ),
+                  );
+                },
+                onPlusPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) => const AddNursingBottomSheet(),
+                  );
+                },
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
           StreamBuilder(
             stream: _solidCount$,
             builder: (context, snapshot) {
@@ -266,45 +317,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
           ),
 
           const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _nursingCount$,
-            builder: (context, snapshot) {
-              int nursingCount = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '🍼',
-                title: 'Nursing',
-                subtitle: 'Today: $nursingCount times',
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
-                ),
-                textColor: Colors.green.shade700,
-                bgColor: Colors.green.shade50,
-                onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NursingReportPage(),
-                    ),
-                  );
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) => const AddNursingBottomSheet(),
-                  );
-                },
-              );
-            },
-          ),
 
-          const SizedBox(height: 16),
           _babyCardJournal(
             emoji: '📔',
             title: 'Journal',

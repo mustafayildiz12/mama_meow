@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 import 'package:mama_meow/screens/navigationbar/learn/display_podcast.dart';
@@ -42,6 +43,9 @@ class _LearnPageState extends State<LearnPage> {
 
   @override
   void initState() {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(statusBarColor: Color(0xFFF5F3FF)),
+    );
     getPageData();
     super.initState();
   }
@@ -91,14 +95,14 @@ class _LearnPageState extends State<LearnPage> {
           child: SafeArea(
             child: Column(
               children: [
-                const Icon(Icons.podcasts, size: 48, color: Color(0xFF9333EA)),
+                Image.asset("assets/podcat.png", width: 96, height: 96),
                 const SizedBox(height: 8),
                 const Text(
                   "Podcasts",
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const Text(
-                  "Expert parenting guidance in audio format",
+                  "No time to read! Just listen, meow 🐾",
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
@@ -139,8 +143,9 @@ class _LearnPageState extends State<LearnPage> {
                               child: ChoiceChip(
                                 label: Text(c['label']!),
                                 selected: selected,
-                                onSelected: (_) =>
-                                    setState(() => selectedCategory = c['label']!),
+                                onSelected: (_) => setState(
+                                  () => selectedCategory = c['label']!,
+                                ),
                                 selectedColor: Colors.purple.shade400,
                                 labelStyle: TextStyle(
                                   color: selected

@@ -121,7 +121,7 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
                     if (snapshot.hasError) {
                       return _CenteredMessage(
                         emoji: '⚠️',
-                        title: 'Bir şeyler ters gitti',
+                        title: 'Something went wrong',
                         subtitle: snapshot.error.toString(),
                       );
                     }
@@ -129,9 +129,9 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
                     if (pumpings.isEmpty) {
                       return const _CenteredMessage(
                         emoji: '🍼',
-                        title: 'Kayıt bulunamadı',
+                        title: 'No record found',
                         subtitle:
-                            'Bu aralık için pumping eklediğinde burada göreceksin.',
+                            "You'll see it here when you add pumping for this interval.",
                       );
                     }
                     return _buildReportBody(context, pumpings);
@@ -579,7 +579,7 @@ class _HeaderCard extends StatelessWidget {
     return _SectionCard(
       padding: const EdgeInsets.fromLTRB(8, 18, 8, 16),
       title: "Pumping Overview",
-      subtitle: "$dateLabel",
+      subtitle: dateLabel,
       leading: "🍼",
       child: Row(
         children: [

@@ -114,7 +114,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
             end: Alignment.bottomRight,
             colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
           ),
-          borderRadius: const BorderRadius.only(
+          borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -173,7 +173,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Solid",
                       icon: Icons.restaurant,
                       color: Colors.orange.shade200,
-                      emptyText: "Bugün solid kaydı yok.",
+                      emptyText: "No solid record for today.",
                       children: [
                         for (int i = 0; i < data.solids.length; i++)
                           _NumberedEntry(
@@ -195,7 +195,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Sleep",
                       icon: Icons.nightlight_round,
                       color: Colors.blue.shade200,
-                      emptyText: "Bugün uyku kaydı yok.",
+                      emptyText: "No sleep record for today.",
                       children: [..._sleepEntries(data.sleeps)],
                     ),
                     const SizedBox(height: 12),
@@ -205,7 +205,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Nursing",
                       icon: Icons.child_care,
                       color: Colors.teal.shade200,
-                      emptyText: "Bugün emzirme kaydı yok.",
+                      emptyText: "No nursing record for today.",
                       children: [
                         for (int i = 0; i < data.nursings.length; i++)
                           _NumberedEntry(
@@ -232,7 +232,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Diaper",
                       icon: Icons.baby_changing_station,
                       color: Colors.green.shade200,
-                      emptyText: "Bugün alt değiştirme kaydı yok.",
+                      emptyText: "No diaper record for today.",
                       children: [
                         for (int i = 0; i < data.diapers.length; i++)
                           _NumberedEntry(
@@ -254,7 +254,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Pumping",
                       icon: Icons.published_with_changes,
                       color: Colors.pink.shade200,
-                      emptyText: "Bugün pumping kaydı yok.",
+                      emptyText: "No pumping record for today.",
                       children: [
                         for (int i = 0; i < data.pumpings.length; i++)
                           _NumberedEntry(
@@ -277,7 +277,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                       title: "Medicine",
                       icon: Icons.medication,
                       color: Colors.red.shade200,
-                      emptyText: "Bugün ilaç kaydı yok.",
+                      emptyText: "No medicine record for today.",
                       children: [
                         for (int i = 0; i < data.medicines.length; i++)
                           _NumberedEntry(

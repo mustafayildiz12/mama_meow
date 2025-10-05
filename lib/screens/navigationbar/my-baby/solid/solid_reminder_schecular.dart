@@ -87,8 +87,8 @@ class SolidReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Solid Reminder',
-        'Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
+        'You’re doing great, mama — time to feed 💕🐱',
+        '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

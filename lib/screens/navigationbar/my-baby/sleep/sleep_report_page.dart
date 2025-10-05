@@ -2,8 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 
@@ -128,7 +126,7 @@ class _SleepReportPageState extends State<SleepReportPage> {
                     if (snapshot.hasError) {
                       return _CenteredMessage(
                         emoji: '⚠️',
-                        title: 'Bir şeyler ters gitti',
+                        title: 'Something went wrong',
                         subtitle: snapshot.error.toString(),
                       );
                     }
@@ -136,9 +134,9 @@ class _SleepReportPageState extends State<SleepReportPage> {
                     if (sleeps.isEmpty) {
                       return const _CenteredMessage(
                         emoji: '😴',
-                        title: 'Kayıt bulunamadı',
+                        title: 'No record found',
                         subtitle:
-                            'Bu aralık için uyku eklediğinde burada göreceksin.',
+                            "You'll see it here when you add sleep for this interval.",
                       );
                     }
                     return _buildReportBody(context, sleeps);
@@ -511,7 +509,7 @@ class _HeaderCard extends StatelessWidget {
     return _SectionCard(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       title: "Sleep Overview",
-      subtitle: "$dateLabel",
+      subtitle: dateLabel,
       leading: "🌙",
       child: Row(
         children: [
