@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -13,7 +15,7 @@ import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
-  const AddSolidBottomSheet();
+  const AddSolidBottomSheet({super.key});
 
   @override
   State<AddSolidBottomSheet> createState() => _AddSolidBottomSheetState();
@@ -204,261 +206,264 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.orange.shade200, Colors.yellow.shade200],
+        return Platform.isAndroid
+            ? SafeArea(
+                top: false,
+                child: sheetBody(theme, context, scrollController),
+              )
+            : sheetBody(theme, context, scrollController);
+      },
+    );
+  }
+
+  Container sheetBody(
+    ThemeData theme,
+    BuildContext context,
+    ScrollController scrollController,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade200, Colors.yellow.shade200],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
+      ),
+      child: Column(
+        children: [
+          // Handle
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(2),
             ),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
           ),
-          child: Column(
-            children: [
-              // Handle
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-              // (4) Search
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        onChanged: (v) => setState(() => _query = v),
-                        decoration: InputDecoration(
-                          hintText: "Search solids...",
-                          prefixIcon: const Icon(Icons.search),
-                          filled: true,
-                          fillColor: theme.scaffoldBackgroundColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.black12.withOpacity(.2),
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
+          // (4) Search
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => setState(() => _query = v),
+                    decoration: InputDecoration(
+                      hintText: "Search solids...",
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: theme.scaffoldBackgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.black12.withOpacity(.2),
                         ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SolidRemindersManagerPage(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.alarm_add), // or Icons.alarm_add
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // (1) Recent (çoklu seçim)
-                      _SectionTitle("Recent Foods"),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final f in _filteredRecent)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _FoodChipTile(
-                                  label: f.name,
-                                  asset: f.asset,
-                                  selected: _isSelectedRecent(f),
-                                  onTap: () => _toggleRecent(f),
-                                ),
-                              ),
-                          ],
-                        ),
+                IconButton(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SolidRemindersManagerPage(),
                       ),
-                      const SizedBox(height: 12),
+                    );
+                  },
+                  icon: const Icon(Icons.alarm_add), // or Icons.alarm_add
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
 
-                      // (2) Custom (kullanıcının ekledikleri) (çoklu seçim)
-                      Row(
-                        children: [
-                          const _SectionTitle("Custom Foods"),
-                          IconButton(
-                            onPressed: () async {
-                              await showDialog(
-                                context: context,
-                                builder: (_) =>
-                                    const AddCustomSolidBottomSheet(),
-                              );
-                              await getPageData();
-                            },
-                            icon: const Icon(
-                              Icons.add_box,
-                              color: Colors.white,
+          Expanded(
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // (1) Recent (çoklu seçim)
+                  _SectionTitle("Recent Foods"),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final f in _filteredRecent)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _FoodChipTile(
+                              label: f.name,
+                              asset: f.asset,
+                              selected: _isSelectedRecent(f),
+                              onTap: () => _toggleRecent(f),
                             ),
                           ),
-                        ],
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final item in _filteredCustom)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _CustomCard(
-                                  item: item,
-                                  selected: _isSelectedCustom(item),
-                                  onTap: () => _toggleCustom(item),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // (3) Seçilenler & miktarlar
-                      if (_picked.isNotEmpty) ...[
-                        const _SectionTitle("Selected"),
-                        const SizedBox(height: 8),
-                        Column(
-                          children: _picked.entries.map((e) {
-                            final k = e.key;
-                            final qty = e.value;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: theme.scaffoldBackgroundColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.black12),
-                              ),
-                              child: ListTile(
-                                leading: _ThumbIcon(item: k),
-                                title: Text(k.name),
-                                subtitle: Text(
-                                  k.isCustom ? "Custom" : "Recent",
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () => _dec(k),
-                                      icon: const Icon(
-                                        Icons.remove_circle_outline,
-                                      ),
-                                    ),
-                                    Text(
-                                      "$qty",
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    IconButton(
-                                      onPressed: () => _inc(k),
-                                      icon: const Icon(
-                                        Icons.add_circle_outline,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () {
-                                        setState(() => _picked.remove(k));
-                                      },
-                                      icon: const Icon(Icons.close),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 12),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-                      // Time
-                      InkWell(
-                        onTap: _pickTime,
-                        borderRadius: BorderRadius.circular(8),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: "Time",
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.access_time, size: 18),
-                              const SizedBox(width: 8),
-                              Text(_eatTimeStr),
-                              const Spacer(),
-                              const Icon(Icons.edit_outlined, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Reactions chips (opsiyonel, global)
-                      _ChipPickerSection<Reaction>(
-                        title: "Reaction",
-                        labelBuilder: (v) => reactionToText(v!),
-                        items: reactions,
-                        value: _reaction,
-                        onChanged: (v) => setState(() => _reaction = v),
-                        iconBuilder: (v) => _iconForStartOfSleep(v!),
+                  // (2) Custom (kullanıcının ekledikleri) (çoklu seçim)
+                  Row(
+                    children: [
+                      const _SectionTitle("Custom Foods"),
+                      IconButton(
+                        onPressed: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (_) => const AddCustomSolidBottomSheet(),
+                          );
+                          await getPageData();
+                        },
+                        icon: const Icon(Icons.add_box, color: Colors.white),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // Buttons
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll(
-                            Colors.grey.shade200,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final item in _filteredCustom)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _CustomCard(
+                              item: item,
+                              selected: _isSelectedCustom(item),
+                              onTap: () => _toggleCustom(item),
+                            ),
                           ),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Back"),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _picked.isNotEmpty ? _save : null,
-                        child: const Text("Save"),
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // (3) Seçilenler & miktarlar
+                  if (_picked.isNotEmpty) ...[
+                    const _SectionTitle("Selected"),
+                    const SizedBox(height: 8),
+                    Column(
+                      children: _picked.entries.map((e) {
+                        final k = e.key;
+                        final qty = e.value;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: theme.scaffoldBackgroundColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: ListTile(
+                            leading: _ThumbIcon(item: k),
+                            title: Text(k.name),
+                            subtitle: Text(k.isCustom ? "Custom" : "Recent"),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () => _dec(k),
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                ),
+                                Text(
+                                  "$qty",
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                IconButton(
+                                  onPressed: () => _inc(k),
+                                  icon: const Icon(Icons.add_circle_outline),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() => _picked.remove(k));
+                                  },
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
+                    const SizedBox(height: 12),
                   ],
-                ),
+
+                  // Time
+                  InkWell(
+                    onTap: _pickTime,
+                    borderRadius: BorderRadius.circular(8),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: "Time",
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 18),
+                          const SizedBox(width: 8),
+                          Text(_eatTimeStr),
+                          const Spacer(),
+                          const Icon(Icons.edit_outlined, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Reactions chips (opsiyonel, global)
+                  _ChipPickerSection<Reaction>(
+                    title: "Reaction",
+                    labelBuilder: (v) => reactionToText(v!),
+                    items: reactions,
+                    value: _reaction,
+                    onChanged: (v) => setState(() => _reaction = v),
+                    iconBuilder: (v) => _iconForStartOfSleep(v!),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+
+          // Buttons
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(
+                        Colors.grey.shade200,
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Back"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _picked.isNotEmpty ? _save : null,
+                    child: const Text("Save"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

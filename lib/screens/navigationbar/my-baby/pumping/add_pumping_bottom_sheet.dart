@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
@@ -27,163 +29,168 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    bottom: 16,
+        return Platform.isAndroid
+            ? SafeArea(top: false, child: sheetBody(context))
+            : sheetBody(context);
+      },
+    );
+  }
+
+  Container sheetBody(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
+        ),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  child: Column(
+                  const SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.black12,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const PumpingRemindersManagerPage(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.alarm,
-                            ), // veya uygun başka bir ikon
-                          ),
-                        ],
-                      ),
-
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: _ChipPickerSection<String?>(
-                          labelBuilder: (v) => v!,
-                          items: ["Left", "Right"],
-                          title: "Pick Side",
-                          value: _selectedSide,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedSide = value;
-                              if (_selectedSide == "Left") {
-                                isLeft = true;
-                              } else {
-                                isLeft = false;
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: _pickTime,
-                              borderRadius: BorderRadius.circular(8),
-                              child: InputDecorator(
-                                decoration: const InputDecoration(
-                                  labelText: "Start Time",
-                                  border: OutlineInputBorder(),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.access_time, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(_diaperTimeStr),
-                                    const Spacer(),
-                                    const Icon(Icons.edit_outlined, size: 18),
-                                  ],
-                                ),
-                              ),
+                      IconButton(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const PumpingRemindersManagerPage(),
                             ),
-                          ),
-                          SizedBox(width: 12),
-                          SizedBox(
-                            width: 140,
-                            child: TextFormField(
-                              controller: durationController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    signed: false,
-                                    decimal: false,
-                                  ),
-                              textAlign: TextAlign.right,
-                              decoration: const InputDecoration(
-                                labelText: "Duration (min)",
-
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14,
-                                  horizontal: 4,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.alarm,
+                        ), // veya uygun başka bir ikon
                       ),
                     ],
                   ),
-                ),
-              ),
 
-              // Kaydet butonu
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll(
-                            Colors.grey.shade200,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _ChipPickerSection<String?>(
+                      labelBuilder: (v) => v!,
+                      items: ["Left", "Right"],
+                      title: "Pick Side",
+                      value: _selectedSide,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSide = value;
+                          if (_selectedSide == "Left") {
+                            isLeft = true;
+                          } else {
+                            isLeft = false;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickTime,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: "Start Time",
+                              border: OutlineInputBorder(),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time, size: 18),
+                                const SizedBox(width: 8),
+                                Text(_diaperTimeStr),
+                                const Spacer(),
+                                const Icon(Icons.edit_outlined, size: 18),
+                              ],
+                            ),
                           ),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Back"),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: (_selectedSide != null) ? _save : null,
-                        child: const Text("Save"),
+                      SizedBox(width: 12),
+                      SizedBox(
+                        width: 140,
+                        child: TextFormField(
+                          controller: durationController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            signed: false,
+                            decimal: false,
+                          ),
+                          textAlign: TextAlign.right,
+                          decoration: const InputDecoration(
+                            labelText: "Duration (min)",
+
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 4,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+
+          // Kaydet butonu
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(
+                        Colors.grey.shade200,
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Back"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: (_selectedSide != null) ? _save : null,
+                    child: const Text("Save"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

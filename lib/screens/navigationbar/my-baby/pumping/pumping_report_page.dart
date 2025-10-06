@@ -85,15 +85,7 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
             "🫗  Pumping Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          actions: const [
-            Padding(
-              padding: EdgeInsets.only(right: 20.0),
-              child: Text(
-                "📤",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+         
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -107,252 +109,259 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
       initialChildSize: 0.92,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, scrollController) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-          ),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
+      builder: (context, scrollController) {
+        return Platform.isAndroid
+            ? SafeArea(top: false, child: sheetBody(context, theme))
+            : sheetBody(context, theme);
+      },
+    );
+  }
+
+  Container sheetBody(BuildContext context, ThemeData theme) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
         ),
-        child: Scaffold(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          elevation: 0,
+          centerTitle: true,
           backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.arrow_back_ios),
-                ),
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.arrow_back_ios),
               ),
             ),
-            title: const Text(
-              "📓 Journal",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
           ),
-          body: RefreshIndicator(
-            onRefresh: _refresh,
-            child: FutureBuilder<_TodayBundle>(
-              future: _future,
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                if (snap.hasError) {
-                  return _errorBox(snap.error.toString());
-                }
-                final data = snap.data!;
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                  children: [
-                    Text(
-                      _todayHeaderTR(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // SOLID
-                    _CategoryCard(
-                      title: "Solid",
-                      icon: Icons.restaurant,
-                      color: Colors.orange.shade200,
-                      emptyText: "No solid record for today.",
-                      children: [
-                        for (int i = 0; i < data.solids.length; i++)
-                          _NumberedEntry(
-                            index: i + 1,
-                            title: data.solids[i].solidName,
-                            bullets: [
-                              "Amount: ${data.solids[i].solidAmount}",
-                              _clockLine(data.solids[i].eatTime),
-                              if (data.solids[i].reactions != null)
-                                "Reaction: ${data.solids[i].reactions!.name}",
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // SLEEP
-                    _CategoryCard(
-                      title: "Sleep",
-                      icon: Icons.nightlight_round,
-                      color: Colors.blue.shade200,
-                      emptyText: "No sleep record for today.",
-                      children: [..._sleepEntries(data.sleeps)],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // NURSING
-                    _CategoryCard(
-                      title: "Nursing",
-                      icon: Icons.child_care,
-                      color: Colors.teal.shade200,
-                      emptyText: "No nursing record for today.",
-                      children: [
-                        for (int i = 0; i < data.nursings.length; i++)
-                          _NumberedEntry(
-                            index: i + 1,
-                            title:
-                                "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
-                            bullets: [
-                              if (data.nursings[i].duration > 0)
-                                "Süre: ${_fmtMin(data.nursings[i].duration)}",
-                              if ((data.nursings[i].amountType).isNotEmpty &&
-                                  data.nursings[i].amount > 0)
-                                "Miktar: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
-                              if ((data.nursings[i].milkType ?? '').isNotEmpty)
-                                "Süt türü: ${data.nursings[i].milkType}",
-                              _clockLine(data.nursings[i].startTime),
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // DIAPER
-                    _CategoryCard(
-                      title: "Diaper",
-                      icon: Icons.baby_changing_station,
-                      color: Colors.green.shade200,
-                      emptyText: "No diaper record for today.",
-                      children: [
-                        for (int i = 0; i < data.diapers.length; i++)
-                          _NumberedEntry(
-                            index: i + 1,
-                            title: data.diapers[i].diaperName,
-                            bullets: [
-                              _clockLine(
-                                _bestTimeFromISO(data.diapers[i].createdAt) ??
-                                    data.diapers[i].diaperTime,
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // PUMPING
-                    _CategoryCard(
-                      title: "Pumping",
-                      icon: Icons.published_with_changes,
-                      color: Colors.pink.shade200,
-                      emptyText: "No pumping record for today.",
-                      children: [
-                        for (int i = 0; i < data.pumpings.length; i++)
-                          _NumberedEntry(
-                            index: i + 1,
-                            title: data.pumpings[i].isLeft ? "Left" : "Right",
-                            bullets: [
-                              "Süre: ${_fmtMin(data.pumpings[i].duration)}",
-                              _clockLine(
-                                _bestTimeFromISO(data.pumpings[i].createdAt) ??
-                                    data.pumpings[i].startTime,
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // MEDICINE
-                    _CategoryCard(
-                      title: "Medicine",
-                      icon: Icons.medication,
-                      color: Colors.red.shade200,
-                      emptyText: "No medicine record for today.",
-                      children: [
-                        for (int i = 0; i < data.medicines.length; i++)
-                          _NumberedEntry(
-                            index: i + 1,
-                            title: data.medicines[i].medicineName,
-                            bullets: [
-                              "Miktar: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
-                              _clockLine(
-                                _bestTimeFromISO(data.medicines[i].createdAt) ??
-                                    data.medicines[i].startTime,
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-                    Divider(color: Colors.grey.shade300),
-                    const SizedBox(height: 12),
-
-                    // BUGÜNÜN NOTU
-                    Text(
-                      "Daily Note",
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.purple.shade700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (data.note != null)
-                      _NotePreview(note: data.note!)
-                    else
-                      _EmptyNoteHint(),
-
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            builder: (context) =>
-                                const AddJournalNoteBottomSheet(),
-                          ).then((v) {
-                            // not eklenmiş olabilir → yenile
-                            if (v == true) {
-                              _refresh();
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.edit_note),
-                        label: Text(
-                          data.note == null ? "Add Note" : "Edit Note",
-                        ),
-                      ),
-                    ),
-                  ],
+          title: const Text(
+            "📓 Journal",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: FutureBuilder<_TodayBundle>(
+            future: _future,
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(),
+                  ),
                 );
-              },
-            ),
+              }
+              if (snap.hasError) {
+                return _errorBox(snap.error.toString());
+              }
+              final data = snap.data!;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  Text(
+                    _todayHeaderTR(),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // SOLID
+                  _CategoryCard(
+                    title: "Solid",
+                    icon: Icons.restaurant,
+                    color: Colors.orange.shade200,
+                    emptyText: "No solid record for today.",
+                    children: [
+                      for (int i = 0; i < data.solids.length; i++)
+                        _NumberedEntry(
+                          index: i + 1,
+                          title: data.solids[i].solidName,
+                          bullets: [
+                            "Amount: ${data.solids[i].solidAmount}",
+                            _clockLine(data.solids[i].eatTime),
+                            if (data.solids[i].reactions != null)
+                              "Reaction: ${data.solids[i].reactions!.name}",
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // SLEEP
+                  _CategoryCard(
+                    title: "Sleep",
+                    icon: Icons.nightlight_round,
+                    color: Colors.blue.shade200,
+                    emptyText: "No sleep record for today.",
+                    children: [..._sleepEntries(data.sleeps)],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // NURSING
+                  _CategoryCard(
+                    title: "Nursing",
+                    icon: Icons.child_care,
+                    color: Colors.teal.shade200,
+                    emptyText: "No nursing record for today.",
+                    children: [
+                      for (int i = 0; i < data.nursings.length; i++)
+                        _NumberedEntry(
+                          index: i + 1,
+                          title:
+                              "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
+                          bullets: [
+                            if (data.nursings[i].duration > 0)
+                              "Süre: ${_fmtMin(data.nursings[i].duration)}",
+                            if ((data.nursings[i].amountType).isNotEmpty &&
+                                data.nursings[i].amount > 0)
+                              "Miktar: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
+                            if ((data.nursings[i].milkType ?? '').isNotEmpty)
+                              "Süt türü: ${data.nursings[i].milkType}",
+                            _clockLine(data.nursings[i].startTime),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // DIAPER
+                  _CategoryCard(
+                    title: "Diaper",
+                    icon: Icons.baby_changing_station,
+                    color: Colors.green.shade200,
+                    emptyText: "No diaper record for today.",
+                    children: [
+                      for (int i = 0; i < data.diapers.length; i++)
+                        _NumberedEntry(
+                          index: i + 1,
+                          title: data.diapers[i].diaperName,
+                          bullets: [
+                            _clockLine(
+                              _bestTimeFromISO(data.diapers[i].createdAt) ??
+                                  data.diapers[i].diaperTime,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // PUMPING
+                  _CategoryCard(
+                    title: "Pumping",
+                    icon: Icons.published_with_changes,
+                    color: Colors.pink.shade200,
+                    emptyText: "No pumping record for today.",
+                    children: [
+                      for (int i = 0; i < data.pumpings.length; i++)
+                        _NumberedEntry(
+                          index: i + 1,
+                          title: data.pumpings[i].isLeft ? "Left" : "Right",
+                          bullets: [
+                            "Süre: ${_fmtMin(data.pumpings[i].duration)}",
+                            _clockLine(
+                              _bestTimeFromISO(data.pumpings[i].createdAt) ??
+                                  data.pumpings[i].startTime,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // MEDICINE
+                  _CategoryCard(
+                    title: "Medicine",
+                    icon: Icons.medication,
+                    color: Colors.red.shade200,
+                    emptyText: "No medicine record for today.",
+                    children: [
+                      for (int i = 0; i < data.medicines.length; i++)
+                        _NumberedEntry(
+                          index: i + 1,
+                          title: data.medicines[i].medicineName,
+                          bullets: [
+                            "Miktar: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
+                            _clockLine(
+                              _bestTimeFromISO(data.medicines[i].createdAt) ??
+                                  data.medicines[i].startTime,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  Divider(color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+
+                  // BUGÜNÜN NOTU
+                  Text(
+                    "Daily Note",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.purple.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (data.note != null)
+                    _NotePreview(note: data.note!)
+                  else
+                    _EmptyNoteHint(),
+
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        await showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
+                          builder: (context) =>
+                              const AddJournalNoteBottomSheet(),
+                        ).then((v) {
+                          // not eklenmiş olabilir → yenile
+                          if (v == true) {
+                            _refresh();
+                          }
+                        });
+                      },
+                      icon: const Icon(Icons.edit_note),
+                      label: Text(data.note == null ? "Add Note" : "Edit Note"),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

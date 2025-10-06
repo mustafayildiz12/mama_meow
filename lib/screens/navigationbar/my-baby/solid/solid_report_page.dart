@@ -64,15 +64,6 @@ class _SolidReportPageState extends State<SolidReportPage> {
             "🥄   Food Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 20.0),
-              child: Text(
-                "📤",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,

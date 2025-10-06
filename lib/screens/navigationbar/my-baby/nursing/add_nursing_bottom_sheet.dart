@@ -1,7 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_reminder_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/prefs/nursing_prefs.dart';
@@ -92,13 +94,14 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
   }
 
   bool _isFormValid() {
-    return _selectedSide != null &&
-        _selectedFeedingType != null &&
-        _durationController.text.isNotEmpty &&
-        int.tryParse(_durationController.text) != null &&
-        int.parse(_durationController.text) > 0 &&
-        (_selectedFeedingType == 'Nursing' ||
-            (_selectedFeedingType == 'Bottle' && _selectedMilkType != null));
+    if (_selectedFeedingType != null && _selectedFeedingType == "Nursing") {
+      return _selectedSide != null;
+    } else if (_selectedFeedingType != null &&
+        _selectedFeedingType == "Bottle") {
+      return _selectedMilkType != null && _amount > 0;
+    } else {
+      return false;
+    }
   }
 
   double get _maxAmount {
@@ -109,9 +112,9 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
     if (!_isFormValid()) return;
 
     final nursing = NursingModel(
-      side: _selectedSide!.toLowerCase(),
+      side: _selectedSide ?? "",
       startTime: _formatTime(_selectedTime),
-      duration: int.parse(_durationController.text),
+      duration: int.tryParse(_durationController.text) ?? 0,
       feedingType: _selectedFeedingType!.toLowerCase(),
       milkType: _selectedFeedingType == 'Bottle' ? _selectedMilkType : null,
       amountType: _selectedAmountType,
@@ -192,271 +195,283 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.green.shade100, Colors.teal.shade200],
-            ),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        return Platform.isAndroid
+            ? SafeArea(top: false, child: sheetBody(scrollController, context))
+            : sheetBody(scrollController, context);
+      },
+    );
+  }
+
+  Container sheetBody(ScrollController scrollController, BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green.shade100, Colors.teal.shade200],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black12)],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
                     children: [
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                      Expanded(
+                        child: Text(
+                          'Add Nursing',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Add Nursing',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
+                      IconButton(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const NursingRemindersManagerPage(),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const NursingRemindersManagerPage(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.alarm_add,
-                              color: (_reminder?.enabled ?? false)
-                                  ? Colors.teal
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        DateFormat('EEEE, d MMM').format(DateTime.now()),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Side Selection
-                      _ChipPickerSection(
-                        title: "Side",
-                        items: NursingSides.sides,
-                        value: _selectedSide,
-                        onChanged: (v) => setState(() => _selectedSide = v),
-                        iconBuilder: _getIconForSide,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Time and Duration
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: _selectTime,
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.access_time),
-                                    const SizedBox(width: 8),
-                                    Text(_formatTime(_selectedTime)),
-                                    const Spacer(),
-                                    const Icon(Icons.keyboard_arrow_down),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 120,
-                            child: TextField(
-                              controller: _durationController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Duration (min)',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Feeding Type Selection
-                      _ChipPickerSection(
-                        title: "Feeding Type",
-                        items: FeedingTypes.types,
-                        value: _selectedFeedingType,
-                        onChanged: (v) {
-                          setState(() {
-                            _selectedFeedingType = v;
-                            if (v == 'Nursing') {
-                              _selectedMilkType = null;
-                            }
-                          });
+                          );
                         },
-                        iconBuilder: _getIconForFeedingType,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Milk Type Selection (only for bottle)
-                      if (_selectedFeedingType == 'Bottle') ...[
-                        _ChipPickerSection(
-                          title: "Milk Type",
-                          items: MilkTypes.types,
-                          value: _selectedMilkType,
-                          onChanged: (v) =>
-                              setState(() => _selectedMilkType = v),
-                          iconBuilder: _getIconForMilkType,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Amount Section
-                      _SectionCard(
-                        title: 'Amount',
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    initialValue: _selectedAmountType,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Unit',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: AmountTypes.types.map((type) {
-                                      return DropdownMenuItem(
-                                        value: type,
-                                        child: Text(type),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          _selectedAmountType = value;
-                                          _amount =
-                                              0.0; // Reset amount when unit changes
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    '${_amount.toStringAsFixed(1)} $_selectedAmountType',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Slider(
-                              value: _amount,
-                              min: 0.0,
-                              max: _maxAmount,
-                              divisions: (_maxAmount * 10).toInt(),
-                              activeColor: Colors.teal,
-                              onChanged: (value) {
-                                setState(() {
-                                  _amount = value;
-                                });
-                              },
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('0 $_selectedAmountType'),
-                                Text(
-                                  '${_maxAmount.toInt()} $_selectedAmountType',
-                                ),
-                              ],
-                            ),
-                          ],
+                        icon: Icon(
+                          Icons.alarm_add,
+                          color: (_reminder?.enabled ?? false)
+                              ? Colors.teal
+                              : null,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
+                  Text(
+                    DateFormat('EEEE, d MMM').format(DateTime.now()),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 24),
 
-              // Bottom buttons
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll(
-                            Colors.grey.shade200,
+                  // Feeding Type Selection
+                  _ChipPickerSection(
+                    title: "Feeding Type",
+                    items: FeedingTypes.types,
+                    value: _selectedFeedingType,
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedFeedingType = v;
+                        if (v == 'Nursing') {
+                          _selectedMilkType = null;
+                        }
+                      });
+                    },
+                    iconBuilder: _getIconForFeedingType,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Side Selection
+                  if (_selectedFeedingType == "Nursing") ...[
+                    _ChipPickerSection(
+                      title: "Side",
+                      items: NursingSides.sides,
+                      value: _selectedSide,
+                      onChanged: (v) => setState(() => _selectedSide = v),
+                      iconBuilder: _getIconForSide,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  // Milk Type Selection (only for bottle)
+                  if (_selectedFeedingType == 'Bottle') ...[
+                    _ChipPickerSection(
+                      title: "Milk Type",
+                      items: MilkTypes.types,
+                      value: _selectedMilkType,
+                      onChanged: (v) => setState(() => _selectedMilkType = v),
+                      iconBuilder: _getIconForMilkType,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Time and Duration
+
+                  // Amount Section
+                  if (_selectedFeedingType == 'Bottle') ...[
+                    _SectionCard(
+                      title: 'Amount',
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _selectedAmountType,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Unit',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: AmountTypes.types.map((type) {
+                                    return DropdownMenuItem(
+                                      value: type,
+                                      child: Text(type),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() {
+                                        _selectedAmountType = value;
+                                        _amount =
+                                            0.0; // Reset amount when unit changes
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  '${_amount.toStringAsFixed(1)} $_selectedAmountType',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Slider(
+                            value: _amount,
+                            min: 0.0,
+                            max: _maxAmount,
+                            divisions: (_maxAmount * 10).toInt(),
+                            activeColor: Colors.teal,
+                            onChanged: (value) {
+                              setState(() {
+                                _amount = value;
+                              });
+                            },
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('0 $_selectedAmountType'),
+                              Text(
+                                '${_maxAmount.toInt()} $_selectedAmountType',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                  ],
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _selectTime,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time),
+                                const SizedBox(width: 8),
+                                Text(_formatTime(_selectedTime)),
+                                const Spacer(),
+                                const Icon(Icons.keyboard_arrow_down),
+                              ],
+                            ),
                           ),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isFormValid()
-                              ? Colors.teal
-                              : Colors.grey,
-                        ),
-                        onPressed: _isFormValid() ? _saveNursing : null,
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(color: Colors.white),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 150,
+                        child: TextField(
+                          controller: _durationController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Duration (min)',
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+
+          // Bottom buttons
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(
+                        Colors.grey.shade200,
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isFormValid()
+                          ? Colors.teal
+                          : Colors.grey,
+                    ),
+                    onPressed: _isFormValid() ? _saveNursing : null,
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

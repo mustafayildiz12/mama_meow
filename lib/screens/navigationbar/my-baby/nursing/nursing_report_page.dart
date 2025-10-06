@@ -84,15 +84,6 @@ class _NursingReportPageState extends State<NursingReportPage> {
             "🍼  Nursing Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          actions: const [
-            Padding(
-              padding: EdgeInsets.only(right: 20.0),
-              child: Text(
-                "📤",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,
@@ -595,7 +586,7 @@ class _NursingDetail {
   final String? milkType;
   final String time;
   final int duration;
-  final double amount;
+  final num amount;
   final String amountType;
   final String createdAt;
   _NursingDetail({
@@ -738,7 +729,7 @@ class _NursingTile extends StatelessWidget {
   final String? milkType;
   final String time;
   final int duration;
-  final double amount;
+  final num amount;
   final String amountType;
 
   const _NursingTile({

@@ -61,6 +61,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
+          
           statusBarColor: Theme.of(context).scaffoldBackgroundColor,
         ),
       );

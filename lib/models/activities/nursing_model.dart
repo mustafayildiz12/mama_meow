@@ -5,7 +5,7 @@ class NursingModel {
   final String feedingType; // "nursing" or "bottle"
   final String? milkType; // only if feedingType is "bottle"
   final String amountType; // "oz" or "ml"
-  final double amount; // amount value
+  final num amount; // amount value
   final String createdAt; // ISO string
 
   NursingModel({
@@ -38,7 +38,7 @@ class NursingModel {
       feedingType: map['feedingType'] as String,
       milkType: map['milkType'] as String?,
       amountType: map['amountType'] as String,
-      amount: map['amount'] as double,
+      amount: map['amount'] as num,
       createdAt: map['createdAt'] as String,
     );
   }

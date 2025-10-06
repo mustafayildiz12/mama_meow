@@ -67,7 +67,7 @@ class AppInitService {
     );
 
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Colors.white),
+      SystemUiOverlayStyle(statusBarColor: Colors.black),
     );
   }
 
@@ -98,7 +98,7 @@ class AppInitService {
       if (isUserExist) {
         InAppPurchaseService iap = InAppPurchaseService();
         bool isUserPremium =
-            await iap.checkUserHaveProduct() || await iap.isTrial();
+            iap.checkUserHaveProduct() || await iap.isTrial();
         if (isUserPremium) {
           AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         } else {
@@ -106,7 +106,7 @@ class AppInitService {
         }
       }
     } else {
-      bool? getStarted = await infoStorage.read("getStarted");
+      bool? getStarted = infoStorage.read("getStarted");
       if (getStarted != null) {
         AppRoutes.initialRoute = AppRoutes.loginPage;
       } else {

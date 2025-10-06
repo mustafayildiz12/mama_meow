@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/mia_answer_model.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
@@ -469,10 +470,7 @@ class _AskMeowViewState extends State<AskMeowView> {
                 const SizedBox(height: 6),
                 // İstersen MarkdownBody kullanabilirsin:
                 // MarkdownBody(data: _miaAnswer!.detailed, selectable: true)
-                Text(
-                  _miaAnswer!.detailed,
-                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-                ),
+                Text(_miaAnswer!.detailed.replaceAll(r'\n', '\n')),
                 const SizedBox(height: 12),
               ],
 
@@ -495,11 +493,13 @@ class _AskMeowViewState extends State<AskMeowView> {
                         ],
                       ),
                       backgroundColor: theme.colorScheme.primaryContainer
-                          .withOpacity(0.25),
+                          .withValues(alpha: 0.25),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: theme.colorScheme.primary.withOpacity(0.3),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                       ),
                     );
@@ -634,7 +634,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
-    if (!isUserPremium) {
+    if (isUserPremium) {
       await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
         v,
       ) async {
