@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
@@ -201,6 +206,103 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
 
                             const SizedBox(height: 16),
+
+                            Column(
+                              children: [
+                                if (Platform.isIOS) ...[
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.apple, size: 30),
+                                      label: Text("Login with Apple"),
+                                      onPressed: () async {
+                                        int isSuccess =
+                                            await authenticationService
+                                                .signInWithApple();
+
+                                        if (isSuccess == 1) {
+                                        await showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) =>
+                                              const BabyInfoModal(),
+                                        ).then((v) async {
+                                          if (v == true) {
+                                            await databaseService.updateBaby(
+                                              currentMeowUser,
+                                            );
+                                          }
+
+                                          await Navigator.pushNamedAndRemoveUntil(
+                                            context,
+                                            AppRoutes.navigationBarPage,
+                                            (route) => false,
+                                          );
+                                        });
+                                      } else if (isSuccess == 0) {
+                                        await Navigator.pushNamedAndRemoveUntil(
+                                          context,
+                                          AppRoutes.navigationBarPage,
+                                          (route) => false,
+                                        );
+                                      }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    icon: Image.asset(
+                                      "assets/google.png",
+                                      height: 24,
+                                    ),
+                                    label: Text("Login with Google"),
+                                    onPressed: () async {
+                                      setState(() {
+                                        isLoading = true;
+                                      });
+                                      int isSuccess =
+                                          await authenticationService
+                                              .signInWithGoogle();
+                                      setState(() {
+                                        isLoading = false;
+                                      });
+
+                                      if (isSuccess == 1) {
+                                        await showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) =>
+                                              const BabyInfoModal(),
+                                        ).then((v) async {
+                                          if (v == true) {
+                                            await databaseService.updateBaby(
+                                              currentMeowUser,
+                                            );
+                                          }
+
+                                          await Navigator.pushNamedAndRemoveUntil(
+                                            context,
+                                            AppRoutes.navigationBarPage,
+                                            (route) => false,
+                                          );
+                                        });
+                                      } else if (isSuccess == 0) {
+                                        await Navigator.pushNamedAndRemoveUntil(
+                                          context,
+                                          AppRoutes.navigationBarPage,
+                                          (route) => false,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                             Center(
                               child: TextButton(
                                 onPressed: () {

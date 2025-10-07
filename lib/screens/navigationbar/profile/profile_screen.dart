@@ -27,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
       SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
     );
     checkUserPremium();
+
     super.initState();
   }
 
@@ -92,7 +93,6 @@ class _ProfilePageState extends State<ProfilePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 OutlinedButton.icon(
-
                   onPressed: () async {
                     bool isSuccess = await authenticationService
                         .logoutFromFirebase();
@@ -327,7 +327,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       borderRadius: BorderRadius.circular(25),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.pink.withOpacity(0.6),
+                          color: Colors.pink.withValues(alpha: 0.6),
                           blurRadius: 12,
                           spreadRadius: 2,
                         ),

@@ -655,10 +655,10 @@ class _TopSessionTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: (isLeft ? Colors.blue : Colors.purple).withOpacity(0.08),
+              color: (isLeft ? Colors.blue : Colors.purple).withValues(alpha:0.08),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: (isLeft ? Colors.blue : Colors.purple).withOpacity(0.2),
+                color: (isLeft ? Colors.blue : Colors.purple).withValues(alpha:0.2),
               ),
             ),
             child: Text(
@@ -683,7 +683,7 @@ class _TopSessionTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: Colors.orange.withOpacity(0.1),
+                    backgroundColor: Colors.orange.withValues(alpha:0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       AppColors.kDeepOrange,
                     ),

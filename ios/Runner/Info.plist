@@ -2,6 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+  <!-- UYGULAMA URL SCHEME'LERİ -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>com.googleusercontent.apps.387317917599-i80tddg3qq67ut54ogctqe4777td519p</string>
+      </array>
+    </dict>
+  </array>
+
+  <key>GIDClientID</key>
+  <string>387317917599-i80tddg3qq67ut54ogctqe4777td519p.apps.googleusercontent.com</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need to grant access to your camera so you can send photos and ask the AI questions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

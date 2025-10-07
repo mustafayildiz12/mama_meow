@@ -10,11 +10,11 @@ class QuestionAIService {
   Future<void> addAIQuestion(QuestionAnswerAiModel questionAi) async {
     try {
       final user = authenticationService.getUser()!;
-      final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
+
       await _realtimeDatabase
           .ref('questionAi')
           .child(user.uid)
-          .child(createdAt)
+          .child(questionAi.createdAt.toString())
           .set(questionAi.toJson());
     } catch (e) {
       print(e.toString());
@@ -49,6 +49,7 @@ class QuestionAIService {
     } catch (e) {
       print('getAIQuestionList error: $e');
     }
+    aiQuestions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return aiQuestions;
   }

@@ -564,10 +564,10 @@ class _AskMeowViewState extends State<AskMeowView> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest
-                        .withOpacity(0.5),
+                        .withValues(alpha:0.5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.dividerColor.withOpacity(0.5),
+                      color: theme.dividerColor.withValues(alpha:0.5),
                     ),
                   ),
                   child: Row(
@@ -759,10 +759,10 @@ class _AskMeowViewState extends State<AskMeowView> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest
-                        .withOpacity(0.5),
+                        .withValues(alpha:0.5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.dividerColor.withOpacity(0.5),
+                      color: theme.dividerColor.withValues(alpha:0.5),
                     ),
                   ),
                   child: Row(
@@ -904,7 +904,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
-    if (!isUserPremium) {
+    if (isUserPremium) {
       await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
         v,
       ) async {
@@ -940,9 +940,12 @@ class _AskMeowViewState extends State<AskMeowView> {
           imageBytes = null;
         });
 
+        int createdAt = DateTime.now().millisecondsSinceEpoch;
+
         QuestionAnswerAiModel qa = QuestionAnswerAiModel(
           question: q,
           miaAnswer: _miaAnswer!,
+          createdAt: createdAt,
         );
 
         await questionAIService.addAIQuestion(qa);

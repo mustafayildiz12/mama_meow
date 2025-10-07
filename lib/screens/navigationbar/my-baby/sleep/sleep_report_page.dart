@@ -669,7 +669,7 @@ class _TopSleepTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: const Color(0xFFc7ceea).withOpacity(0.1),
+                    backgroundColor: const Color(0xFFc7ceea).withValues(alpha:0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       const Color(0xFFc7ceea),
                     ),

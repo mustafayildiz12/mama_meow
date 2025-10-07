@@ -1,10 +1,17 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:crypto/crypto.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// AuthenticationService, kullanıcı kimlik doğrulama işlemlerini yöneten servis sınıfıdır.
 /// Firebase Authentication kullanarak kullanıcı girişi, kayıt, çıkış ve anonim giriş gibi
@@ -172,6 +179,7 @@ class AuthenticationService {
   Future<bool> logoutFromFirebase() async {
     bool isSuccess = false;
     try {
+      await GoogleSignIn().signOut();
       await firebaseAuth.signOut();
       await InAppPurchaseService().logoutSubs();
 
@@ -190,6 +198,162 @@ class AuthenticationService {
       isSuccess = false;
     }
     return isSuccess;
+  }
+
+  /// Google hesabı ile giriş yapar
+  ///
+  /// [context] - BuildContext
+  ///
+  /// Google hesabı ile giriş yapar, kullanıcı bilgilerini Firebase'e kaydeder
+  /// ve tercihExamsPath sayfasına yönlendirir.
+  /// Hata durumunda uygun hata mesajını gösterir.
+  Future<int> signInWithGoogle() async {
+    int isSuccess = 2;
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth?.accessToken,
+        idToken: googleAuth?.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
+      if (userCredential.user != null) {
+        final String uid = userCredential.user!.uid;
+
+        /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
+        final bool isUserDataExist = await databaseService
+            .getAdminBasicInfoFromRealTime(uid);
+
+        if (!isUserDataExist) {
+          final Map<String, dynamic>? profile =
+              userCredential.additionalUserInfo?.profile;
+          await databaseService
+              .addUserToRealTime(
+                MeowUserModel(
+                  uid: uid,
+                  userEmail: profile!['email'],
+                  userName: profile['name'],
+                  createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
+                ),
+              )
+              .then((v) async {
+                await databaseService.getAdminBasicInfoFromRealTime(uid);
+              });
+          isSuccess = 1;
+        } else {
+          isSuccess = 0;
+        }
+      } else {
+        isSuccess = 2;
+      }
+    } catch (e) {
+      isSuccess = 2;
+      customSnackBar.warning("Failed to login");
+      debugPrint("Hata: $e");
+      if (e is PlatformException) {
+        debugPrint("PlatformException: ${e.message}");
+        debugPrint("Details: ${e.details}");
+      }
+    }
+    return isSuccess;
+  }
+
+  Future<int> signInWithApple() async {
+    int isSuccess = 2;
+    try {
+      final rawNonce = generateNonce();
+      final nonce = sha256ofString(rawNonce);
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final AuthCredential appleAuthCredential = OAuthProvider('apple.com')
+          .credential(
+            idToken: credential.identityToken,
+            rawNonce: rawNonce,
+            accessToken: credential.authorizationCode,
+          );
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(appleAuthCredential);
+
+      if (userCredential.user != null) {
+        final String uid = userCredential.user!.uid;
+
+        /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
+        final bool isUserDataExist = await databaseService
+            .getAdminBasicInfoFromRealTime(uid);
+
+        if (!isUserDataExist) {
+          final Map<String, dynamic>? profile =
+              userCredential.additionalUserInfo?.profile;
+
+          final String? fullName = (credential.givenName != null)
+              ? '${credential.givenName} ${credential.familyName}'
+              : userCredential.user?.displayName;
+
+          await databaseService
+              .addUserToRealTime(
+                MeowUserModel(
+                  uid: uid,
+                  userName: fullName,
+                  userEmail: profile!['email'] ?? "",
+                  createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
+                ),
+              )
+              .then((v) async {
+                await databaseService.getAdminBasicInfoFromRealTime(uid);
+              });
+          isSuccess = 1;
+        } else {
+          isSuccess = 0;
+        }
+      } else {
+        isSuccess = 2;
+        debugPrint("User bulunamadı.");
+      }
+    } catch (e) {
+      isSuccess = 2;
+      customSnackBar.warning("Failed to login");
+      debugPrint("Hata: $e");
+
+      if (e is PlatformException) {
+        debugPrint("PlatformException: ${e.message}");
+        debugPrint("Details: ${e.details}");
+      }
+    }
+    return isSuccess;
+  }
+
+  /// Generates a cryptographically secure random nonce, to be included in a
+  /// credential request.
+  String generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  String findUserProvider() {
+    return getUser()!.providerData.first.providerId;
   }
 }
 
