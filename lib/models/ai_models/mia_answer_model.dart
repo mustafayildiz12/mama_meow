@@ -30,6 +30,17 @@ class MiaAnswer {
       lastUpdated: (m['last_updated'] ?? '') as String,
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'quick_answer': quick,
+      'detailed_info': detailed,
+      'actions': actions,
+      'follow_up_question': followUp,
+      'disclaimer': disclaimer,
+      'sources': sources.map((s) => s.toJson()).toList(),
+      'last_updated': lastUpdated,
+    };
+  }
 }
 
 class MiaSource {
@@ -51,4 +62,8 @@ class MiaSource {
     url: (m['url'] ?? '') as String,
     year: m['year'] is int ? m['year'] as int : null,
   );
+
+  Map<String, dynamic> toJson() {
+    return {'title': title, 'publisher': publisher, 'url': url, 'year': year};
+  }
 }

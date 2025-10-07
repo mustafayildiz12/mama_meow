@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
@@ -242,7 +245,7 @@ class _UpdateEmailPasswordInfoModalState
                   ),
                 ],
               ),
-              SizedBox(height: 24),
+              SizedBox(height: 12),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.grey[200],
@@ -254,6 +257,66 @@ class _UpdateEmailPasswordInfoModalState
                   Navigator.pop(context);
                 },
                 child: const Text('Back'),
+              ),
+              SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog.adaptive(
+                        title: Text("Delete Account?"),
+                        content: Text(
+                          "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
+                        ),
+                        actions: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: Text("Back"),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.pop(context, true);
+                              },
+                              child: Text("Delete"),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ).then((value) async {
+                    if (value == true) {
+                      try {
+                        User? user = authenticationService.getUser();
+                        await user!.delete();
+                        bool isSuccess = await databaseService.deleteAccount(
+                          context,
+                        );
+                        if (isSuccess) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.loginPage,
+                            (_) => false,
+                          );
+                        }
+                      } catch (e) {
+                        customSnackBar.error(
+                          "Account not deleted right now. Please try again later.",
+                        );
+                        customSnackBar.tips(e.toString());
+                      }
+                    }
+                  });
+                },
+                icon: Icon(CupertinoIcons.delete),
+                label: Text("Delete Account"),
               ),
             ],
           ),

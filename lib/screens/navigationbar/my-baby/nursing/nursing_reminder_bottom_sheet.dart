@@ -56,7 +56,7 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.teal.shade50, Colors.teal.shade100],
+              colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16)],

@@ -65,27 +65,30 @@ class _SolidReportPageState extends State<SolidReportPage> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 12),
-                child: Center(
-                  child: _GlassSegmented(
-                    value: _mode,
-                    onChanged: (m) => setState(() => _mode = m),
+        body: SafeArea(
+          top: false,
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 12),
+                  child: Center(
+                    child: _GlassSegmented(
+                      value: _mode,
+                      onChanged: (m) => setState(() => _mode = m),
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: _mode == ReportMode.today
-                    ? todayBody()
-                    : _mode == ReportMode.week
-                    ? weeklyBody()
-                    : monthlyBody(),
-              ),
-            ],
+                Expanded(
+                  child: _mode == ReportMode.today
+                      ? todayBody()
+                      : _mode == ReportMode.week
+                      ? weeklyBody()
+                      : monthlyBody(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -206,7 +209,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 children: [
                   Expanded(
                     child: _StatTile(
-                      title: "Total amount",
+                      title: "T. Amount",
                       value: "${summary.totalAmount}",
                     ),
                   ),
@@ -374,7 +377,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
                 children: [
                   Expanded(
                     child: _StatTile(
-                      title: "Total amount",
+                      title: "T. Amount",
                       value: "$totalWeekAmount",
                     ),
                   ),
@@ -1079,7 +1082,7 @@ class _HeaderCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _StatTile(title: "Total amount", value: "$totalAmount"),
+            child: _StatTile(title: "T. Amount", value: "$totalAmount"),
           ),
           const SizedBox(width: 12),
           Expanded(

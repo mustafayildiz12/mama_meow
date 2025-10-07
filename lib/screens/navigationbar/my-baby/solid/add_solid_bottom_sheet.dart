@@ -224,7 +224,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.shade200, Colors.yellow.shade200],
+          colors: [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
         ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
@@ -235,16 +235,22 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
       child: Column(
         children: [
           // Handle
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(2),
+          InkWell(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
 
           // (4) Search
           Padding(

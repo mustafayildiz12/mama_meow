@@ -89,52 +89,55 @@ class _SleepReportPageState extends State<SleepReportPage> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 12),
-                child: Center(
-                  child: _GlassSegmented(
-                    value: _mode,
-                    onChanged: (m) {
-                      setState(() {
-                        _mode = m;
-                        _future = _fetchByMode(_mode);
-                      });
+        body: SafeArea(
+          top: false,
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 12),
+                  child: Center(
+                    child: _GlassSegmented(
+                      value: _mode,
+                      onChanged: (m) {
+                        setState(() {
+                          _mode = m;
+                          _future = _fetchByMode(_mode);
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<SleepModel>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const _LoadingView();
+                      }
+                      if (snapshot.hasError) {
+                        return _CenteredMessage(
+                          emoji: '⚠️',
+                          title: 'Something went wrong',
+                          subtitle: snapshot.error.toString(),
+                        );
+                      }
+                      final sleeps = snapshot.data ?? [];
+                      if (sleeps.isEmpty) {
+                        return const _CenteredMessage(
+                          emoji: '😴',
+                          title: 'No record found',
+                          subtitle:
+                              "You'll see it here when you add sleep for this interval.",
+                        );
+                      }
+                      return _buildReportBody(context, sleeps);
                     },
                   ),
                 ),
-              ),
-              Expanded(
-                child: FutureBuilder<List<SleepModel>>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const _LoadingView();
-                    }
-                    if (snapshot.hasError) {
-                      return _CenteredMessage(
-                        emoji: '⚠️',
-                        title: 'Something went wrong',
-                        subtitle: snapshot.error.toString(),
-                      );
-                    }
-                    final sleeps = snapshot.data ?? [];
-                    if (sleeps.isEmpty) {
-                      return const _CenteredMessage(
-                        emoji: '😴',
-                        title: 'No record found',
-                        subtitle:
-                            "You'll see it here when you add sleep for this interval.",
-                      );
-                    }
-                    return _buildReportBody(context, sleeps);
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -514,10 +517,6 @@ class _HeaderCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _StatTile(title: "Avg", value: avg),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(title: "Last end", value: lastEndTime),
           ),
         ],
       ),

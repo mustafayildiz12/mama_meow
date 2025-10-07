@@ -33,19 +33,27 @@ class JournalDiaryPage extends StatefulWidget {
 class _JournalDiaryPageState extends State<JournalDiaryPage> {
   late Future<_TodayBundle> _future;
 
+  // NEW: seçilen gün (sadece gün duyarlı olsun diye 00:00’a sabitliyoruz)
+  DateTime _selectedDay = DateTime.now();
+
   @override
   void initState() {
+    _selectedDay = DateTime(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
+    _future = _loadFor(_selectedDay);
     super.initState();
-    _future = _loadToday();
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _loadToday());
+    setState(() => _future = _loadFor(_selectedDay));
     await _future;
   }
 
-  Future<_TodayBundle> _loadToday() async {
-    final now = DateTime.now().toLocal();
+  Future<_TodayBundle> _loadFor(DateTime day) async {
+    final now = day.toLocal();
     final start = DateTime(now.year, now.month, now.day);
     final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
@@ -57,32 +65,14 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
     final medicines = await medicineService.todayMedicines();
 
     // Sleep / Nursing / Diaper: listeyi alıp bugüne filtrele
-    final sleepsAll = await sleepService.getSleepList();
-    final sleeps = sleepsAll.where((s) {
-      final dateOnly = s.sleepDate.split(' ').first;
-      final key = DateFormat('yyyy-MM-dd').format(now);
-      return dateOnly == key;
-    }).toList();
+    final sleeps = await sleepService.getUserSleepsInRange(start, end);
 
-    final nursingsAll = await nursingService.getNursingList();
-    final nursings = nursingsAll.where((n) {
-      final dt = _tryParseIso(n.createdAt);
-      if (dt == null) return false;
-      return dt.isAfter(start.subtract(const Duration(milliseconds: 1))) &&
-          dt.isBefore(end.add(const Duration(milliseconds: 1)));
-    }).toList();
+    final nursings = await nursingService.getUserNursingsInRange(start, end);
 
-    final diapersAll = await diaperService.getDiaperList();
-    final diapers = diapersAll.where((d) {
-      final dt = _tryParseIso(d.createdAt);
-      if (dt == null) return false;
-      return dt.isAfter(start.subtract(const Duration(milliseconds: 1))) &&
-          dt.isBefore(end.add(const Duration(milliseconds: 1)));
-    }).toList();
+    final diapers = await diaperService.getUserDiapersInRange(start, end);
 
     // Notes: bugünün notları (varsa en yenisini gösteririz)
-    final notes = await journalService
-        .todayNotesOnce(); // küçük yardımcı ekleyebilirsin; yoksa stream alıp first kullan
+    final notes = await journalService.getNotesInRange(start, end);
     return _TodayBundle(
       solids: solids,
       sleeps: sleeps,
@@ -94,11 +84,11 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
     );
   }
 
-  String _todayHeaderTR() {
-    final now = DateTime.now();
-    // 26 Eylül Cuma
-    final d = DateFormat('d MMMM', 'en_US').format(now);
-    final w = DateFormat('EEEE', 'en_US').format(now);
+  // eski _todayHeaderTR yerine:
+  String _headerFor(DateTime day) {
+    // Örn: 7 October Tuesday (mevcut İngilizce biçimi koruyorum)
+    final d = DateFormat('d MMMM', 'en_US').format(day);
+    final w = DateFormat('EEEE', 'en_US').format(day);
     return "$d ${_capitalizeTR(w)}";
   }
 
@@ -171,12 +161,85 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  Text(
-                    _todayHeaderTR(),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.grey.shade800,
-                    ),
+                  Row(
+                    children: [
+                      // Geri (önceki gün)
+                      IconButton(
+                        tooltip: 'Previous day',
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () {
+                          final prev = _selectedDay.subtract(
+                            const Duration(days: 1),
+                          );
+                          setState(() {
+                            _selectedDay = DateTime(
+                              prev.year,
+                              prev.month,
+                              prev.day,
+                            );
+                            _future = _loadFor(_selectedDay);
+                          });
+                        },
+                      ),
+
+                      // Ortada tarih
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            _headerFor(_selectedDay),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // İleri (sonraki gün)
+                      IconButton(
+                        tooltip: 'Next day',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () {
+                          if (_selectedDay.day != DateTime.now().day) {
+                            final next = _selectedDay.add(
+                              const Duration(days: 1),
+                            );
+                            setState(() {
+                              _selectedDay = DateTime(
+                                next.year,
+                                next.month,
+                                next.day,
+                              );
+                              _future = _loadFor(_selectedDay);
+                            });
+                          }
+                        },
+                      ),
+
+                      // Takvim aç
+                      IconButton(
+                        tooltip: 'Pick a date',
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDay,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _selectedDay = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                              );
+                              _future = _loadFor(_selectedDay);
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -226,12 +289,12 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                               "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
                           bullets: [
                             if (data.nursings[i].duration > 0)
-                              "Süre: ${_fmtMin(data.nursings[i].duration)}",
+                              "Time: ${_fmtMin(data.nursings[i].duration)}",
                             if ((data.nursings[i].amountType).isNotEmpty &&
                                 data.nursings[i].amount > 0)
-                              "Miktar: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
+                              "Amount: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
                             if ((data.nursings[i].milkType ?? '').isNotEmpty)
-                              "Süt türü: ${data.nursings[i].milkType}",
+                              "Milk Type: ${data.nursings[i].milkType}",
                             _clockLine(data.nursings[i].startTime),
                           ],
                         ),
@@ -273,7 +336,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                           index: i + 1,
                           title: data.pumpings[i].isLeft ? "Left" : "Right",
                           bullets: [
-                            "Süre: ${_fmtMin(data.pumpings[i].duration)}",
+                            "Time: ${_fmtMin(data.pumpings[i].duration)}",
                             _clockLine(
                               _bestTimeFromISO(data.pumpings[i].createdAt) ??
                                   data.pumpings[i].startTime,
@@ -296,7 +359,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                           index: i + 1,
                           title: data.medicines[i].medicineName,
                           bullets: [
-                            "Miktar: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
+                            "Amount: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
                             _clockLine(
                               _bestTimeFromISO(data.medicines[i].createdAt) ??
                                   data.medicines[i].startTime,
@@ -310,14 +373,21 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                   Divider(color: Colors.grey.shade300),
                   const SizedBox(height: 12),
 
-                  // BUGÜNÜN NOTU
-                  Text(
-                    "Daily Note",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.purple.shade700,
-                    ),
-                  ),
+                  _selectedDay.day == DateTime.now().day
+                      ? Text(
+                          "Daily Note",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.purple.shade700,
+                          ),
+                        )
+                      : Text(
+                          '${_headerFor(_selectedDay)} Daily Note',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.purple.shade700,
+                          ),
+                        ),
                   const SizedBox(height: 8),
                   if (data.note != null)
                     _NotePreview(note: data.note!)
@@ -325,40 +395,43 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
                     _EmptyNoteHint(),
 
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  if (_selectedDay.day == DateTime.now().day)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                            builder: (context) =>
+                                const AddJournalNoteBottomSheet(),
+                          ).then((v) {
+                            // not eklenmiş olabilir → yenile
+                            if (v == true) {
+                              _refresh();
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.edit_note),
+                        label: Text(
+                          data.note == null ? "Add Note" : "Edit Note",
                         ),
                       ),
-                      onPressed: () async {
-                        await showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
-                            ),
-                          ),
-                          builder: (context) =>
-                              const AddJournalNoteBottomSheet(),
-                        ).then((v) {
-                          // not eklenmiş olabilir → yenile
-                          if (v == true) {
-                            _refresh();
-                          }
-                        });
-                      },
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(data.note == null ? "Add Note" : "Edit Note"),
                     ),
-                  ),
                 ],
               );
             },
@@ -401,11 +474,10 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
           index: i + 1,
           title: "${s.startTime} – ${s.endTime}",
           bullets: [
-            if (durMin > 0) "Süre: ${_fmtMin(durMin)}",
-            if ((s.howItHappened ?? '').isNotEmpty) "Nasıl: ${s.howItHappened}",
-            if ((s.startOfSleep ?? '').isNotEmpty)
-              "Başlangıç: ${s.startOfSleep}",
-            if ((s.endOfSleep ?? '').isNotEmpty) "Bitiş: ${s.endOfSleep}",
+            if (durMin > 0) "Time: ${_fmtMin(durMin)}",
+            if ((s.howItHappened ?? '').isNotEmpty) "How: ${s.howItHappened}",
+            if ((s.startOfSleep ?? '').isNotEmpty) "Start: ${s.startOfSleep}",
+            if ((s.endOfSleep ?? '').isNotEmpty) "End: ${s.endOfSleep}",
           ],
         ),
       );
@@ -435,10 +507,10 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
 
   static String _fmtMin(int minutes) {
     final h = minutes ~/ 60, m = minutes % 60;
-    if (minutes == 0) return "0 dk";
-    if (h == 0) return "$m dk";
-    if (m == 0) return "$h sa";
-    return "$h sa $m dk";
+    if (minutes == 0) return "0 mn";
+    if (h == 0) return "$m mn";
+    if (m == 0) return "$h h";
+    return "$h h $m mn";
   }
 
   static String _clockLine(String timeHHmm) => "⏰ $timeHHmm";
@@ -638,7 +710,7 @@ class _NotePreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Son Not • ${note.formattedTime}",
+            "Last Note • ${note.formattedTime}",
             style: theme.textTheme.labelLarge?.copyWith(
               color: Colors.purple.shade700,
               fontWeight: FontWeight.w700,

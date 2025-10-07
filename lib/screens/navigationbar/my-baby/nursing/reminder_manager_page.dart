@@ -120,7 +120,7 @@ class _NursingRemindersManagerPageState
     return Scaffold(
       appBar: AppBar(title: const Text('Nursing Reminders')),
       body: _items.isEmpty
-          ? const Center(child: Text('Henüz hatırlatıcı yok. + ile ekleyin.'))
+          ? const Center(child: Text('No reminder yet.'))
           : ListView.separated(
               padding: const EdgeInsets.all(12),
               separatorBuilder: (_, __) => const SizedBox(height: 8),

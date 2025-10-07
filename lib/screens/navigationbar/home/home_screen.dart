@@ -2,14 +2,16 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:mama_meow/constants/app_routes.dart';
-import 'package:mama_meow/models/mia_answer_model.dart';
+import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
+import 'package:mama_meow/models/ai_models/question_asnwer_ai_model.dart';
+import 'package:mama_meow/service/gpt_service/question_ai_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mama_meow/service/gpt_service.dart';
+import 'package:mama_meow/service/gpt_service/gpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -62,6 +64,8 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   bool isUserPremium = false;
 
+  List<QuestionAnswerAiModel> questionAnswerAiList = [];
+
   List<QuickQuestionModel> quickQuestionList = [
     QuickQuestionModel(
       emoji: "💩",
@@ -87,6 +91,7 @@ class _AskMeowViewState extends State<AskMeowView> {
       SystemUiOverlayStyle(statusBarColor: Color(0xFFFFF1F5)),
     );
     checkUserPremium();
+    getUserPastQuestions();
     super.initState();
   }
 
@@ -97,6 +102,14 @@ class _AskMeowViewState extends State<AskMeowView> {
     _rec.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> getUserPastQuestions() async {
+    List<QuestionAnswerAiModel> aa = await questionAIService
+        .getAIQuestionList();
+    setState(() {
+      questionAnswerAiList = aa;
+    });
   }
 
   @override
@@ -237,16 +250,7 @@ class _AskMeowViewState extends State<AskMeowView> {
                           ),
                           onPressed: !_isLoading
                               ? () async {
-                                  XFile? image = await pickImage();
-
-                                  Uint8List? imageByte = await image
-                                      ?.readAsBytes();
-                                  String? mimeTypeImage = image?.mimeType;
-
-                                  setState(() {
-                                    imageBytes = imageByte;
-                                    mimeType = mimeTypeImage;
-                                  });
+                                  await pickAndCompressImage();
                                 }
                               : null,
                         ),
@@ -368,6 +372,52 @@ class _AskMeowViewState extends State<AskMeowView> {
 
             // Answer area
             _answerCard(),
+
+            const SizedBox(height: 16),
+            if (questionAnswerAiList.isNotEmpty)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: questionAnswerAiList.length,
+                separatorBuilder: (context, index) => SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final item = questionAnswerAiList[index];
+                  final answer = item.miaAnswer;
+
+                  return ExpansionTile(
+                    backgroundColor: Colors.white,
+                    collapsedBackgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    collapsedShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    title: Text(
+                      item.question,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Tap to view answer",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    childrenPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    children: [_answerCardPast(answer)],
+                  );
+                },
+              )
+            else
+              const Center(child: Text("No AI questions found")),
           ],
         ),
       ),
@@ -625,6 +675,226 @@ class _AskMeowViewState extends State<AskMeowView> {
     );
   }
 
+  Widget _answerCardPast(MiaAnswer? miaAnswerCard) {
+    // Hiçbir cevap yok ve yükleme de yoksa gizle
+    if (miaAnswerCard == null && _isLoading) {
+      return CircularProgressIndicator();
+    }
+
+    final theme = Theme.of(context);
+    final isTR = Localizations.localeOf(context).languageCode == 'tr';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_isLoading) ...[
+              const SizedBox(height: 8),
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 8),
+            ] else if (miaAnswerCard != null) ...[
+              // ------ PART 1: Quick Answer ------
+              Text(
+                miaAnswerCard.quick,
+                style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
+              ),
+              const SizedBox(height: 10),
+
+              // ------ PART 2: Detailed Info ------
+              if (miaAnswerCard.detailed.trim().isNotEmpty) ...[
+                Text(
+                  isTR ? "Detaylı Bilgi" : "Detailed Info",
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // İstersen MarkdownBody kullanabilirsin:
+                // MarkdownBody(data: _miaAnswer!.detailed, selectable: true)
+                Text(miaAnswerCard.detailed.replaceAll(r'\n', '\n')),
+                const SizedBox(height: 12),
+              ],
+
+              // ------ Actions (3 madde) ------
+              if (miaAnswerCard.actions.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: miaAnswerCard.actions.map((a) {
+                    return Chip(
+                      label: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              a,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.25),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // ------ Follow-up question ------
+              if (miaAnswerCard.followUp.trim().isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.dividerColor.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.question_answer, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          miaAnswerCard.followUp,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // ------ Sources ------
+              if (miaAnswerCard.sources.isNotEmpty) ...[
+                const Divider(),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.link, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      isTR ? "Kaynaklar" : "Sources",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ...miaAnswerCard.sources.map((s) => _SourceTile(item: s)),
+                const SizedBox(height: 8),
+              ],
+
+              // ------ Disclaimer + Last updated ------
+              Text(
+                miaAnswerCard.disclaimer,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (miaAnswerCard.lastUpdated.isNotEmpty)
+                Text(
+                  "${isTR ? "Son güncelleme" : "Last updated"}: ${miaAnswerCard.lastUpdated}",
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.black45,
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+            ],
+            // ---- Öneriler (her iki durumda da) ----
+            if (!_isLoading && _suggestions.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.lightbulb, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Text(
+                    isTR
+                        ? "Bunlar da işine yarayabilir:"
+                        : "Maybe these also help:",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _suggestions
+                    .map(
+                      (s) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Text("👉 $s"),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> pickAndCompressImage() async {
+    final XFile? image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image == null) return;
+
+    final Uint8List originalBytes = await image.readAsBytes();
+    final String? mimeTypeImage = image.mimeType;
+
+    // 🔽 kaliteyi düşür
+    final Uint8List
+    compressedBytes = await FlutterImageCompress.compressWithList(
+      originalBytes,
+      quality:
+          40, // 0-100 arası; 40 gayet yeterli kalite / performans dengesi sağlar
+      minWidth: 800, // uzun kenarı küçültmek
+      minHeight: 800,
+      format:
+          CompressFormat.jpeg, // PNG ise JPEG’e çevirip boyutu ciddi düşürür
+    );
+
+    setState(() {
+      imageBytes = compressedBytes;
+      mimeType = 'image/jpeg'; // sıkıştırmada format değiştiyse
+    });
+
+    print('Orijinal boyut: ${originalBytes.lengthInBytes / 1024} KB');
+    print('Sıkıştırılmış boyut: ${compressedBytes.lengthInBytes / 1024} KB');
+  }
+
   Future<void> checkUserPremium() async {
     InAppPurchaseService iap = InAppPurchaseService();
     bool isP = await iap.isPremium();
@@ -634,7 +904,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
-    if (isUserPremium) {
+    if (!isUserPremium) {
       await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
         v,
       ) async {
@@ -669,6 +939,14 @@ class _AskMeowViewState extends State<AskMeowView> {
           _suggestions = sug;
           imageBytes = null;
         });
+
+        QuestionAnswerAiModel qa = QuestionAnswerAiModel(
+          question: q,
+          miaAnswer: _miaAnswer!,
+        );
+
+        await questionAIService.addAIQuestion(qa);
+        await getUserPastQuestions();
       } catch (e) {
         setState(() => _miaAnswer = null);
       } finally {

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:image/image.dart' as img;
 import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/models/mia_answer_model.dart';
+import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 
 class GptService {
   final String apiKey = dotenv.get("OPENAI_API_KEY");

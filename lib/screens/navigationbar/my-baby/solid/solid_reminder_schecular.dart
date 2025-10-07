@@ -91,7 +91,7 @@ class SolidReminderNotificationService {
         '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     }

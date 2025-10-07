@@ -206,7 +206,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.green.shade100, Colors.teal.shade200],
+          colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
         ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),

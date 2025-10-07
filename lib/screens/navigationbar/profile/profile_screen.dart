@@ -1,5 +1,4 @@
 // ProfilePage UI generated from provided HTML
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -11,7 +10,6 @@ import 'package:mama_meow/screens/get-started/modals/update_email_password.dart'
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
-import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,7 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void initState() {
-     SystemChrome.setSystemUIOverlayStyle(
+    SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
     );
     checkUserPremium();
@@ -93,7 +91,8 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextButton(
+                OutlinedButton.icon(
+
                   onPressed: () async {
                     bool isSuccess = await authenticationService
                         .logoutFromFirebase();
@@ -106,65 +105,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
                     }
                   },
-                  child: Text("Logout"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog.adaptive(
-                          title: Text("Delete Account?"),
-                          content: Text(
-                            "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
-                          ),
-                          actions: [
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: Text("Back"),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  Navigator.pop(context, true);
-                                },
-                                child: Text("Delete"),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ).then((value) async {
-                      if (value == true) {
-                        try {
-                          User? user = authenticationService.getUser();
-                          await user!.delete();
-                          bool isSuccess = await databaseService.deleteAccount(
-                            context,
-                          );
-                          if (isSuccess) {
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              AppRoutes.loginPage,
-                              (_) => false,
-                            );
-                          }
-                        } catch (e) {
-                          customSnackBar.error(
-                            "Account not deleted right now. Please try again later.",
-                          );
-                          customSnackBar.tips(e.toString());
-                        }
-                      }
-                    });
-                  },
-                  child: Text("Delete Account"),
+                  icon: Icon(Icons.logout_outlined),
+                  label: Text("Logout"),
                 ),
               ],
             ),

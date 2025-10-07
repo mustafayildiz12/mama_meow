@@ -177,7 +177,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade100, Colors.pink.shade200],
+          colors: [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
         ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
