@@ -23,7 +23,7 @@ android {
     namespace = "com.yildiz.mama_meow"
     compileSdk = 36
     buildToolsVersion = "36.0.0"
-     ndkVersion = "28.2.13676358"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21

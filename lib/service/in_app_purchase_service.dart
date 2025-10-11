@@ -336,7 +336,7 @@ class InAppPurchaseService {
   }
 
   Future<bool> isPremium() async {
-    bool isUserPremium = await checkUserHaveProduct() || await isTrial();
+    bool isUserPremium = checkUserHaveProduct() || await isTrial();
     return isUserPremium;
   }
 }

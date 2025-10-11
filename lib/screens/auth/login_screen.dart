@@ -35,8 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Colors.white,
-      statusBarBrightness: Brightness.light
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarBrightness: Brightness.light,
       ),
     );
     checkAppVersion();
