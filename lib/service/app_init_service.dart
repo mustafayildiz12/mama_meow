@@ -11,6 +11,7 @@ import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/firebase_options.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/service/motification_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -18,6 +19,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 class AppInitService {
   static Future<void> initApp() async {
+    WidgetsFlutterBinding.ensureInitialized();
     await init();
     await initPurchase();
     await initRoute();
@@ -26,7 +28,6 @@ class AppInitService {
   }
 
   static Future<void> initNotification() async {
-    WidgetsFlutterBinding.ensureInitialized();
     await requestAndroidNotificationPermission();
 
     // 1) TZ veritabanını yükle
@@ -66,9 +67,6 @@ class AppInitService {
       overlays: [SystemUiOverlay.top],
     );
 
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Colors.black),
-    );
   }
 
   static initPurchase() async {
@@ -86,6 +84,8 @@ class AppInitService {
 
     // Gerekli servislerin başlatılması
     await Future.wait([GetStorage.init("local"), GetStorage.init("info")]);
+
+    applicationVersion = await globalFunctions.getApplicationVersionNumber();
   }
 
   static Future<void> initRoute() async {
@@ -97,8 +97,7 @@ class AppInitService {
 
       if (isUserExist) {
         InAppPurchaseService iap = InAppPurchaseService();
-        bool isUserPremium =
-            iap.checkUserHaveProduct() || await iap.isTrial();
+        bool isUserPremium = iap.checkUserHaveProduct() || await iap.isTrial();
         if (isUserPremium) {
           AppRoutes.initialRoute = AppRoutes.navigationBarPage;
         } else {

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class GlobalFunction {
   factory GlobalFunction() {
@@ -144,6 +145,16 @@ class GlobalFunction {
       return nullableFloatString;
     }
     return "";
+  }
+
+  Future<String> getApplicationVersionNumber() async {
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      return packageInfo.version;
+    } catch (e) {
+      debugPrint(e.toString());
+      return "";
+    }
   }
 }
 

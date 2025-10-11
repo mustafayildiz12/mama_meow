@@ -1,5 +1,6 @@
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/screens/auth/admin_update_page.dart';
 import 'package:mama_meow/screens/auth/login_screen.dart';
 import 'package:mama_meow/screens/auth/register_screen.dart';
 import 'package:mama_meow/screens/get-started/get_started.dart';
@@ -22,5 +23,6 @@ class AppPages {
       page: () => const PodcastFormPage(),
     ),
     GetPage(name: AppRoutes.premiumPaywall, page: () => const PremiumPaywall()),
+    GetPage(name: AppRoutes.adminUpdate, page: () => const AdminUpdatePage()),
   ];
 }

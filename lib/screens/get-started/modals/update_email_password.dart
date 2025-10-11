@@ -273,19 +273,7 @@ class _UpdateEmailPasswordInfoModalState
                   ],
                 ),
               SizedBox(height: 12),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Back'),
-              ),
-              SizedBox(height: 12),
+
               OutlinedButton.icon(
                 onPressed: () async {
                   await showDialog(
@@ -344,6 +332,19 @@ class _UpdateEmailPasswordInfoModalState
                 },
                 icon: Icon(CupertinoIcons.delete),
                 label: Text("Delete Account"),
+              ),
+              SizedBox(height: 12),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.grey[200],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Back'),
               ),
             ],
           ),

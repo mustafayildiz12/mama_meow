@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_utils/src/platform/platform.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
@@ -91,6 +92,29 @@ class DatabaseService {
       "userPassword": meowUserModel.userPassword,
     });
     customSnackBar.success("Saved successfully");
+  }
+
+  /// Uygulama temel bilgilerini getirir.
+  /// @return Future<String> - Uygulama versiyonu
+  Future<String> getBasicAppInfo() async {
+    String appInfoVersion = "";
+    await _realtimeDatabase.ref("appInfo").get().then((snapshot) {
+      if (snapshot.exists) {
+        final Map<dynamic, dynamic> data =
+            snapshot.value as Map<dynamic, dynamic>;
+
+        if (GetPlatform.isIOS) {
+          iosVersion = data["iosVersion"];
+          iosUrl = data["iosUrl"] ?? "";
+          appInfoVersion = iosVersion;
+        } else if (GetPlatform.isAndroid) {
+          androidVersion = data["androidVersion"];
+          androidUrl = data["androidUrl"] ?? "";
+          appInfoVersion = androidVersion;
+        }
+      }
+    });
+    return appInfoVersion;
   }
 }
 

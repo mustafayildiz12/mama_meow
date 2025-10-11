@@ -127,7 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
         shape: BoxShape.circle,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
-      child: const Center(child: Text("😺", style: TextStyle(fontSize: 36))),
+      child: const Center(child: Text("😺", style: TextStyle(fontSize: 48))),
     );
   }
 
@@ -356,44 +356,49 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildAboutCard() {
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.favorite, size: 20, color: Color(0xFFEF4444)),
-                SizedBox(width: 8),
-                Text(
-                  "About MamaMeow",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
+    return InkWell(
+      onTap: () {
+        //  Navigator.pushNamed(context, AppRoutes.adminUpdate);
+      },
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 4,
+        margin: const EdgeInsets.only(bottom: 12),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.favorite, size: 20, color: Color(0xFFEF4444)),
+                  SizedBox(width: 8),
+                  Text(
+                    "About MamaMeow",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Text(
-              "MamaMeow was created by parents, for parents. Our AI assistant Mia provides helpful guidance while you navigate the beautiful journey of parenthood.",
-              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-            ),
-            SizedBox(height: 8),
-            Text(
-              "Version 1.0.0",
-              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-            ),
-            Text(
-              "© 2024 MamaMeow. Made with 💖 for families.",
-              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-            ),
-          ],
+                ],
+              ),
+              SizedBox(height: 12),
+              Text(
+                "MamaMeow was created by parents, for parents. Our AI assistant Mia provides helpful guidance while you navigate the beautiful journey of parenthood.",
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Version 1.0.0",
+                style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+              ),
+              Text(
+                "© 2024 MamaMeow. Made with 💖 for families.",
+                style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -414,6 +419,9 @@ class _ProfilePageState extends State<ProfilePage> {
       if (v != null && v == true) {
         await checkUserPremium();
       }
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
+      );
     });
   }
 }

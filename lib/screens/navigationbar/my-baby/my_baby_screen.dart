@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
@@ -77,7 +77,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
             child: Column(
               children: [
                 SizedBox(height: 12),
-                Icon(LucideIcons.baby, color: AppColors.pink500, size: 64),
+                SvgPicture.asset("assets/baby.svg", width: 64, height: 64),
                 SizedBox(height: 8),
                 Text(
                   "My Baby 👶",

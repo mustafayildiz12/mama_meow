@@ -2,14 +2,19 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get_utils/get_utils.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/models/update_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
+import 'package:mama_meow/screens/get-started/modals/updata_available_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/update_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,8 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Colors.white),
+      SystemUiOverlayStyle(statusBarColor: Colors.white,
+      statusBarBrightness: Brightness.light
+      ),
     );
+    checkAppVersion();
     super.initState();
   }
 
@@ -222,31 +230,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 .signInWithApple();
 
                                         if (isSuccess == 1) {
-                                        await showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) =>
-                                              const BabyInfoModal(),
-                                        ).then((v) async {
-                                          if (v == true) {
-                                            await databaseService.updateBaby(
-                                              currentMeowUser,
-                                            );
-                                          }
+                                          await showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) =>
+                                                const BabyInfoModal(),
+                                          ).then((v) async {
+                                            if (v == true) {
+                                              await databaseService.updateBaby(
+                                                currentMeowUser,
+                                              );
+                                            }
 
+                                            await Navigator.pushNamedAndRemoveUntil(
+                                              context,
+                                              AppRoutes.navigationBarPage,
+                                              (route) => false,
+                                            );
+                                          });
+                                        } else if (isSuccess == 0) {
                                           await Navigator.pushNamedAndRemoveUntil(
                                             context,
                                             AppRoutes.navigationBarPage,
                                             (route) => false,
                                           );
-                                        });
-                                      } else if (isSuccess == 0) {
-                                        await Navigator.pushNamedAndRemoveUntil(
-                                          context,
-                                          AppRoutes.navigationBarPage,
-                                          (route) => false,
-                                        );
-                                      }
+                                        }
                                       },
                                     ),
                                   ),
@@ -382,5 +390,46 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       customSnackBar.warning("Please fill required fields");
     }
+  }
+
+  Future<void> checkAppVersion() async {
+    String newAppVersion = await databaseService.getBasicAppInfo();
+
+    if (applicationVersion != newAppVersion) {
+      await getNewUpdateInfo(newAppVersion.replaceAll(".", "x"));
+    }
+  }
+
+  Future<void> getNewUpdateInfo(String version) async {
+    AppUpdateInfo? appUpdateInfo = await UpdateService.instance.fetchVersion(
+      version,
+    );
+    if (appUpdateInfo != null) {
+      await showUpdateAppModal(appUpdateInfo);
+    }
+  }
+
+  Future<void> showUpdateAppModal(AppUpdateInfo updateInfo) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => UpdateAvailableModal(
+        version: updateInfo.version.replaceAll("x", "."),
+        highlights: updateInfo.highlights,
+        onCancel: () {
+          Navigator.pop(ctx);
+        },
+        onUpdate: () async {
+          Navigator.pop(ctx);
+          String storeUrl = "";
+          if (GetPlatform.isAndroid) {
+            storeUrl = androidUrl;
+          } else if (GetPlatform.isIOS) {
+            storeUrl = iosUrl;
+          }
+          await launchUrl(Uri.parse(storeUrl));
+        },
+      ),
+    );
   }
 }

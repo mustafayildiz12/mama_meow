@@ -16,23 +16,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class MamaMeowHomePage extends StatefulWidget {
-  const MamaMeowHomePage({super.key});
-
-  @override
-  State<MamaMeowHomePage> createState() => _MamaMeowHomePageState();
-}
-
-class _MamaMeowHomePageState extends State<MamaMeowHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFFFF1F5),
-      body: AskMeowView(),
-    );
-  }
-}
-
 class AskMeowView extends StatefulWidget {
   const AskMeowView({super.key});
 
@@ -114,311 +97,318 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        controller: pageScrollController,
-        child: Column(
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 8),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.pets,
-                      size: 48,
-                      color: Color(0xFFEC4899),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Ask Meow",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    "Your Baby's AI Cat Companion",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Quick questions
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+    return Scaffold(
+      backgroundColor: Color(0xFFFFF1F5),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          controller: pageScrollController,
+          child: Column(
+            children: [
+              Center(
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.favorite, color: Color(0xFFEC4899)),
-                            SizedBox(width: 8),
-                            Text(
-                              'Quick Questions 😸',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
                         ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.shuffle,
-                            color: Color(0xFFEC4899),
-                          ),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Column(
-                      children: List.generate(quickQuestionList.length, (
-                        index,
-                      ) {
-                        QuickQuestionModel question = quickQuestionList[index];
-                        return _quickQuestionTile(
-                          question.emoji,
-                          question.question,
-                          quickColors(index),
-                        );
-                      }),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 8),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset("assets/foot.png"),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      "😺 Questions change each time you visit Ask Meow 🐾",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      "Ask Meow",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      "Your Baby's AI Cat Companion",
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
-
-            // Ask anything box
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _controller,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: "Ask me anything about babies and moms! 😸🐾",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFFBCFE8),
+              // Quick questions
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.favorite, color: Color(0xFFEC4899)),
+                              SizedBox(width: 8),
+                              Text(
+                                'Quick Questions 😸',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFF472B6),
-                            width: 2,
+                          IconButton(
+                            icon: const Icon(
+                              Icons.shuffle,
+                              color: Color(0xFFEC4899),
+                            ),
+                            onPressed: () {},
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Column(
+                        children: List.generate(quickQuestionList.length, (
+                          index,
+                        ) {
+                          QuickQuestionModel question =
+                              quickQuestionList[index];
+                          return _quickQuestionTile(
+                            question.emoji,
+                            question.question,
+                            quickColors(index),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "😺 Questions change each time you visit Ask Meow 🐾",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Ask anything box
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _controller,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText:
+                              "Ask me anything about babies and moms! 😸🐾",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFFBCFE8),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFF472B6),
+                              width: 2,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.teal,
-                          ),
-                          onPressed: !_isLoading
-                              ? () async {
-                                  await pickAndCompressImage();
-                                }
-                              : null,
-                        ),
-                        IconButton.filledTonal(
-                          style: ButtonStyle(
-                            backgroundColor: WidgetStatePropertyAll(
-                              _isRecording
-                                  ? Colors.red.shade400
-                                  : Colors.deepPurple.shade100,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.teal,
                             ),
+                            onPressed: !_isLoading
+                                ? () async {
+                                    await pickAndCompressImage();
+                                  }
+                                : null,
                           ),
-                          icon: Icon(
-                            _isRecording ? Icons.stop : Icons.mic,
-                            color: _isRecording
-                                ? Colors.white
-                                : Colors.deepPurple,
-                          ),
-                          onPressed: !_isLoading ? onMicPressed : null,
-                        ),
-
-                        // Kayıt göstergesi: süre + seviye çubuğu + "REC" noktası
-                        _isRecording
-                            ? Expanded(
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: Row(
-                                    key: const ValueKey('rec'),
-                                    children: [
-                                      // Kırmızı yanıp sönen nokta
-                                      _BlinkingDot(),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _formatDuration(_elapsed),
-                                        style: const TextStyle(
-                                          fontFeatures: [
-                                            FontFeature.tabularFigures(),
-                                          ],
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                          child: LinearProgressIndicator(
-                                            value: _amp, // 0..1
-                                            minHeight: 8,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : Spacer(),
-                        if (imageBytes != null)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: DecorationImage(
-                                      image: MemoryImage(imageBytes!),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: -6,
-                                  right: -6,
-                                  child: InkWell(
-                                    onTap: !_isLoading
-                                        ? () {
-                                            setState(() {
-                                              imageBytes = null;
-                                              mimeType = null;
-                                            });
-                                          }
-                                        : null,
-                                    child: Icon(
-                                      Icons.cancel,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (!_isRecording)
-                          ElevatedButton.icon(
-                            onPressed: _isLoading ? null : () => _ask(null),
-                            icon: const Icon(Icons.send),
-                            label: const Text("Ask"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF472B6),
-                              disabledBackgroundColor: const Color(
-                                0xFFF472B6,
-                              ).withValues(alpha: 0.5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                          IconButton.filledTonal(
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(
+                                _isRecording
+                                    ? Colors.red.shade400
+                                    : Colors.deepPurple.shade100,
                               ),
                             ),
+                            icon: Icon(
+                              _isRecording ? Icons.stop : Icons.mic,
+                              color: _isRecording
+                                  ? Colors.white
+                                  : Colors.deepPurple,
+                            ),
+                            onPressed: !_isLoading ? onMicPressed : null,
                           ),
-                      ],
-                    ),
-                  ],
+
+                          // Kayıt göstergesi: süre + seviye çubuğu + "REC" noktası
+                          _isRecording
+                              ? Expanded(
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Row(
+                                      key: const ValueKey('rec'),
+                                      children: [
+                                        // Kırmızı yanıp sönen nokta
+                                        _BlinkingDot(),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _formatDuration(_elapsed),
+                                          style: const TextStyle(
+                                            fontFeatures: [
+                                              FontFeature.tabularFigures(),
+                                            ],
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            child: LinearProgressIndicator(
+                                              value: _amp, // 0..1
+                                              minHeight: 8,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : Spacer(),
+                          if (imageBytes != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: MemoryImage(imageBytes!),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: InkWell(
+                                      onTap: !_isLoading
+                                          ? () {
+                                              setState(() {
+                                                imageBytes = null;
+                                                mimeType = null;
+                                              });
+                                            }
+                                          : null,
+                                      child: Icon(
+                                        Icons.cancel,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (!_isRecording)
+                            ElevatedButton.icon(
+                              onPressed: _isLoading ? null : () => _ask(null),
+                              icon: const Icon(Icons.send),
+                              label: const Text("Ask"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF472B6),
+                                disabledBackgroundColor: const Color(
+                                  0xFFF472B6,
+                                ).withValues(alpha: 0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Answer area
-            _answerCard(),
+              // Answer area
+              _answerCard(),
 
-            const SizedBox(height: 16),
-            if (questionAnswerAiList.isNotEmpty)
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: questionAnswerAiList.length,
-                separatorBuilder: (context, index) => SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final item = questionAnswerAiList[index];
-                  final answer = item.miaAnswer;
+              const SizedBox(height: 16),
+              if (questionAnswerAiList.isNotEmpty)
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: questionAnswerAiList.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final item = questionAnswerAiList[index];
+                    final answer = item.miaAnswer;
 
-                  return ExpansionTile(
-                    backgroundColor: Colors.white,
-                    collapsedBackgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    collapsedShape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    tilePadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    title: Text(
-                      item.question,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                    return ExpansionTile(
+                      backgroundColor: Colors.white,
+                      collapsedBackgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                    subtitle: Text(
-                      "Tap to view answer",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                    childrenPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    children: [_answerCardPast(answer)],
-                  );
-                },
-              )
-            else
-              const Center(child: Text("No AI questions found")),
-          ],
+                      collapsedShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      tilePadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      title: Text(
+                        item.question,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      subtitle: Text(
+                        "Tap to view answer",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      ),
+                      childrenPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      children: [_answerCardPast(answer)],
+                    );
+                  },
+                )
+              else
+                const Center(child: Text("No AI questions found")),
+            ],
+          ),
         ),
       ),
     );
@@ -563,11 +553,12 @@ class _AskMeowViewState extends State<AskMeowView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha:0.5),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.dividerColor.withValues(alpha:0.5),
+                      color: theme.dividerColor.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Row(
@@ -758,11 +749,12 @@ class _AskMeowViewState extends State<AskMeowView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha:0.5),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.dividerColor.withValues(alpha:0.5),
+                      color: theme.dividerColor.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Row(
@@ -872,7 +864,6 @@ class _AskMeowViewState extends State<AskMeowView> {
     if (image == null) return;
 
     final Uint8List originalBytes = await image.readAsBytes();
-    final String? mimeTypeImage = image.mimeType;
 
     // 🔽 kaliteyi düşür
     final Uint8List
@@ -891,8 +882,10 @@ class _AskMeowViewState extends State<AskMeowView> {
       mimeType = 'image/jpeg'; // sıkıştırmada format değiştiyse
     });
 
-    print('Orijinal boyut: ${originalBytes.lengthInBytes / 1024} KB');
-    print('Sıkıştırılmış boyut: ${compressedBytes.lengthInBytes / 1024} KB');
+    debugPrint('Orijinal boyut: ${originalBytes.lengthInBytes / 1024} KB');
+    debugPrint(
+      'Sıkıştırılmış boyut: ${compressedBytes.lengthInBytes / 1024} KB',
+    );
   }
 
   Future<void> checkUserPremium() async {

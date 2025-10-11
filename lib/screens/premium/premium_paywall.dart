@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -67,8 +69,11 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
 
   @override
   void initState() {
-    super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(statusBarColor: Color(0xFFfbe7f3)),
+    );
     _loadOfferings();
+    super.initState();
   }
 
   @override
@@ -318,7 +323,10 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                               TextButton(
                                 onPressed: () => showDialog(
                                   context: context,
-                                  builder: (_) => const _InfoDialog(),
+                                  builder: (_) => _InfoDialog(
+                                    monthly: _monthlyPackage,
+                                    yearly: _yearlyPackage,
+                                  ),
                                 ),
                                 child: Text(
                                   "About Subscriptions",
@@ -360,7 +368,7 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.circle, size: 6),
+                    const Icon(Icons.circle, size: 4),
                     TextButton(
                       onPressed: () async {
                         final uri = Uri.parse(
@@ -382,6 +390,8 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                         ),
                       ),
                     ),
+                    const Icon(Icons.circle, size: 4),
+                    aboutSubsButton(),
                   ],
                 ),
               ],
@@ -390,15 +400,6 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
         ),
       ),
     );
-  }
-
-  bool _hasTrialSelected() {
-    final package = _selectedPackage;
-    if (package != null) {
-      final trialDays = _iap.getTrialDays(package);
-      return trialDays != null && trialDays != "0";
-    }
-    return false;
   }
 
   Widget _buildPackageCard(Package package, PremiumType type) {
@@ -414,13 +415,19 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     switch (type) {
       case PremiumType.monthly:
         title = "Monthly Plan";
-        subtitle = "Includes a 7 day free trial. Auto-renews unless canceled.";
+        subtitle = (hasFreeTrial)
+            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
+            : _planLabel(package, type);
+
         perText = "Billed monthly";
 
         break;
       case PremiumType.yearly:
         title = "Annual Plan";
-        subtitle = "Includes a 14 day free trial. Auto-renews unless canceled.";
+        subtitle = (hasFreeTrial)
+            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
+            : _planLabel(package, type);
+
         // Yıllık plan genelde en popüler
         chipText = "MOST POPULAR"; // "En Popüler" vb.
         perText = "Billed once per year";
@@ -572,6 +579,16 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     );
   }
 
+  String _planLabel(Package p, PremiumType type) {
+    final price = p.storeProduct.priceString;
+    final trialDays = _iap.getTrialDays(p);
+    final freq = (type == PremiumType.monthly) ? "month" : "year";
+    final afterTrial = (trialDays != null && trialDays != "0")
+        ? " • After the $trialDays-day free trial, it renews at $price per $freq."
+        : " • Automatically renews at $price per $freq.";
+    return afterTrial;
+  }
+
   Future<void> _loadOfferings() async {
     try {
       setState(() {
@@ -673,35 +690,71 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
   }
 
   String _getButtonText() {
-    final package = _selectedPackage;
-    if (package != null) {
-      final trialDays = _iap.getTrialDays(package);
-      if (trialDays != null && trialDays != "0") {
-        return "Start $trialDays days for free";
-      }
+    final p = _selectedPackage;
+    if (p == null) return "Subscribe";
+    final price = p.storeProduct.priceString;
+    final freq = (selectedType == PremiumType.monthly) ? "month" : "year";
+    final trialDays = _iap.getTrialDays(p);
+
+    if (trialDays != null && trialDays != "0") {
+      return "Start $trialDays-day free trial • Then $price / $freq";
     }
-    return "Subscribe";
+    return "Subscribe for $price / $freq";
+  }
+
+  Widget aboutSubsButton() {
+    return Visibility(
+      visible: Platform.isAndroid,
+      child: TextButton(
+        onPressed: () async {
+          final uri = Uri.parse(
+            "https://play.google.com/store/account/subscriptions",
+          );
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+        child: const Text(
+          "Manage Subscription",
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+        ),
+      ),
+    );
   }
 }
 
 class _InfoDialog extends StatelessWidget {
-  const _InfoDialog();
+  final Package? monthly;
+  final Package? yearly;
+  const _InfoDialog({this.monthly, this.yearly});
 
   @override
   Widget build(BuildContext context) {
+    String lineFor(Package? p, String name) {
+      if (p == null) return "";
+      final price = p.storeProduct.priceString;
+      final freq = (name == "Monthly") ? "month" : "year";
+      final trialDays = InAppPurchaseService().getTrialDays(p);
+      final trial = (trialDays != null && trialDays != "0")
+          ? " • Includes a $trialDays-day free trial."
+          : "";
+      return "• $name plan: $price per $freq$trial";
+    }
+
     return AlertDialog(
-      title: Text("About Subscription"),
+      title: const Text("About Subscription"),
       content: SingleChildScrollView(
         child: Text(
-          'Subscriptions renew automatically unless canceled at least 24 hours before the end of the current period. '
-          'A 7-day free trial is included. After the trial, the plan renews at the price shown (Monthly: 4.99\$, Yearly: 49.99\$). '
-          'Manage or cancel your subscription in your account settings.',
+          [
+            "Subscriptions automatically renew unless canceled at least 24 hours before the current period ends.",
+            lineFor(monthly, "Monthly"),
+            lineFor(yearly, "Yearly"),
+            "You can manage or cancel your subscription anytime in the Google Play Subscription Center.",
+          ].where((e) => e.isNotEmpty).join("\n\n"),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text("Close"),
+          child: const Text("Close"),
         ),
       ],
     );

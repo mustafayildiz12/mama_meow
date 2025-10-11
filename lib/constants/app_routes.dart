@@ -10,4 +10,6 @@ class AppRoutes {
   static String forgotPasswordPage = "/forgotPassword";
   static String uploadPodcastPage = "/uploadPodcast";
   static String premiumPaywall = "/premiumPaywall";
+
+  static String adminUpdate = "/adminUpdate";
 }
