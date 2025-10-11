@@ -904,7 +904,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
-    if (isUserPremium) {
+    if (!isUserPremium) {
       await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
         v,
       ) async {
