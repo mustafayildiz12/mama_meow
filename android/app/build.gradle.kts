@@ -21,19 +21,21 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.yildiz.mama_meow"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
+     ndkVersion = "28.2.13676358"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
 
          //? https://github.com/MaikuB/flutter_local_notifications/issues/2389
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        // Match Kotlin JVM target to Java 21
+        jvmTarget = JavaVersion.VERSION_21.toString()
     }
 
     defaultConfig {
@@ -43,7 +45,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 15
+        versionCode = 16
         versionName = flutter.versionName
     }
 
@@ -72,6 +74,5 @@ dependencies {
 
         //? https://github.com/MaikuB/flutter_local_notifications/issues/2389
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // ...
 }
 
