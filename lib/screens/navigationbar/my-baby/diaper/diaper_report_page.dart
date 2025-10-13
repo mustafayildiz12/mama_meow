@@ -1,9 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 
@@ -22,8 +21,15 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
 
   @override
   void initState() {
-    super.initState();
     _future = _fetchByMode(_mode);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF8FAFC),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+    super.initState();
   }
 
   Future<List<DiaperModel>> _fetchByMode(ReportMode mode) {
@@ -84,7 +90,6 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
             "🚼  Diaper Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-        
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,

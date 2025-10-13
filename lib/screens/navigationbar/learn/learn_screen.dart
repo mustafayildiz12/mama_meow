@@ -44,7 +44,11 @@ class _LearnPageState extends State<LearnPage> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Color(0xFFF5F3FF)),
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF5F3FF),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
     );
     getPageData();
     super.initState();

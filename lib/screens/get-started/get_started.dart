@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -20,7 +21,6 @@ class _GetStartedPageState extends State<GetStartedPage>
 
   @override
   void initState() {
-    super.initState();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -30,6 +30,15 @@ class _GetStartedPageState extends State<GetStartedPage>
       begin: 0,
       end: -20,
     ).chain(CurveTween(curve: Curves.easeInOut)).animate(_controller);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: AppColors.pink100,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+    super.initState();
   }
 
   @override

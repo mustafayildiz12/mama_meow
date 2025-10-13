@@ -31,6 +31,7 @@ class _RegisterPageState extends State<RegisterPage> {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
     );

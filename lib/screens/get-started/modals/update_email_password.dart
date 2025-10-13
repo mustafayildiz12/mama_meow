@@ -91,6 +91,7 @@ class _UpdateEmailPasswordInfoModalState
 
               if (userProvider == "password")
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Baby's Name Field
                     const Text(

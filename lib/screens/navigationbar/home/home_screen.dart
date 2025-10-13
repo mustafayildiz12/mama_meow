@@ -71,7 +71,11 @@ class _AskMeowViewState extends State<AskMeowView> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Color(0xFFFFF1F5)),
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFFFF1F5),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
     );
     checkUserPremium();
     getUserPastQuestions();
@@ -668,7 +672,7 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   Widget _answerCardPast(MiaAnswer? miaAnswerCard) {
     // Hiçbir cevap yok ve yükleme de yoksa gizle
-    if (miaAnswerCard == null && _isLoading) {
+    if (miaAnswerCard == null) {
       return CircularProgressIndicator();
     }
 
@@ -682,141 +686,132 @@ class _AskMeowViewState extends State<AskMeowView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_isLoading) ...[
-              const SizedBox(height: 8),
-              const Center(child: CircularProgressIndicator()),
-              const SizedBox(height: 8),
-            ] else if (miaAnswerCard != null) ...[
-              // ------ PART 1: Quick Answer ------
+            // ------ PART 1: Quick Answer ------
+            Text(
+              miaAnswerCard.quick,
+              style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
+            ),
+            const SizedBox(height: 10),
+
+            // ------ PART 2: Detailed Info ------
+            if (miaAnswerCard.detailed.trim().isNotEmpty) ...[
               Text(
-                miaAnswerCard.quick,
-                style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
+                isTR ? "Detaylı Bilgi" : "Detailed Info",
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
+              // İstersen MarkdownBody kullanabilirsin:
+              // MarkdownBody(data: _miaAnswer!.detailed, selectable: true)
+              Text(miaAnswerCard.detailed.replaceAll(r'\n', '\n')),
+              const SizedBox(height: 12),
+            ],
 
-              // ------ PART 2: Detailed Info ------
-              if (miaAnswerCard.detailed.trim().isNotEmpty) ...[
-                Text(
-                  isTR ? "Detaylı Bilgi" : "Detailed Info",
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                // İstersen MarkdownBody kullanabilirsin:
-                // MarkdownBody(data: _miaAnswer!.detailed, selectable: true)
-                Text(miaAnswerCard.detailed.replaceAll(r'\n', '\n')),
-                const SizedBox(height: 12),
-              ],
-
-              // ------ Actions (3 madde) ------
-              if (miaAnswerCard.actions.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: miaAnswerCard.actions.map((a) {
-                    return Chip(
-                      label: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              a,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 3,
-                            ),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.25),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.3,
+            // ------ Actions (3 madde) ------
+            if (miaAnswerCard.actions.isNotEmpty) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: miaAnswerCard.actions.map((a) {
+                  return Chip(
+                    label: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            a,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 3,
                           ),
                         ),
+                      ],
+                    ),
+                    backgroundColor: theme.colorScheme.primaryContainer
+                        .withValues(alpha: 0.25),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 12),
-              ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
 
-              // ------ Follow-up question ------
-              if (miaAnswerCard.followUp.trim().isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.5,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.dividerColor.withValues(alpha: 0.5),
-                    ),
+            // ------ Follow-up question ------
+            if (miaAnswerCard.followUp.trim().isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.question_answer, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          miaAnswerCard.followUp,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.5),
                   ),
                 ),
-                const SizedBox(height: 12),
-              ],
-
-              // ------ Sources ------
-              if (miaAnswerCard.sources.isNotEmpty) ...[
-                const Divider(),
-                const SizedBox(height: 4),
-                Row(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.link, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      isTR ? "Kaynaklar" : "Sources",
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    const Icon(Icons.question_answer, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        miaAnswerCard.followUp,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                ...miaAnswerCard.sources.map((s) => _SourceTile(item: s)),
-                const SizedBox(height: 8),
-              ],
-
-              // ------ Disclaimer + Last updated ------
-              Text(
-                miaAnswerCard.disclaimer,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.black54,
-                ),
               ),
-              const SizedBox(height: 4),
-              if (miaAnswerCard.lastUpdated.isNotEmpty)
-                Text(
-                  "${isTR ? "Son güncelleme" : "Last updated"}: ${miaAnswerCard.lastUpdated}",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.black45,
-                  ),
-                ),
-
               const SizedBox(height: 12),
             ],
+
+            // ------ Sources ------
+            if (miaAnswerCard.sources.isNotEmpty) ...[
+              const Divider(),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.link, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    isTR ? "Kaynaklar" : "Sources",
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ...miaAnswerCard.sources.map((s) => _SourceTile(item: s)),
+              const SizedBox(height: 8),
+            ],
+
+            // ------ Disclaimer + Last updated ------
+            Text(
+              miaAnswerCard.disclaimer,
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 4),
+            if (miaAnswerCard.lastUpdated.isNotEmpty)
+              Text(
+                "${isTR ? "Son güncelleme" : "Last updated"}: ${miaAnswerCard.lastUpdated}",
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black45,
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
             // ---- Öneriler (her iki durumda da) ----
-            if (!_isLoading && _suggestions.isNotEmpty) ...[
+            if (_suggestions.isNotEmpty) ...[
               const Divider(),
               const SizedBox(height: 8),
               Row(

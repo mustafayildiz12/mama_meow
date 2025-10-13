@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -22,8 +23,15 @@ class _NursingReportPageState extends State<NursingReportPage> {
 
   @override
   void initState() {
-    super.initState();
     _future = _fetchByMode(_mode);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF8FAFC),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+    super.initState();
   }
 
   Future<List<NursingModel>> _fetchByMode(ReportMode mode) {

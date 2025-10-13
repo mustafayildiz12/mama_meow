@@ -70,7 +70,11 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Color(0xFFfbe7f3)),
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFfbe7f3),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
     );
     _loadOfferings();
     super.initState();

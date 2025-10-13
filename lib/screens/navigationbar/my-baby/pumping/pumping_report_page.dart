@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -23,8 +24,15 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
 
   @override
   void initState() {
-    super.initState();
     _future = _fetchByMode(_mode);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF8FAFC),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+    super.initState();
   }
 
   Future<List<PumpingModel>> _fetchByMode(ReportMode mode) {
@@ -85,7 +93,6 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
             "🫗  Pumping Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-         
         ),
         body: RefreshIndicator(
           onRefresh: _refresh,
@@ -655,10 +662,14 @@ class _TopSessionTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: (isLeft ? Colors.blue : Colors.purple).withValues(alpha:0.08),
+              color: (isLeft ? Colors.blue : Colors.purple).withValues(
+                alpha: 0.08,
+              ),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: (isLeft ? Colors.blue : Colors.purple).withValues(alpha:0.2),
+                color: (isLeft ? Colors.blue : Colors.purple).withValues(
+                  alpha: 0.2,
+                ),
               ),
             ),
             child: Text(
@@ -683,7 +694,7 @@ class _TopSessionTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: Colors.orange.withValues(alpha:0.1),
+                    backgroundColor: Colors.orange.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       AppColors.kDeepOrange,
                     ),

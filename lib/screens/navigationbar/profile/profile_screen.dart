@@ -24,7 +24,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFEEF2FF),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
     );
     checkUserPremium();
 
@@ -420,7 +424,11 @@ class _ProfilePageState extends State<ProfilePage> {
         await checkUserPremium();
       }
       SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(statusBarColor: Color(0xFFEEF2FF)),
+        SystemUiOverlayStyle(
+          statusBarColor: Color(0xFFEEF2FF),
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
       );
     });
   }

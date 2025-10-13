@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
@@ -20,8 +21,15 @@ class _SleepReportPageState extends State<SleepReportPage> {
 
   @override
   void initState() {
-    super.initState();
     _future = _fetchByMode(_mode);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF8FAFC),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+    super.initState();
   }
 
   Future<void> _refresh() async {
@@ -669,7 +677,9 @@ class _TopSleepTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0, 1),
                     minHeight: 8,
-                    backgroundColor: const Color(0xFFc7ceea).withValues(alpha:0.1),
+                    backgroundColor: const Color(
+                      0xFFc7ceea,
+                    ).withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       const Color(0xFFc7ceea),
                     ),

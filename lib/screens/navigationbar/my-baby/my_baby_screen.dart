@@ -62,6 +62,8 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarColor: Theme.of(context).scaffoldBackgroundColor,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
         ),
       );
     });

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
@@ -24,10 +25,18 @@ class _SolidReportPageState extends State<SolidReportPage> {
 
   @override
   void initState() {
-    super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFF8FAFC),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
     _futureToday = _fetchTodaySolids();
     _futureWeek = _fetchWeekSolids();
     _futureMonth = _fetchMonthSolids();
+
+    super.initState();
   }
 
   @override
@@ -66,7 +75,6 @@ class _SolidReportPageState extends State<SolidReportPage> {
           ),
         ),
         body: SafeArea(
-          top: false,
           child: RefreshIndicator(
             onRefresh: _refresh,
             child: Column(
