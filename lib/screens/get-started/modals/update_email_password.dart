@@ -310,12 +310,9 @@ class _UpdateEmailPasswordInfoModalState
                   ).then((value) async {
                     if (value == true) {
                       try {
-                        User? user = authenticationService.getUser();
-                        await user!.delete();
-                        bool isSuccess = await databaseService.deleteAccount(
-                          context,
-                        );
+                        bool isSuccess = await databaseService.deleteAccount();
                         if (isSuccess) {
+                          await databaseService.wipeData();
                           Navigator.pushNamedAndRemoveUntil(
                             context,
                             AppRoutes.loginPage,

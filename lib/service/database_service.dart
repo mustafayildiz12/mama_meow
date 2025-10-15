@@ -1,10 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/src/platform/platform.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
@@ -69,21 +72,6 @@ class DatabaseService {
     await _realtimeDatabase.ref('users').child(user.uid!).set(user.toMap());
   }
 
-  /// Kullanıcı hesabını siler.
-  /// @param context - BuildContext nesnesi
-  Future<bool> deleteAccount(BuildContext context) async {
-    bool isSuccess = false;
-    await _realtimeDatabase
-        .ref("users")
-        .child(currentMeowUser!.uid!)
-        .remove()
-        .then((_) async {
-          customSnackBar.success("Account Deleted");
-          isSuccess = true;
-        });
-    return isSuccess;
-  }
-
   Future<void> updateBaby(MeowUserModel? meowUserModel) async {
     await _realtimeDatabase.ref("users").child(meowUserModel!.uid!).update({
       "babyName": meowUserModel.babyName,
@@ -115,6 +103,35 @@ class DatabaseService {
       }
     });
     return appInfoVersion;
+  }
+
+  /// Kullanıcı hesabını siler.
+  /// @param context - BuildContext nesnesi
+  Future<bool> deleteAccount() async {
+    bool isSuccess = false;
+
+    try {
+      User? user = authenticationService.getUser();
+      if (user != null) {
+        await user.delete();
+        customSnackBar.success("Account Deleted");
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+      customSnackBar.warning(e.toString());
+    }
+
+    return isSuccess;
+  }
+
+  Future<void> wipeData() async {
+    try {
+      // 1) Veriyi temizle
+      final callable = FirebaseFunctions.instance.httpsCallable('wipeUser');
+      await callable.call();
+    } catch (e) {
+      print(e.toString());
+    }
   }
 }
 
