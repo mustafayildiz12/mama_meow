@@ -336,7 +336,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
-                "These AI-generated podcasts are for informational purposes only. For comprehensive information, please consult the original sources. Our summaries don't replace professional medical advice. We credit all original authors and encourage supporting their work.",
+                "These podcasts are for informational purposes only. For comprehensive information, please consult the original sources. Our summaries don't replace professional medical advice. We credit all original authors and encourage supporting their work.",
                 style: TextStyle(fontSize: 9, height: 1),
               ),
             ),
@@ -457,7 +457,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                   "Creator: ",
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                Expanded(child: Text("${p.creator}")),
+                Expanded(child: Text(p.creator)),
               ],
             ),
             SizedBox(height: 8),
@@ -474,12 +474,12 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                       launchUrl(Uri.parse(p.source));
                     },
                     child: Text(
-                      "${p.source}",
+                      p.source,
                       style: TextStyle(decoration: TextDecoration.underline),
                     ),
                   ),
                 ] else ...[
-                  Expanded(child: Text("${p.source}", maxLines: 1)),
+                  Expanded(child: Text(p.source, maxLines: 1)),
                 ],
               ],
             ),

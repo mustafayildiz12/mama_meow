@@ -419,8 +419,8 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     switch (type) {
       case PremiumType.monthly:
         title = "Monthly Plan";
-        subtitle = (hasFreeTrial)
-            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
+        subtitle = (!hasFreeTrial)
+            ? "Includes a 7-day free trial.${_planLabel(package, type)}"
             : _planLabel(package, type);
 
         perText = "Billed monthly";
@@ -428,8 +428,8 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
         break;
       case PremiumType.yearly:
         title = "Annual Plan";
-        subtitle = (hasFreeTrial)
-            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
+        subtitle = (!hasFreeTrial)
+            ? "Includes a 7-day free trial.${_planLabel(package, type)}"
             : _planLabel(package, type);
 
         // Yıllık plan genelde en popüler
@@ -525,7 +525,7 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                       child: Text(
                         subtitle,
                         style: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 10.5,
                           color: Colors.black87,
                           fontWeight: FontWeight.w500,
                         ),
