@@ -82,6 +82,9 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     TextFormField(
+                      onTapOutside: (event) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
                       controller: _idCtrl,
                       decoration: const InputDecoration(labelText: 'ID'),
                       validator: (v) =>
@@ -89,6 +92,9 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      onTapOutside: (event) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
                       controller: _titleCtrl,
                       decoration: const InputDecoration(labelText: 'Title'),
                       validator: (v) => (v == null || v.trim().isEmpty)
@@ -97,11 +103,17 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      onTapOutside: (event) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
                       controller: _subtitleCtrl,
                       decoration: const InputDecoration(labelText: 'Subtitle'),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      onTapOutside: (event) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
                       controller: _durationCtrl,
                       decoration: const InputDecoration(
                         labelText: 'Duration (örn: 8 min)',
@@ -136,6 +148,9 @@ class _PodcastFormPageState extends State<PodcastFormPage> {
                     TextFormField(
                       controller: _descriptionCtrl,
                       maxLines: 4,
+                      onTapOutside: (event) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
                       decoration: const InputDecoration(
                         labelText: 'Description',
                       ),

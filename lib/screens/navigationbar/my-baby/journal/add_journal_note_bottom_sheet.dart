@@ -237,6 +237,9 @@ class _AddJournalNoteBottomSheetState extends State<AddJournalNoteBottomSheet> {
                             child: TextField(
                               controller: _noteController,
                               focusNode: _focusNode,
+                              onTapOutside: (event) {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                              },
                               maxLines: null,
                               expands: true,
                               textAlignVertical: TextAlignVertical.top,

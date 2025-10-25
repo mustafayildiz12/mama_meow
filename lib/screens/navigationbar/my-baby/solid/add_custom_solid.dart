@@ -56,9 +56,9 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Image could not be selected: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Image could not be selected: $e")),
+      );
     }
   }
 
@@ -76,9 +76,9 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!kIsWeb && _file == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please pick an image.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please pick an image.")));
       return;
     }
 
@@ -116,9 +116,9 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Success")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Success")));
       }
     } catch (e) {
       if (mounted) {
@@ -159,6 +159,9 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
               key: _formKey,
               child: TextFormField(
                 controller: _nameCtrl,
+                onTapOutside: (event) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
                   labelText: "Food Name",

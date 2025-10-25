@@ -215,6 +215,9 @@ class _AskMeowViewState extends State<AskMeowView> {
                       TextField(
                         controller: _controller,
                         maxLines: 4,
+                        onTapOutside: (event) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
                         decoration: InputDecoration(
                           hintText:
                               "Ask me anything about babies and moms! 😸🐾",

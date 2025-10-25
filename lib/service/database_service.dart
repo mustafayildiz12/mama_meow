@@ -115,23 +115,31 @@ class DatabaseService {
       if (user != null) {
         await user.delete();
         customSnackBar.success("Account Deleted");
+        isSuccess = true;
+      } else {
+        isSuccess = false;
       }
     } catch (e) {
       debugPrint(e.toString());
       customSnackBar.warning(e.toString());
+      isSuccess = false;
     }
 
     return isSuccess;
   }
 
-  Future<void> wipeData() async {
+  Future<bool> wipeData() async {
+    bool isSuccess = false;
     try {
       // 1) Veriyi temizle
       final callable = FirebaseFunctions.instance.httpsCallable('wipeUser');
       await callable.call();
+      isSuccess = true;
     } catch (e) {
-      print(e.toString());
+      print("Wipe Error: ${e.toString()}");
+      isSuccess = false;
     }
+    return isSuccess;
   }
 }
 

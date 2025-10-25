@@ -123,6 +123,9 @@ class _LearnPageState extends State<LearnPage> {
                   child: Column(
                     children: [
                       TextField(
+                        onTapOutside: (event) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.search),
                           hintText: "Search podcasts...",

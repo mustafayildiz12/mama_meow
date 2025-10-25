@@ -117,6 +117,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextFormField(
                             controller: _nameController,
                             textInputAction: TextInputAction.next,
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             decoration: InputDecoration(
                               hintText: "Enter your name",
                               border: OutlineInputBorder(
@@ -149,6 +152,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             decoration: InputDecoration(
                               hintText: "Enter your email",
                               border: OutlineInputBorder(
@@ -180,6 +186,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             textInputAction: TextInputAction.done,
                             validator: (value) =>
                                 globalFunctions.nonEmptyRule(value),

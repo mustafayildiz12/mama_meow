@@ -121,6 +121,9 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
               TextField(
                 controller: _nameController,
                 maxLength: 30,
+                onTapOutside: (event) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
                 decoration: InputDecoration(
                   hintText: "Enter your baby's name...",
                   counterText: '',

@@ -25,7 +25,7 @@ class _UpdateBabyInfoModalState extends State<UpdateBabyInfoModal> {
   @override
   void initState() {
     _nameController.text = currentMeowUser?.babyName ?? "";
-    selectedAge = currentMeowUser?.ageRange ?? null;
+    selectedAge = currentMeowUser?.ageRange;
     super.initState();
   }
 
@@ -125,6 +125,9 @@ class _UpdateBabyInfoModalState extends State<UpdateBabyInfoModal> {
               TextField(
                 controller: _nameController,
                 maxLength: 30,
+                onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                 decoration: InputDecoration(
                   hintText: "Enter your baby's name...",
                   counterText: '',

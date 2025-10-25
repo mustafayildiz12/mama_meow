@@ -259,6 +259,9 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
               children: [
                 Expanded(
                   child: TextField(
+                    onTapOutside: (event) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                    },
                     controller: _searchCtrl,
                     onChanged: (v) => setState(() => _query = v),
                     decoration: InputDecoration(
@@ -269,7 +272,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.black12.withValues(alpha:.2),
+                          color: Colors.black12.withValues(alpha: .2),
                         ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
@@ -547,12 +550,14 @@ class _CustomCard extends StatelessWidget {
           border: Border.all(
             color: selected
                 ? theme.primaryColorLight
-                : theme.dividerColor.withValues(alpha:0.6),
+                : theme.dividerColor.withValues(alpha: 0.6),
             width: selected ? 1.2 : 0.8,
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.shadowColor.withValues(alpha:selected ? 0.12 : 0.06),
+              color: theme.shadowColor.withValues(
+                alpha: selected ? 0.12 : 0.06,
+              ),
               blurRadius: selected ? 12 : 8,
               spreadRadius: 1,
               offset: const Offset(0, 2),
@@ -681,12 +686,14 @@ class _FoodChipTile extends StatelessWidget {
           border: Border.all(
             color: selected
                 ? theme.primaryColorLight
-                : theme.dividerColor.withValues(alpha:0.6),
+                : theme.dividerColor.withValues(alpha: 0.6),
             width: selected ? 1.2 : 0.8,
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.shadowColor.withValues(alpha:selected ? 0.12 : 0.06),
+              color: theme.shadowColor.withValues(
+                alpha: selected ? 0.12 : 0.06,
+              ),
               blurRadius: selected ? 12 : 8,
               spreadRadius: 1,
               offset: const Offset(0, 2),

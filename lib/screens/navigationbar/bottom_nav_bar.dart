@@ -1,17 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get_utils/src/platform/platform.dart';
-import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/models/update_info_modal.dart';
-import 'package:mama_meow/screens/get-started/modals/updata_available_modal.dart';
 import 'package:mama_meow/screens/navigationbar/home/home_screen.dart';
 import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/my_baby_screen.dart';
 import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
-import 'package:mama_meow/service/database_service.dart';
-import 'package:mama_meow/service/update_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class BottomNavBarScreen extends StatefulWidget {
   const BottomNavBarScreen({super.key});
@@ -30,11 +23,6 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     ProfilePage(),
   ];
 
-  @override
-  void initState() {
-    checkAppVersion();
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +136,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     );
   }
 
+/*
   Future<void> checkAppVersion() async {
     String newAppVersion = await databaseService.getBasicAppInfo();
 
@@ -188,4 +177,5 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
       ),
     );
   }
+ */
 }

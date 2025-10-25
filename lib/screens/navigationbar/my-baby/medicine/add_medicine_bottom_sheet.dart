@@ -39,9 +39,15 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
       TextEditingController();
 
   String? _selectedMedicineName;
-  String _selectedAmountType = MedicineAmountTypes.types.first;
+  String _selectedAmountType = "";
   TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isCustomMedicine = false;
+
+  @override
+  void initState() {
+    _selectedAmountType = MedicineAmountTypes.types.first;
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -86,11 +92,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
         : _selectedMedicineName;
     final amount = _amountController.text.trim();
 
-    return medicineName != null &&
-        medicineName.isNotEmpty &&
-        amount.isNotEmpty &&
-        int.tryParse(amount) != null &&
-        int.parse(amount) > 0;
+    return medicineName != null && medicineName.isNotEmpty && amount.isNotEmpty;
   }
 
   Future<void> _saveMedicine() async {
@@ -372,10 +374,16 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                         Expanded(
                           flex: 6,
                           child: TextField(
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             controller: _amountController,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
+                            onChanged: (value) {
+                              setState(() {});
+                            },
                             decoration: const InputDecoration(
                               labelText: 'Amount',
                               border: OutlineInputBorder(),

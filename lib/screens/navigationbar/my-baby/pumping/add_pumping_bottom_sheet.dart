@@ -140,6 +140,9 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                         width: 140,
                         child: TextFormField(
                           controller: durationController,
+                          onTapOutside: (event) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
                           keyboardType: const TextInputType.numberWithOptions(
                             signed: false,
                             decimal: false,

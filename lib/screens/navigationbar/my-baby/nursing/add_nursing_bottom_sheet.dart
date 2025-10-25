@@ -420,6 +420,10 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
                         child: TextField(
                           controller: _durationController,
                           keyboardType: TextInputType.number,
+                          
+                          onTapOutside: (event) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],

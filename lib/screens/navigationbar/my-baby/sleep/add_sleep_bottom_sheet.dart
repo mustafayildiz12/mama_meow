@@ -482,6 +482,9 @@ class _SleepExtendedMultiSliderBottomSheetState
                   TextField(
                     controller: _noteCtrl,
                     maxLines: 2,
+                    onTapOutside: (event) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                    },
                     decoration: const InputDecoration(
                       labelText: "Note",
                       border: OutlineInputBorder(),

@@ -2,19 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get_utils/get_utils.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
-import 'package:mama_meow/models/update_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
-import 'package:mama_meow/screens/get-started/modals/updata_available_modal.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
-import 'package:mama_meow/service/update_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
         statusBarBrightness: Brightness.light,
       ),
     );
-    checkAppVersion();
     super.initState();
   }
 
@@ -130,6 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              onTapOutside: (event) {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                              },
                               validator: (value) =>
                                   globalFunctions.emailValidator(value),
                               textInputAction: TextInputAction.next,
@@ -161,6 +158,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
+                              onTapOutside: (event) {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                              },
                               validator: (value) =>
                                   globalFunctions.nonEmptyRule(value),
                               onFieldSubmitted: (value) async {
@@ -394,7 +394,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> checkAppVersion() async {
+  /*
+ Future<void> checkAppVersion() async {
     String newAppVersion = await databaseService.getBasicAppInfo();
 
     if (applicationVersion != newAppVersion) {
@@ -434,4 +435,5 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+ */
 }

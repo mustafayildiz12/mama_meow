@@ -160,6 +160,9 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                         Expanded(
                           child: TextFormField(
                             controller: _versionCtrl,
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             decoration: InputDecoration(
                               labelText: 'Version (ör. 1.0.5)',
                               hintText: '1.0.5',
@@ -251,6 +254,10 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                                 Expanded(
                                   child: TextFormField(
                                     controller: _highlightCtrls[index],
+                                    onTapOutside: (event) {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                    },
                                     maxLines: null,
                                     decoration: InputDecoration(
                                       hintText:

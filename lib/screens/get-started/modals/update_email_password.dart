@@ -112,6 +112,9 @@ class _UpdateEmailPasswordInfoModalState
                             child: TextFormField(
                               controller: emailController,
                               maxLength: 30,
+                              onTapOutside: (event) {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                              },
                               readOnly: !isEmailVerified,
                               validator: (value) =>
                                   globalFunctions.emailValidator(value),
@@ -214,6 +217,9 @@ class _UpdateEmailPasswordInfoModalState
                           child: TextFormField(
                             controller: passwordController,
                             maxLength: 24,
+                            onTapOutside: (event) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                             obscureText: obscurePassword,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(
@@ -312,7 +318,8 @@ class _UpdateEmailPasswordInfoModalState
                       try {
                         bool isSuccess = await databaseService.deleteAccount();
                         if (isSuccess) {
-                          await databaseService.wipeData();
+                          //  bool wipeDoone = await databaseService.wipeData();
+
                           Navigator.pushNamedAndRemoveUntil(
                             context,
                             AppRoutes.loginPage,
