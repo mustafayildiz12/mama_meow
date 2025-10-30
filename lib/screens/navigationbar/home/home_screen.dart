@@ -24,7 +24,6 @@ class AskMeowView extends StatefulWidget {
 }
 
 class _AskMeowViewState extends State<AskMeowView> {
-  ScrollController pageScrollController = ScrollController();
   final _controller = TextEditingController();
   final _gpt = GptService();
 
@@ -106,7 +105,7 @@ class _AskMeowViewState extends State<AskMeowView> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          controller: pageScrollController,
+
           child: Column(
             children: [
               Center(
@@ -906,11 +905,6 @@ class _AskMeowViewState extends State<AskMeowView> {
     } else {
       final q = (presetQuestion ?? _controller.text).trim();
       if (q.isEmpty) return;
-      await pageScrollController.animateTo(
-        pageScrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 500),
-        curve: Curves.easeIn,
-      );
 
       setState(() {
         _isLoading = true;
@@ -1043,8 +1037,6 @@ class _AskMeowViewState extends State<AskMeowView> {
     );
 
     _controller.text = text;
-
-    await _ask(text);
   }
 
   Future<void> onMicPressed() async {
