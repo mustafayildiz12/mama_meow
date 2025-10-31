@@ -5,6 +5,8 @@ import 'package:mama_meow/screens/navigationbar/home/home_screen.dart';
 import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/my_baby_screen.dart';
 import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
+import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/database_service.dart';
 
 class BottomNavBarScreen extends StatefulWidget {
   const BottomNavBarScreen({super.key});
@@ -23,6 +25,11 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     ProfilePage(),
   ];
 
+  @override
+  void initState() {
+    checkAppVersion();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,46 +143,9 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     );
   }
 
-/*
   Future<void> checkAppVersion() async {
-    String newAppVersion = await databaseService.getBasicAppInfo();
-
-    if (applicationVersion != newAppVersion) {
-      await getNewUpdateInfo(newAppVersion.replaceAll(".", "x"));
+    if (authenticationService.getUser() != null) {
+      await databaseService.getBasicAppInfo();
     }
   }
-
-  Future<void> getNewUpdateInfo(String version) async {
-    AppUpdateInfo? appUpdateInfo = await UpdateService.instance.fetchVersion(
-      version,
-    );
-    if (appUpdateInfo != null) {
-      await showUpdateAppModal(appUpdateInfo);
-    }
-  }
-
-  Future<void> showUpdateAppModal(AppUpdateInfo updateInfo) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => UpdateAvailableModal(
-        version: updateInfo.version.replaceAll("x", "."),
-        highlights: updateInfo.highlights,
-        onCancel: () {
-          Navigator.pop(ctx);
-        },
-        onUpdate: () async {
-          Navigator.pop(ctx);
-          String storeUrl = "";
-          if (GetPlatform.isAndroid) {
-            storeUrl = androidUrl;
-          } else if (GetPlatform.isIOS) {
-            storeUrl = iosUrl;
-          }
-          await launchUrl(Uri.parse(storeUrl));
-        },
-      ),
-    );
-  }
- */
 }

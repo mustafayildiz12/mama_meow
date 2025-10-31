@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_storage/get_storage.dart';
@@ -66,7 +65,6 @@ class AppInitService {
       SystemUiMode.manual,
       overlays: [SystemUiOverlay.top],
     );
-
   }
 
   static initPurchase() async {
@@ -76,7 +74,6 @@ class AppInitService {
 
   static Future<void> init() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await dotenv.load(fileName: ".env");
 
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

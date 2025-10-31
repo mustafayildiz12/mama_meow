@@ -6,6 +6,8 @@ final GetStorage infoStorage = GetStorage("info");
 
 String applicationVersion = "";
 
+String apiValue = "";
+
 String androidUrl = "";
 String iosUrl = "";
 

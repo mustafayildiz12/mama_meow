@@ -1,6 +1,7 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:image/image.dart' as img;
@@ -8,8 +9,6 @@ import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 
 class GptService {
-  final String apiKey = dotenv.get("OPENAI_API_KEY");
-
   // (Opsiyonel) Kişiselleştirme için tutulacak alanlar
   final String? _babyName = currentMeowUser?.babyName;
   final String? _babyAgeKey =
@@ -164,7 +163,7 @@ TONE:
             Uri.parse(_chatUrl),
             headers: {
               "Content-Type": "application/json",
-              "Authorization": "Bearer $apiKey",
+              "Authorization": "Bearer $apiValue",
             },
             body: jsonEncode(body),
           )
@@ -219,7 +218,7 @@ TONE:
             Uri.parse(_chatUrl),
             headers: {
               "Content-Type": "application/json",
-              "Authorization": "Bearer $apiKey",
+              "Authorization": "Bearer $apiValue",
             },
             body: jsonEncode(body),
           )
@@ -277,7 +276,7 @@ TONE:
 
     try {
       final req = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer $apiKey'
+        ..headers['Authorization'] = 'Bearer $apiValue'
         ..fields['model'] = model;
 
       // Opsiyonel parametreler (dökümantasyona uygun isimlerle)

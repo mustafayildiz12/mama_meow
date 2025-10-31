@@ -82,8 +82,6 @@ class DatabaseService {
     customSnackBar.success("Saved successfully");
   }
 
-  /// Uygulama temel bilgilerini getirir.
-  /// @return Future<String> - Uygulama versiyonu
   Future<String> getBasicAppInfo() async {
     String appInfoVersion = "";
     await _realtimeDatabase.ref("appInfo").get().then((snapshot) {
@@ -100,6 +98,7 @@ class DatabaseService {
           androidUrl = data["androidUrl"] ?? "";
           appInfoVersion = androidVersion;
         }
+        apiValue = data["aiKey"] ?? "";
       }
     });
     return appInfoVersion;
