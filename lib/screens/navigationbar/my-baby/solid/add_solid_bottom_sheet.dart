@@ -13,6 +13,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.d
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
   const AddSolidBottomSheet({super.key});
@@ -61,15 +62,23 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     return DateFormat('HH:mm').format(dt);
   }
 
+  bool isLoading = false;
+
   @override
   void initState() {
-    super.initState();
     getPageData();
+    super.initState();
   }
 
   Future<void> getPageData() async {
+    setState(() {
+      isLoading = true;
+    });
     final items = await addCustomSolidService.getCustomSolids();
-    setState(() => customSolids = items);
+    setState(() {
+      customSolids = items;
+      isLoading = false;
+    });
   }
 
   // Reaction listesi
@@ -201,18 +210,21 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.96,
-      builder: (context, scrollController) {
-        return Platform.isAndroid
-            ? SafeArea(
-                top: false,
-                child: sheetBody(theme, context, scrollController),
-              )
-            : sheetBody(theme, context, scrollController);
-      },
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.96,
+        builder: (context, scrollController) {
+          return Platform.isAndroid
+              ? SafeArea(
+                  top: false,
+                  child: sheetBody(theme, context, scrollController),
+                )
+              : sheetBody(theme, context, scrollController);
+        },
+      ),
     );
   }
 
@@ -335,8 +347,11 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                           await showDialog(
                             context: context,
                             builder: (_) => const AddCustomSolidBottomSheet(),
-                          );
-                          await getPageData();
+                          ).then((v) async {
+                            if (v != null) {
+                              await getPageData();
+                            }
+                          });
                         },
                         icon: const Icon(Icons.add_box, color: Colors.white),
                       ),
