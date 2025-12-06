@@ -544,7 +544,7 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Container(
-                  width: 120,
+                  width: 136,
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

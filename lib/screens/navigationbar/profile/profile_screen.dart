@@ -191,7 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios, color: AppColors.pink500),
+                  Icon(Icons.arrow_forward_ios, color: AppColors.pink500,size: 16,),
                 ],
               ),
             ],
@@ -239,11 +239,15 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: Colors.black87,
                           ),
                         ),
-                        Text(
-                          currentMeowUser?.babyName ?? "?",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                        Expanded(
+                          child: Text(
+                            currentMeowUser?.babyName ?? "?",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                              fontSize: 12
+                            ),
                           ),
                         ),
                       ],
@@ -258,11 +262,15 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: Colors.black87,
                           ),
                         ),
-                        Text(
-                          currentMeowUser?.ageRange ?? "",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                        Expanded(
+                          child: Text(
+                            currentMeowUser?.ageRange ?? "",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -270,7 +278,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: AppColors.pink500),
+              Icon(Icons.arrow_forward_ios, color: AppColors.pink500, size: 16),
             ],
           ),
         ),
