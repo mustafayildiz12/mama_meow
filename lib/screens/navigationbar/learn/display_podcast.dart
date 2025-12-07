@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -77,6 +78,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   ///
   @override
   void initState() {
+     analyticService.screenView('display_podcast_screen');
     super.initState();
     currentPodcast = widget.podcast;
     currentIndex = widget.currentIndex;

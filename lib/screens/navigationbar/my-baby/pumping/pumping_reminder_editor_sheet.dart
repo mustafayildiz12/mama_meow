@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/pumping_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class PumpingReminderEditorSheet extends StatefulWidget {
   final PumpingReminderItem? initial;
@@ -30,6 +31,7 @@ class _PumpingReminderEditorSheetState
   @override
   void initState() {
     super.initState();
+    analyticService.screenView('pumping_reminder_editor');
     final it = widget.initial;
     _time =
         it?.timeOfDay ?? const TimeOfDay(hour: 9, minute: 0); // default 09:00

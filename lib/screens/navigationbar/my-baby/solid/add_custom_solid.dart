@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 
@@ -24,6 +25,13 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
   File? _file;
   XFile? _xfile; // UI önizleme için Web/dosya ayrımı
   bool _loading = false;
+
+
+  @override
+  void initState() {
+     analyticService.screenView('add_custom_solid');
+    super.initState();
+  }
 
   @override
   void dispose() {

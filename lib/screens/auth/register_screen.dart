@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
@@ -28,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void initState() {
+    analyticService.screenView('register_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.white,

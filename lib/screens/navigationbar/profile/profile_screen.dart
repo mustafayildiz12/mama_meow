@@ -7,6 +7,7 @@ import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/update_baby_info_modal.dart';
 import 'package:mama_meow/screens/get-started/modals/update_email_password.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
@@ -23,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void initState() {
+     analyticService.screenView('profile_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFEEF2FF),

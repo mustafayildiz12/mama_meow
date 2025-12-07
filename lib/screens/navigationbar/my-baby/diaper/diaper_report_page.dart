@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
@@ -22,6 +23,7 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
   @override
   void initState() {
     _future = _fetchByMode(_mode);
+    analyticService.screenView('diaper_report_page');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFF8FAFC),

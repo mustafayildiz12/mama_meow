@@ -6,6 +6,8 @@ final GetStorage infoStorage = GetStorage("info");
 
 String applicationVersion = "";
 
+String deviceInfo = "";
+
 String apiValue = "";
 
 String androidUrl = "";

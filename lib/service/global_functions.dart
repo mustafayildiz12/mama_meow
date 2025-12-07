@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get_utils/src/platform/platform.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -155,6 +157,26 @@ class GlobalFunction {
       debugPrint(e.toString());
       return "";
     }
+  }
+
+  Future<String> getDeviceVersionFunction() async {
+    String deviceVersion = "unknown";
+
+    try {
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
+      if (GetPlatform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        deviceVersion = "Android ${androidInfo.version.release}";
+      } else if (GetPlatform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        deviceVersion = "iOS ${iosInfo.systemVersion}";
+      }
+    } catch (e) {
+      deviceVersion = "unknown";
+    }
+
+    return deviceVersion;
   }
 }
 

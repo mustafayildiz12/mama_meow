@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mama_meow/models/reminders/sleep_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class SleepReminderNotificationService {
@@ -14,6 +15,7 @@ class SleepReminderNotificationService {
   static const channelDesc = 'Sleep-related scheduled reminders';
 
   Future<void> init() async {
+    analyticService.screenView('sleep_reminder_schedule');
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     final iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,

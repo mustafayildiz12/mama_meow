@@ -6,6 +6,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 import 'package:mama_meow/models/ai_models/question_asnwer_ai_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/gpt_service/question_ai_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:path/path.dart' as p;
@@ -69,6 +70,7 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   @override
   void initState() {
+    analyticService.screenView('home_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFFFF1F5),
@@ -911,6 +913,7 @@ class _AskMeowViewState extends State<AskMeowView> {
       });
 
       try {
+        await analyticService.askMia(q);
         final res = await _gpt.askMia(
           q,
           imageBytes: imageBytes,

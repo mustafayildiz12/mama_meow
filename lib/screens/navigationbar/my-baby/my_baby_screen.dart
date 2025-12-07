@@ -21,6 +21,7 @@ import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
@@ -39,6 +40,7 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
 
   @override
   void initState() {
+    analyticService.screenView('my_baby_screen');
     // Eğer service zaten broadcast veriyorsa .asBroadcastStream() şart değil,
     // emin değilsen ekle (zararı yok):
     updateTopUi();

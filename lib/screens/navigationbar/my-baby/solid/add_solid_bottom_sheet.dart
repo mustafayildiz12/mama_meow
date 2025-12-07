@@ -13,6 +13,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.d
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
@@ -74,6 +75,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
     setState(() {
       isLoading = true;
     });
+    await analyticService.screenView('add_solid_sheet');
     final items = await addCustomSolidService.getCustomSolids();
     setState(() {
       customSolids = items;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/nursing_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class ReminderEditorSheet extends StatefulWidget {
   final NursingReminderItem? initial;
@@ -28,6 +29,7 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
   @override
   void initState() {
     super.initState();
+    analyticService.screenView('nursing_reminder_sheet');
     final it = widget.initial;
     _time = it?.timeOfDay ?? const TimeOfDay(hour: 12, minute: 0);
     _days = Set<int>.from(it?.weekdays ?? {});

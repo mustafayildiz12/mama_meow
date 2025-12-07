@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 enum ReportMode { today, week, month }
@@ -25,6 +26,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
 
   @override
   void initState() {
+    analyticService.screenView('solid_report_page');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFF8FAFC),

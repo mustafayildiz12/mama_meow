@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:mama_meow/models/activities/nursing_model.dart';
@@ -24,6 +25,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
   @override
   void initState() {
     _future = _fetchByMode(_mode);
+    analyticService.screenView('nursing_report_page');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFF8FAFC),

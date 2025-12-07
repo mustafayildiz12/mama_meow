@@ -22,6 +22,7 @@ import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/activities/journal_service.dart';
 
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class JournalDiaryPage extends StatefulWidget {
   const JournalDiaryPage({super.key});
@@ -38,6 +39,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
 
   @override
   void initState() {
+    analyticService.screenView('journal_screen');
     _selectedDay = DateTime(
       _selectedDay.year,
       _selectedDay.month,

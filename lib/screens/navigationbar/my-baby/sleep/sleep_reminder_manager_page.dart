@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/sleep_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_editor_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_schecular.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 
 class SleepRemindersManagerPage extends StatefulWidget {
@@ -17,6 +18,7 @@ class _SleepRemindersManagerPageState extends State<SleepRemindersManagerPage> {
 
   @override
   void initState() {
+     analyticService.screenView('sleep_reminder_manager');
     setTimeZone();
     _load();
     super.initState();

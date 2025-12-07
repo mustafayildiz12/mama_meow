@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/diaper_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class DiaperReminderEditorSheet extends StatefulWidget {
   final DiaperReminderItem? initial;
@@ -29,6 +30,7 @@ class _DiaperReminderEditorSheetState extends State<DiaperReminderEditorSheet> {
   @override
   void initState() {
     super.initState();
+    analyticService.screenView('diaper_reminder_editor');
     final it = widget.initial;
     _time =
         it?.timeOfDay ?? const TimeOfDay(hour: 10, minute: 0); // default 10:00

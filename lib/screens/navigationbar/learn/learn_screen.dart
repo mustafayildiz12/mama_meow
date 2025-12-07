@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 import 'package:mama_meow/screens/navigationbar/learn/display_podcast.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/podcast_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
@@ -43,6 +44,7 @@ class _LearnPageState extends State<LearnPage> {
 
   @override
   void initState() {
+    analyticService.screenView('learn_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFF5F3FF),

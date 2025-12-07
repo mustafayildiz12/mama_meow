@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:purchases_flutter/models/package_wrapper.dart';
@@ -69,6 +70,7 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
 
   @override
   void initState() {
+     analyticService.screenView('paywall_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFfbe7f3),

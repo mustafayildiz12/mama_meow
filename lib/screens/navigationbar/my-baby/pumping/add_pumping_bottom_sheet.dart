@@ -6,6 +6,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class AddPumpingBottomSheet extends StatefulWidget {
   const AddPumpingBottomSheet({super.key});
@@ -21,6 +22,12 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
   final durationController = TextEditingController();
 
   bool isLeft = true;
+
+  @override
+  void initState() {
+    analyticService.screenView('add_pumping_sheet');
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/pumping_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminder_schecule.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 
 import 'pumping_reminder_editor_sheet.dart';
@@ -19,6 +20,7 @@ class _PumpingRemindersManagerPageState
 
   @override
   void initState() {
+     analyticService.screenView('pumping_reminder_manager');
     setTimeZone();
     _load();
      super.initState();

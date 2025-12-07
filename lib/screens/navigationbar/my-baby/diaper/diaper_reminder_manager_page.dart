@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/diaper_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_editor.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_schecule.dart';
-
+import 'package:mama_meow/service/analytic_service.dart';
 
 class DiaperRemindersManagerPage extends StatefulWidget {
   const DiaperRemindersManagerPage({super.key});
@@ -19,7 +19,7 @@ class _DiaperRemindersManagerPageState
   @override
   void initState() {
     super.initState();
-
+    analyticService.screenView('diaper_reminder_manger');
     setTimeZone();
     _load();
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/nursing_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_reminder_bottom_sheet.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/prefs/nursing_reminder_schedule.dart';
-
 
 class NursingRemindersManagerPage extends StatefulWidget {
   const NursingRemindersManagerPage({super.key});
@@ -18,6 +18,7 @@ class _NursingRemindersManagerPageState
 
   @override
   void initState() {
+    analyticService.screenView('reminder_manager_page');
     setTimeZone();
     _load();
     super.initState();

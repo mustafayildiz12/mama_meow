@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/solid_reminder_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_editor_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_schecular.dart';
-
+import 'package:mama_meow/service/analytic_service.dart';
 
 class SolidRemindersManagerPage extends StatefulWidget {
   const SolidRemindersManagerPage({super.key});
@@ -18,13 +18,12 @@ class _SolidRemindersManagerPageState extends State<SolidRemindersManagerPage> {
   @override
   void initState() {
     super.initState();
-
+    analyticService.screenView('solid_reminder_manager');
     setTimeZone();
     _load();
   }
 
   Future<void> setTimeZone() async {
-  
     SolidReminderNotificationService.instance.init();
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -272,10 +273,15 @@ class InAppPurchaseService {
       customerInfo = purchaseResult.customerInfo;
 
       if (customerInfo!.activeSubscriptions.isNotEmpty) {
+        await analyticService.purchaseSuccess(
+          package.identifier,
+          package.storeProduct.price,
+        );
         customSnackBar.success("Purchase success");
         isPurchaseSuccess = true;
       }
     } catch (e) {
+      await analyticService.purchaseFailed(e.toString());
       isPurchaseSuccess = false;
       debugPrint("Purchase error: $e");
       customSnackBar.error("Purchase failed");

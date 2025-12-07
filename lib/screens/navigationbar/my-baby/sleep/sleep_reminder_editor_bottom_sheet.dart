@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/sleep_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class SleepReminderEditorSheet extends StatefulWidget {
   final SleepReminderItem? initial;
@@ -28,6 +29,7 @@ class _SleepReminderEditorSheetState extends State<SleepReminderEditorSheet> {
   @override
   void initState() {
     super.initState();
+     analyticService.screenView('sleep_reminder_editor');
     final it = widget.initial;
     _time = it?.timeOfDay ?? const TimeOfDay(hour: 21, minute: 0); // default 21:00
     _days = Set<int>.from(it?.weekdays ?? {});

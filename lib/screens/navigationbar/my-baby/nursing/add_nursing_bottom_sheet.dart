@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/prefs/nursing_prefs.dart';
 
 /// Nursing side options
@@ -57,6 +58,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
 
   @override
   void initState() {
+    analyticService.screenView('add_nursing_sheet');
     super.initState();
     ReminderPrefs.load().then((s) {
       if (mounted) setState(() => _reminder = s);
@@ -420,7 +422,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
                         child: TextField(
                           controller: _durationController,
                           keyboardType: TextInputType.number,
-                          
+
                           onTapOutside: (event) {
                             FocusManager.instance.primaryFocus?.unfocus();
                           },

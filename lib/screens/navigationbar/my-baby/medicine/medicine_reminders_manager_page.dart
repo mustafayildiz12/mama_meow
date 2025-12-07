@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/models/reminders/medicine_reminder_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 import 'medicine_reminders_scheduler.dart';
 import 'medicine_reminder_editor_sheet.dart';
@@ -19,6 +20,7 @@ class _MedicineRemindersManagerPageState
   @override
   void initState() {
     setTimeZone();
+    analyticService.screenView('add_diaper_sheet');
     _load();
     super.initState();
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/journal_model.dart';
 import 'package:mama_meow/service/activities/journal_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class AddJournalNoteBottomSheet extends StatefulWidget {
   const AddJournalNoteBottomSheet({super.key});
@@ -25,6 +26,7 @@ class _AddJournalNoteBottomSheetState extends State<AddJournalNoteBottomSheet> {
   @override
   void initState() {
     super.initState();
+     analyticService.screenView('add_journal_sheet');
     _loadTodayNote();
   }
 

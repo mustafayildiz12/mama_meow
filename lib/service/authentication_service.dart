@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
@@ -61,8 +62,10 @@ class AuthenticationService {
                 isSuccess = 2;
               }
             }
+            await analyticService.emailLoginSuccess();
           });
     } on FirebaseAuthException catch (e) {
+      await analyticService.emailLoginFailed(e.message ?? e.code);
       isSuccess = 0;
       if (e.code == 'user-not-found') {
         customSnackBar.warning("User not found");
@@ -74,6 +77,7 @@ class AuthenticationService {
         customSnackBar.warning("Could not log in");
       }
     } catch (e) {
+      await analyticService.emailLoginFailed(e.toString());
       debugPrint(e.toString());
       isSuccess = 0;
     }
@@ -118,8 +122,10 @@ class AuthenticationService {
           credential.user!.uid,
         );
         isSuccess = true;
+        await analyticService.registerSuccess();
       }
     } on FirebaseAuthException catch (e) {
+      await analyticService.registerFailed(e.message ?? e.code);
       isSuccess = false;
       if (e.code == 'user-not-found') {
         customSnackBar.warning("User not found");
@@ -190,10 +196,12 @@ class AuthenticationService {
       // locali silme ve navgationu temizleme işlemi yapıyoruz.
       if (currentUser == null) {
         await localStorage.erase();
+        await analyticService.logoutSuccess();
 
         isSuccess = true;
       }
     } catch (e) {
+      await analyticService.logoutFailed(e.toString());
       debugPrint(e.toString());
       isSuccess = false;
     }
@@ -222,7 +230,9 @@ class AuthenticationService {
 
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
+
       if (userCredential.user != null) {
+        await analyticService.googleLoginSuccess();
         final String uid = userCredential.user!.uid;
 
         /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
@@ -252,6 +262,7 @@ class AuthenticationService {
         isSuccess = 2;
       }
     } catch (e) {
+      await analyticService.googleLoginFailed(e.toString());
       isSuccess = 2;
       customSnackBar.warning("Failed to login");
       debugPrint("Hata: $e");
@@ -287,6 +298,7 @@ class AuthenticationService {
           .signInWithCredential(appleAuthCredential);
 
       if (userCredential.user != null) {
+        await analyticService.appleLoginSuccess();
         final String uid = userCredential.user!.uid;
 
         /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
@@ -322,6 +334,7 @@ class AuthenticationService {
         debugPrint("User bulunamadı.");
       }
     } catch (e) {
+      await analyticService.appleLoginFailed(e.toString());
       isSuccess = 2;
       customSnackBar.warning("Failed to login");
       debugPrint("Hata: $e");

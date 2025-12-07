@@ -6,6 +6,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/terms_and_policy_modal.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class GetStartedPage extends StatefulWidget {
   const GetStartedPage({super.key});
@@ -21,6 +22,7 @@ class _GetStartedPageState extends State<GetStartedPage>
 
   @override
   void initState() {
+     analyticService.screenView('get_started_screen');
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),

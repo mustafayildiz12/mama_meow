@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,6 +22,15 @@ import 'package:timezone/timezone.dart' as tz;
 class AppInitService {
   static Future<void> initApp() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
     await init();
     await initPurchase();
     await initRoute();
@@ -83,6 +95,7 @@ class AppInitService {
     await Future.wait([GetStorage.init("local"), GetStorage.init("info")]);
 
     applicationVersion = await globalFunctions.getApplicationVersionNumber();
+    deviceInfo = await globalFunctions.getDeviceVersionFunction();
   }
 
   static Future<void> initRoute() async {

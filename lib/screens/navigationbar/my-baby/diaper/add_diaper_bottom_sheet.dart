@@ -7,6 +7,7 @@ import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class AddDiaperBottomSheet extends StatefulWidget {
   const AddDiaperBottomSheet({super.key});
@@ -19,6 +20,12 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
   String? _selectedDiaper;
 
   TimeOfDay _time = TimeOfDay.now();
+
+  @override
+  void initState() {
+    analyticService.screenView('add_diaper_sheet');
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {

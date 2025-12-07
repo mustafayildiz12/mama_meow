@@ -6,6 +6,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 /// Medicine amount types
 class MedicineAmountTypes {
@@ -46,6 +47,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
   @override
   void initState() {
     _selectedAmountType = MedicineAmountTypes.types.first;
+    analyticService.screenView('add_medicine_sheet');
     super.initState();
   }
 
