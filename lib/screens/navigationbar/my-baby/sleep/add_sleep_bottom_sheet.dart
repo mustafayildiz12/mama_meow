@@ -435,7 +435,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(
-                                      "Gece yarısını aşıyor",
+                                      "It's past midnight",
                                       style: TextStyle(
                                         color: Colors.orange.shade800,
                                         fontSize: 12,

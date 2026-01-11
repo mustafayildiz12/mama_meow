@@ -18,10 +18,12 @@ class AppPages {
       name: AppRoutes.navigationBarPage,
       page: () => const BottomNavBarScreen(),
     ),
+    /*
     GetPage(
       name: AppRoutes.uploadPodcastPage,
       page: () => const PodcastFormPage(),
     ),
+    */
     GetPage(name: AppRoutes.premiumPaywall, page: () => const PremiumPaywall()),
     GetPage(name: AppRoutes.adminUpdate, page: () => const AdminUpdatePage()),
   ];

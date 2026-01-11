@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 import 'package:mama_meow/models/ai_models/question_asnwer_ai_model.dart';
@@ -127,7 +128,10 @@ class _AskMeowViewState extends State<AskMeowView> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Image.asset("assets/foot.png"),
+                        child: Image.asset(
+                          "assets/happy.png",
+                          color: AppColors.pink500,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -896,7 +900,7 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
-    if (!isUserPremium) {
+    if (isUserPremium) {
       await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
         v,
       ) async {

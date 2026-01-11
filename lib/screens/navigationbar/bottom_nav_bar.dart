@@ -48,15 +48,22 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             children: [
               Expanded(
                 child: _buildNavItemPng(
-                  imagePath: "assets/foot.png",
+                  imagePath: "assets/happy.png",
                   label: 'Ask Meow',
                   index: 0,
                 ),
               ),
-              Expanded(child: _buildNavItemSvg(label: "My Baby", index: 1)),
               Expanded(
                 child: _buildNavItemPng(
-                  imagePath: "assets/podcat.png",
+                  imagePath: "assets/baby.png",
+                  label: 'My Baby',
+                  index: 1,
+                ),
+              ),
+             
+              Expanded(
+                child: _buildNavItemPng(
+                  imagePath: "assets/mic.png",
                   label: 'Learn',
                   index: 2,
                 ),
@@ -127,7 +134,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(imagePath, width: 36, height: 36),
+            Image.asset(imagePath, width: 36, height: 36,color: color),
             const SizedBox(height: 4),
             Text(
               label,

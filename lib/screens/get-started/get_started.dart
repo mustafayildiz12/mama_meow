@@ -22,7 +22,7 @@ class _GetStartedPageState extends State<GetStartedPage>
 
   @override
   void initState() {
-     analyticService.screenView('get_started_screen');
+    analyticService.screenView('get_started_screen');
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -132,13 +132,13 @@ class _GetStartedPageState extends State<GetStartedPage>
                     elevation: 8,
                   ),
                   onPressed: () async {
-                    bool isTermsAccepted = await showDialog(
+                    bool? isTermsAccepted = await showDialog(
                       context: context,
                       barrierDismissible: false,
                       builder: (_) => const TermsAndPrivacyModal(),
                     );
 
-                    if (isTermsAccepted) {
+                    if (isTermsAccepted == true) {
                       await infoStorage.write("getStarted", true);
                       await Navigator.pushNamed(context, AppRoutes.loginPage);
                     }

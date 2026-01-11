@@ -1,6 +1,4 @@
 // ignore_for_file: use_build_context_synchronously
-
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +80,13 @@ class DatabaseService {
     customSnackBar.success("Saved successfully");
   }
 
+  Future<void> updateBabyPicture(MeowUserModel? meowUserModel) async {
+    await _realtimeDatabase.ref("users").child(meowUserModel!.uid!).update({
+      "babyPicture": meowUserModel.babyPicture,
+    });
+    customSnackBar.success("Saved successfully");
+  }
+
   Future<String> getBasicAppInfo() async {
     String appInfoVersion = "";
     await _realtimeDatabase.ref("appInfo").get().then((snapshot) {
@@ -99,6 +104,9 @@ class DatabaseService {
           appInfoVersion = androidVersion;
         }
         apiValue = data["aiKey"] ?? "";
+        askMiaModel = data["askMiaModel"] ?? emptyaskMiaModel;
+        systemPrompt = data["systemPrompt"] ?? emptySystemPrompt;
+        suggestionPrompt = data["suggestionPrompt"] ?? emptySuggestionPrompt;
       }
     });
     return appInfoVersion;
@@ -127,6 +135,7 @@ class DatabaseService {
     return isSuccess;
   }
 
+  /*
   Future<bool> wipeData() async {
     bool isSuccess = false;
     try {
@@ -140,6 +149,7 @@ class DatabaseService {
     }
     return isSuccess;
   }
+ */
 }
 
 final DatabaseService databaseService = DatabaseService();

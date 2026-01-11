@@ -8,6 +8,7 @@ class MeowUserModel {
     this.createDateTimeStamp,
     this.babyName,
     this.ageRange,
+    this.babyPicture,
   });
 
   factory MeowUserModel.fromMap(Map<String, dynamic> map) {
@@ -20,6 +21,7 @@ class MeowUserModel {
       createDateTimeStamp: map["createDateTimeStamp"] ?? 0,
       ageRange: map['ageRange'],
       babyName: map['babyName'],
+      babyPicture: map['babyPicture'],
     );
   }
 
@@ -31,6 +33,7 @@ class MeowUserModel {
   final int? createDateTimeStamp;
   final String? babyName;
   final String? ageRange;
+  final String? babyPicture;
 
   Map<String, dynamic> toMap() {
     return {
@@ -40,9 +43,9 @@ class MeowUserModel {
       'userEmail': userEmail,
       'status': status,
       'createDateTimeStamp': createDateTimeStamp,
-
       'babyName': babyName,
       'ageRange': ageRange,
+      'babyPicture': babyPicture,
     };
   }
 
@@ -54,9 +57,9 @@ class MeowUserModel {
     String? userEmail,
     int? status,
     int? createDateTimeStamp,
-
     String? babyName,
     String? ageRange,
+    String? babyPicture,
   }) {
     return MeowUserModel(
       userName: userName ?? this.userName,
@@ -67,6 +70,7 @@ class MeowUserModel {
       createDateTimeStamp: createDateTimeStamp ?? this.createDateTimeStamp,
       babyName: babyName ?? this.babyName,
       ageRange: ageRange ?? this.ageRange,
+      babyPicture: babyPicture ?? this.babyPicture,
     );
   }
 }

@@ -1,7 +1,12 @@
 // ProfilePage UI generated from provided HTML
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -11,6 +16,7 @@ import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -22,9 +28,12 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   bool isUserPremium = false;
 
+  final ImagePicker _picker = ImagePicker();
+  bool _uploadingBabyPic = false;
+
   @override
   void initState() {
-     analyticService.screenView('profile_screen');
+    analyticService.screenView('profile_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFEEF2FF),
@@ -123,17 +132,73 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildMiaHead(BuildContext context) {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
-        ),
-        shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+    final pic = (currentMeowUser?.babyPicture ?? "").trim();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: _uploadingBabyPic ? null : _showPickBabyPictureSheet,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: pic.isEmpty
+                ? Center(child: Image.asset("assets/cat.png"))
+                : CachedNetworkImage(
+                    imageUrl: pic,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Center(child: Image.asset("assets/cat.png")),
+                    errorWidget: (_, __, ___) =>
+                        Center(child: Image.asset("assets/cat.png")),
+                  ),
+          ),
+
+          // sağ-alt köşeye küçük edit ikonu
+          Positioned(
+            right: 4,
+            bottom: 4,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 6),
+                ],
+              ),
+              child: const Icon(Icons.edit, size: 16, color: Colors.pink),
+            ),
+          ),
+
+          if (_uploadingBabyPic)
+            Container(
+              width: 96,
+              height: 96,
+              decoration: const BoxDecoration(
+                color: Colors.black38,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+        ],
       ),
-      child: const Center(child: Text("😺", style: TextStyle(fontSize: 48))),
     );
   }
 
@@ -193,7 +258,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios, color: AppColors.pink500,size: 16,),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.pink500,
+                    size: 16,
+                  ),
                 ],
               ),
             ],
@@ -248,7 +317,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               color: Colors.black87,
-                              fontSize: 12
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -416,6 +485,152 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showPickBabyPictureSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Set baby photo",
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text("Choose from gallery"),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _pickAndUploadBabyPicture(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text("Take a photo"),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _pickAndUploadBabyPicture(ImageSource.camera);
+                  },
+                ),
+                if ((currentMeowUser?.babyPicture ?? "").isNotEmpty)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      "Remove photo",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _removeBabyPicture();
+                    },
+                  ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadBabyPicture(ImageSource source) async {
+    if (currentMeowUser?.uid == null) return;
+
+    try {
+      final XFile? xfile = await _picker.pickImage(
+        source: source,
+        imageQuality: 82,
+        maxWidth: 1024,
+      );
+
+      if (xfile == null) return;
+
+      setState(() => _uploadingBabyPic = true);
+
+      final url = await _uploadBabyPictureToStorage(
+        uid: currentMeowUser!.uid!,
+        file: File(xfile.path),
+      );
+
+      // modele yaz
+      currentMeowUser = currentMeowUser!.copyWith(babyPicture: url);
+
+      // RTDB update
+      await databaseService.updateBabyPicture(currentMeowUser);
+
+      setState(() {});
+    } catch (e) {
+      debugPrint("babyPicture upload error: $e");
+      customSnackBar.error("Could not upload photo");
+    } finally {
+      if (mounted) setState(() => _uploadingBabyPic = false);
+    }
+  }
+
+  Future<void> _removeBabyPicture() async {
+    if (currentMeowUser?.uid == null) return;
+
+    try {
+      setState(() => _uploadingBabyPic = true);
+
+      // İstersen storage'daki resmi de sil:
+      try {
+        final ref = FirebaseStorage.instance.ref().child(
+          "users/${currentMeowUser!.uid!}/babyPicture.jpg",
+        );
+        await ref.delete();
+      } catch (_) {
+        // dosya yoksa sorun etmeyelim
+      }
+
+      currentMeowUser = currentMeowUser!.copyWith(babyPicture: "");
+      await databaseService.updateBabyPicture(currentMeowUser);
+
+      setState(() {});
+    } catch (e) {
+      debugPrint("remove babyPicture error: $e");
+      customSnackBar.error("Could not remove photo");
+    } finally {
+      if (mounted) setState(() => _uploadingBabyPic = false);
+    }
+  }
+
+  Future<String> _uploadBabyPictureToStorage({
+    required String uid,
+    required File file,
+  }) async {
+    final storage = FirebaseStorage.instance;
+
+    // aynı dosyayı overwrite edelim: baby.jpg
+    final ref = storage.ref().child("users/$uid/babyPicture.jpg");
+
+    final metadata = SettableMetadata(contentType: "image/jpeg");
+    await ref.putFile(file, metadata);
+
+    final url = await ref.getDownloadURL();
+    return url;
   }
 
   Future<void> checkUserPremium() async {
