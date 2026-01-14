@@ -16,13 +16,8 @@ enum PremiumType { monthly, yearly }
 
 class PremiumPaywall extends StatefulWidget {
   final bool showTrialFirst;
-  final String? offeringIdentifier; // Belirli bir offering kullanmak için
 
-  const PremiumPaywall({
-    super.key,
-    this.showTrialFirst = false,
-    this.offeringIdentifier,
-  });
+  const PremiumPaywall({super.key, this.showTrialFirst = false});
 
   @override
   State<PremiumPaywall> createState() => _PremiumPaywallState();
@@ -70,7 +65,7 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
 
   @override
   void initState() {
-     analyticService.screenView('paywall_screen');
+    analyticService.screenView('paywall_screen');
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFfbe7f3),
@@ -310,6 +305,17 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                           ),
 
                           const SizedBox(height: 8),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Auto-renewing subscription. Cancel anytime in Google Play > Payments & subscriptions. "
+                            "To avoid charges, cancel before the trial ends.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.black54,
+                              height: 1.3,
+                            ),
+                          ),
 
                           // Restore + Info
                           Row(
@@ -421,8 +427,8 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     switch (type) {
       case PremiumType.monthly:
         title = "Monthly Plan";
-        subtitle = (!hasFreeTrial)
-            ? "Includes a 7-day free trial.${_planLabel(package, type)}"
+        subtitle = (hasFreeTrial)
+            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
             : _planLabel(package, type);
 
         perText = "Billed monthly";
@@ -430,8 +436,8 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
         break;
       case PremiumType.yearly:
         title = "Annual Plan";
-        subtitle = (!hasFreeTrial)
-            ? "Includes a 7-day free trial.${_planLabel(package, type)}"
+        subtitle = (hasFreeTrial)
+            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
             : _planLabel(package, type);
 
         // Yıllık plan genelde en popüler
@@ -602,13 +608,14 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
         _error = null;
       });
 
-      List<Package> packages;
+      List<Package> packages = [];
 
       // Belirli bir offering istendiyse onu yükle, yoksa current'ı al
-      if (widget.offeringIdentifier != null) {
-        packages = await _iap.loadSpecificOffering(widget.offeringIdentifier!);
-      } else {
-        packages = await _iap.loadOfferings();
+
+      Offering? offers = await _iap.loadOfferings();
+
+      if (offers != null) {
+        packages = offers.availablePackages;
       }
 
       // Paketleri tipine göre ayır

@@ -25,6 +25,8 @@ String systemPrompt = "";
 
 String suggestionPrompt = "";
 
+bool entitlementIsActive = false;
+String appUserID = '';
 
 String emptyaskMiaModel = 'gpt-4o mini';
 String emptySystemPrompt = r'''

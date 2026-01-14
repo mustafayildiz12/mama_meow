@@ -61,8 +61,14 @@ class InAppPurchaseService {
 
       await Purchases.setLogLevel(LogLevel.debug);
 
-      Purchases.addCustomerInfoUpdateListener((info) {
-        customerInfo = info;
+      Purchases.addCustomerInfoUpdateListener((info) async {
+        customerInfo = await Purchases.getCustomerInfo();
+        EntitlementInfo? entitlement =
+            customerInfo?.entitlements.all["premium"];
+        entitlementIsActive = entitlement?.isActive ?? false;
+
+        appUserID = await Purchases.appUserID;
+        print("App User: $appUserID");
       });
     } catch (e) {
       customSnackBar.error("İnitiliaze Error. ${e.toString()}");
@@ -221,19 +227,19 @@ class InAppPurchaseService {
   ///
   /// RevenueCat üzerinden offerings'leri yükler.
   /// Hata durumunda boş liste döndürür.
-  Future<List<Package>> loadOfferings() async {
+  Future<Offering?> loadOfferings() async {
     try {
       Offerings offerings = await Purchases.getOfferings();
 
       if (offerings.current != null) {
         // Current offering'deki tüm paketleri döndür
-        return offerings.current!.availablePackages;
+        return offerings.current;
       }
 
-      return [];
+      return null;
     } on PlatformException catch (e) {
       debugPrint("Error loading offerings: $e");
-      return [];
+      return null;
     }
   }
 
@@ -270,7 +276,11 @@ class InAppPurchaseService {
       var purchaseResult = await Purchases.purchase(
         PurchaseParams.package(package),
       );
+
       customerInfo = purchaseResult.customerInfo;
+
+      EntitlementInfo? entitlement = customerInfo?.entitlements.all["premium"];
+      entitlementIsActive = entitlement?.isActive ?? false;
 
       if (customerInfo!.activeSubscriptions.isNotEmpty) {
         await analyticService.purchaseSuccess(
@@ -294,32 +304,48 @@ class InAppPurchaseService {
   /// [package] - İncelenecek paket
   /// Trial gün sayısını string olarak döndürür, yoksa null.
   String? getTrialDays(Package package) {
-    try {
-      final product = package.storeProduct;
-      final opt =
-          product.defaultOption ?? (product.subscriptionOptions?.firstOrNull);
-      if (opt == null) return null;
+    final product = package.storeProduct;
 
-      // Fiyatı 0 olan ilk phase'i trial kabul et
-      final trialPhase = opt.pricingPhases.firstWhere(
-        (ph) => (ph.price.amountMicros) == 0,
-        orElse: () => null as PricingPhase,
-      );
+    // RevenueCat tarafında option listesi bazen boş olabiliyor.
+    final options = <SubscriptionOption>[
+      if (product.defaultOption != null) product.defaultOption!,
+      ...?product.subscriptionOptions,
+    ];
 
-      final per = trialPhase.billingPeriod;
-      if (per == null) return null;
+    if (options.isEmpty) return null;
 
-      final unit = per.unit.name.toLowerCase();
-      final count = per.value;
+    PricingPhase? trialPhase;
 
-      if (unit.startsWith('day')) return '$count';
-      if (unit.startsWith('week')) return '${count * 7}';
-      if (unit.startsWith('month')) return '${count * 30}';
-      if (unit.startsWith('year')) return '${count * 365}';
+    // Tüm option’larda 0 fiyatlı phase ara (trial/intro olabilir)
+    for (final opt in options) {
+      for (final ph in opt.pricingPhases) {
+        if (ph.price.amountMicros == 0) {
+          trialPhase = ph;
+          break;
+        }
+      }
+      if (trialPhase != null) break;
+    }
 
-      return null;
-    } catch (_) {
-      return null;
+    if (trialPhase == null) return null;
+
+    final per = trialPhase.billingPeriod;
+    if (per == null) return null;
+
+    final unit = per.unit;
+    final count = per.value;
+
+    switch (unit) {
+      case PeriodUnit.day:
+        return '$count';
+      case PeriodUnit.week:
+        return '${count * 7}';
+      case PeriodUnit.month:
+        return '${count * 30}';
+      case PeriodUnit.year:
+        return '${count * 365}';
+      default:
+        return null;
     }
   }
 
