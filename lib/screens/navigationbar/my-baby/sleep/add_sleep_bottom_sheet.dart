@@ -274,7 +274,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "Aralıklar çakışıyor veya çok kısa. Kaydetmeden önce saatleri düzelt.",
+                            "The intervals overlap or are too short. Adjust the times before saving.",
                             style: TextStyle(
                               color: Colors.red,
                               fontSize: 12,

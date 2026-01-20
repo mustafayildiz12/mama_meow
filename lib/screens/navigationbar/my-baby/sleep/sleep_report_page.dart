@@ -1,8 +1,15 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
@@ -98,6 +105,38 @@ class _SleepReportPageState extends State<SleepReportPage> {
             "😴  Sleep Reports",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
+          actions: [
+            IconButton(
+              onPressed: () async {
+                try {
+                  final sleeps = await _future;
+
+                  final bytes = await SleepReportPdfBuilder.build(
+                    format: PdfPageFormat.a4,
+                    mode: _mode,
+                    rangeLabel: _rangeLabel(_mode),
+                    sleeps: sleeps,
+                  );
+
+                  final filename = switch (_mode) {
+                    ReportMode.today => 'sleep_daily.pdf',
+                    ReportMode.week => 'sleep_weekly.pdf',
+                    ReportMode.month => 'sleep_monthly.pdf',
+                  };
+
+                  String filepath = await downloadBytes(bytes, filename);
+
+                  await OpenFilex.open(filepath);
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('PDF error: $e')));
+                }
+              },
+              icon: Icon(Icons.picture_as_pdf, color: Colors.indigo),
+            ),
+          ],
         ),
         body: SafeArea(
           top: false,
@@ -152,6 +191,20 @@ class _SleepReportPageState extends State<SleepReportPage> {
         ),
       ),
     );
+  }
+
+  Future<String> downloadBytes(Uint8List bytes, String filename) async {
+    // filename güvenli olsun
+    final safeName = filename.trim().isEmpty ? 'report.pdf' : filename;
+    final name = safeName.toLowerCase().endsWith('.pdf')
+        ? safeName
+        : '$safeName.pdf';
+
+    final dir = Directory.systemTemp; // Ek paket yok -> en garanti
+    final file = File('${dir.path}/$name');
+
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
   }
 
   // --- REPORT BODY (bugünkü/haftalık/aylık hepsi aynı görselleştirmeyi kullanır) ---
@@ -377,14 +430,6 @@ class _SleepReportPageState extends State<SleepReportPage> {
   }
 
   // ---- Helpers (senin önceki kodundan) ----
-  String _fmtMinutes(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (minutes == 0) return "0m";
-    if (h == 0) return "${m}m";
-    if (m == 0) return "${h}h";
-    return "${h}h ${m}m";
-  }
 
   int _parseHourSafe(String hhmm) {
     final h = int.tryParse(hhmm.split(':').first);

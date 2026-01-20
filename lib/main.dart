@@ -1,3 +1,5 @@
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:mama_meow/constants/app_localization.dart';
@@ -7,6 +9,12 @@ import 'package:mama_meow/service/app_init_service.dart';
 
 Future<void> main() async {
   await AppInitService.initApp();
+
+    if (!kIsWeb) {
+    final db = FirebaseDatabase.instance;
+    db.setPersistenceEnabled(true);
+    db.setPersistenceCacheSizeBytes(50 * 1024 * 1024);
+  }
   
   runMyApp();
 }
