@@ -4,22 +4,27 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'sleep_report_page.dart'; // ReportMode
+import 'package:mama_meow/service/gpt_service/tracker_ai_service.dart'; // ✅ SleepAiInsight burada ise
+import 'sleep_report_page.dart';
 
 class SleepReportPdfBuilder {
   static Future<Uint8List> build({
     required PdfPageFormat format,
-    required ReportMode mode,
+    required SleepReportMode mode,
     required String rangeLabel,
     required List<SleepModel> sleeps,
+
+    // ✅ NEW
+    SleepAiInsight? ai,
   }) async {
     final doc = pw.Document();
 
-    var regularFontData = await rootBundle.load(
+    final regularFontData = await rootBundle.load(
       "assets/fonts/nunito/Nunito-Regular.ttf",
     );
     final regularTtf = pw.Font.ttf(regularFontData);
-    var semiboldTtfData = await rootBundle.load(
+
+    final semiboldTtfData = await rootBundle.load(
       "assets/fonts/nunito/Nunito-SemiBold.ttf",
     );
     final semiboldTtf = pw.Font.ttf(semiboldTtfData);
@@ -28,7 +33,7 @@ class SleepReportPdfBuilder {
     final avgMinutes = sleeps.isEmpty
         ? 0
         : (totalMinutes / sleeps.length).round();
-    final lastEnd = _latestEndTime(sleeps); // "HH:mm" ya da "-"
+    final lastEnd = _latestEndTime(sleeps);
 
     doc.addPage(
       pw.MultiPage(
@@ -45,8 +50,14 @@ class SleepReportPdfBuilder {
             avg: _fmtMin(avgMinutes),
             lastEnd: lastEnd,
           ),
-          pw.SizedBox(height: 18),
 
+          // ✅ AI ANALYSIS bloğu (tablonun üstünde)
+          if (ai != null) ...[
+            pw.SizedBox(height: 14),
+            _aiBlock(ai, regularTtf, semiboldTtf),
+          ],
+
+          pw.SizedBox(height: 18),
           pw.Text(
             "Sleeps",
             style: pw.TextStyle(
@@ -58,7 +69,6 @@ class SleepReportPdfBuilder {
           pw.SizedBox(height: 8),
           _table(sleeps),
           pw.SizedBox(height: 12),
-
           pw.Text(
             "Generated at: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
             style: pw.TextStyle(
@@ -71,20 +81,178 @@ class SleepReportPdfBuilder {
       ),
     );
 
-    final bytes = await doc.save(); // List<int>
+    final bytes = await doc.save();
     return Uint8List.fromList(bytes);
   }
 
+  // ✅ AI widget
+  static pw.Widget _aiBlock(
+    SleepAiInsight ai,
+    pw.Font regularTtf,
+    pw.Font semiBold,
+  ) {
+    // ====== SleepAiInsight alanlarını burada okuyoruz ======
+    // Eğer field isimleri sende farklıysa sadece aşağıyı düzelt.
+    final title = (ai.aiTitle.trim().isNotEmpty == true)
+        ? ai.aiTitle.trim()
+        : "AI Sleep Analysis";
+
+    final summary = (ai.aiSummaryBullets)
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
+
+    final patterns = (ai.patterns).where((e) => e.trim().isNotEmpty).toList();
+
+    final watchOuts = (ai.watchOuts).where((e) => e.trim().isNotEmpty).toList();
+
+    final actions = (ai.actionPlan).where((e) => e.trim().isNotEmpty).toList();
+
+    final confidence = (ai.confidenceNote).trim();
+    final disclaimer = (ai.disclaimer).trim().isNotEmpty
+        ? (ai.disclaimer).trim()
+        : "Not medical advice. Consult a healthcare professional for concerns.";
+
+    // Sources (opsiyonel, 1-2 satır bas)
+    final sourceLines = <String>[];
+    final sources = ai.sources;
+    for (final s in sources.take(2)) {
+      // SleepAiSource modelin varsa alan adları değişebilir:
+      final t = (s.title).trim();
+      final p = (s.publisher).trim();
+      final y = (s.year != null) ? s.year.toString() : '';
+      final u = (s.url).trim();
+
+      final line = [
+        if (t.isNotEmpty) t,
+        if (p.isNotEmpty) p,
+        if (y.isNotEmpty) y,
+        if (u.isNotEmpty) u,
+      ].join(' • ');
+
+      if (line.trim().isNotEmpty) sourceLines.add(line);
+    }
+
+    pw.Widget bullets(String head, List<String> items) {
+      if (items.isEmpty) return pw.SizedBox();
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(height: 8),
+          pw.Text(head, style: pw.TextStyle(font: semiBold, fontSize: 11)),
+          pw.SizedBox(height: 4),
+          for (final it in items.take(6))
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 2),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    "•  ",
+                    style: pw.TextStyle(font: regularTtf, fontSize: 10),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      it,
+                      style: pw.TextStyle(font: regularTtf, fontSize: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: PdfColors.grey300),
+        color: PdfColors.white,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                    font: semiBold,
+                    fontSize: 13,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (summary.isNotEmpty) bullets("Summary", summary),
+          if (patterns.isNotEmpty) bullets("Patterns", patterns),
+          if (watchOuts.isNotEmpty) bullets("Watch outs", watchOuts),
+          if (actions.isNotEmpty) bullets("Action plan", actions),
+
+          if (confidence.isNotEmpty) ...[
+            pw.SizedBox(height: 8),
+            pw.Text(
+              "Confidence",
+              style: pw.TextStyle(font: semiBold, fontSize: 11),
+            ),
+            pw.SizedBox(height: 3),
+            pw.Text(
+              confidence,
+              style: pw.TextStyle(
+                font: regularTtf,
+                fontSize: 10,
+                color: PdfColors.grey700,
+              ),
+            ),
+          ],
+
+          pw.SizedBox(height: 8),
+          pw.Text(
+            disclaimer,
+            style: pw.TextStyle(
+              font: regularTtf,
+              fontSize: 9,
+              color: PdfColors.grey700,
+            ),
+          ),
+
+          if (sourceLines.isNotEmpty) ...[
+            pw.SizedBox(height: 8),
+            pw.Text(
+              "Sources",
+              style: pw.TextStyle(font: semiBold, fontSize: 11),
+            ),
+            pw.SizedBox(height: 3),
+            for (final line in sourceLines)
+              pw.Text(
+                line,
+                style: pw.TextStyle(
+                  font: regularTtf,
+                  fontSize: 8,
+                  color: PdfColors.grey700,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ====== aşağısı senin mevcut helper’ların (aynı) ======
+
   static pw.Widget _header(
-    ReportMode mode,
+    SleepReportMode mode,
     String rangeLabel,
     pw.Font regularTtf,
     pw.Font semiBold,
   ) {
     final title = switch (mode) {
-      ReportMode.today => "Daily Sleep Report",
-      ReportMode.week => "Weekly Sleep Report",
-      ReportMode.month => "Monthly Sleep Report",
+      SleepReportMode.today => "Daily Sleep Report",
+      SleepReportMode.week => "Weekly Sleep Report",
+      SleepReportMode.month => "Monthly Sleep Report",
     };
 
     return pw.Container(
@@ -182,7 +350,6 @@ class SleepReportPdfBuilder {
   }
 
   static pw.Widget _table(List<SleepModel> sleeps) {
-    // tablo başlıkları
     final headers = <String>[
       "Date",
       "Start",
@@ -193,7 +360,6 @@ class SleepReportPdfBuilder {
       "End Mood",
     ];
 
-    // satırlar
     final rows = sleeps.map((s) {
       final dur = _calcDurationMinutes(s);
       return <String>[
@@ -213,22 +379,11 @@ class SleepReportPdfBuilder {
       headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
       cellStyle: const pw.TextStyle(fontSize: 9),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-      cellAlignment: pw.Alignment.centerLeft,
+      cellAlignment: pw.Alignment.center,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
-      columnWidths: {
-        0: const pw.FlexColumnWidth(1.2),
-        1: const pw.FlexColumnWidth(0.8),
-        2: const pw.FlexColumnWidth(0.8),
-        3: const pw.FlexColumnWidth(1.0),
-        4: const pw.FlexColumnWidth(1.2),
-        5: const pw.FlexColumnWidth(1.2),
-        6: const pw.FlexColumnWidth(1.2),
-      },
     );
   }
-
-  // ---- helpers (PDF tarafı) ----
 
   static int _totalMinutes(List<SleepModel> sleeps) {
     var sum = 0;
@@ -256,7 +411,7 @@ class SleepReportPdfBuilder {
 
   static DateTime? _combineDateAndTime(String dateStr, String hhmm) {
     try {
-      final dateOnly = dateStr.split(' ').first; // "yyyy-MM-dd"
+      final dateOnly = dateStr.split(' ').first;
       final ymd = DateFormat('yyyy-MM-dd').parseStrict(dateOnly);
       final parts = hhmm.split(':');
       final h = int.tryParse(parts[0]) ?? 0;
@@ -273,7 +428,7 @@ class SleepReportPdfBuilder {
     if (start == null || end == null) return 0;
 
     if (end.isBefore(start)) {
-      end = end.add(const Duration(days: 1)); // geceyi aşarsa
+      end = end.add(const Duration(days: 1));
     }
     return end.difference(start).inMinutes;
   }
@@ -285,9 +440,5 @@ class SleepReportPdfBuilder {
     return "${h}h ${m}m";
   }
 
-  static String _safeDate(String raw) {
-    // sleepDate "yyyy-MM-dd ..." gelebiliyor
-    final dateOnly = raw.split(' ').first;
-    return dateOnly;
-  }
+  static String _safeDate(String raw) => raw.split(' ').first;
 }

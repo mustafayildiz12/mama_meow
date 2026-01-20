@@ -1,20 +1,23 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_pdf_builder.dart';
+import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/gpt_service/tracker_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/service/activities/sleep_service.dart';
 
-enum ReportMode { today, week, month }
+enum SleepReportMode { today, week, month }
 
 class SleepReportPage extends StatefulWidget {
   const SleepReportPage({super.key});
@@ -24,15 +27,22 @@ class SleepReportPage extends StatefulWidget {
 }
 
 class _SleepReportPageState extends State<SleepReportPage> {
-  ReportMode _mode = ReportMode.today;
+  SleepReportMode _mode = SleepReportMode.today;
   late Future<List<SleepModel>> _future;
+
+  // ✅ cache: UI hesaplayınca burada saklıyoruz (PDF/AI tekrar hesaplamasın)
+  List<SleepModel>? _cachedSleeps;
+  _SleepReportComputed? _cachedComputed;
+  SleepReportMode? _cachedMode;
+
+  bool isLoading = false;
 
   @override
   void initState() {
     _future = _fetchByMode(_mode);
     analyticService.screenView('sleep_report_page');
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
+      const SystemUiOverlayStyle(
         statusBarColor: Color(0xFFF8FAFC),
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
@@ -42,26 +52,35 @@ class _SleepReportPageState extends State<SleepReportPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _fetchByMode(_mode));
+    setState(() {
+      _future = _fetchByMode(_mode);
+      _clearCache(); // ✅ veri yenilenince cache temiz
+    });
     await _future;
   }
 
-  Future<List<SleepModel>> _fetchByMode(ReportMode mode) {
+  void _clearCache() {
+    _cachedSleeps = null;
+    _cachedComputed = null;
+    _cachedMode = null;
+  }
+
+  Future<List<SleepModel>> _fetchByMode(SleepReportMode mode) {
     switch (mode) {
-      case ReportMode.today:
+      case SleepReportMode.today:
         return sleepService.todaySleeps();
-      case ReportMode.week:
+      case SleepReportMode.week:
         return sleepService.weekSleeps();
-      case ReportMode.month:
+      case SleepReportMode.month:
         return sleepService.monthSleeps();
     }
   }
 
-  String _rangeLabel(ReportMode mode) {
+  String _rangeLabel(SleepReportMode mode) {
     final now = DateTime.now();
-    if (mode == ReportMode.today) {
+    if (mode == SleepReportMode.today) {
       return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == ReportMode.week) {
+    } else if (mode == SleepReportMode.week) {
       final s = now.startOfWeekTR;
       final e = now.endOfWeekTR;
       final a = DateFormat('d MMM').format(s);
@@ -76,116 +95,164 @@ class _SleepReportPageState extends State<SleepReportPage> {
     }
   }
 
+  // ✅ UI içinde tek hesap: cache yoksa hesaplar, varsa döner
+  _SleepReportComputed _getOrCompute(List<SleepModel> sleeps) {
+    if (_cachedComputed == null || _cachedMode != _mode) {
+      _cachedSleeps = sleeps;
+      _cachedComputed = _computeReport(sleeps);
+      _cachedMode = _mode;
+    }
+    return _cachedComputed!;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
-          ),
-          title: const Text(
-            "😴  Sleep Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            IconButton(
-              onPressed: () async {
-                try {
-                  final sleeps = await _future;
-
-                  final bytes = await SleepReportPdfBuilder.build(
-                    format: PdfPageFormat.a4,
-                    mode: _mode,
-                    rangeLabel: _rangeLabel(_mode),
-                    sleeps: sleeps,
-                  );
-
-                  final filename = switch (_mode) {
-                    ReportMode.today => 'sleep_daily.pdf',
-                    ReportMode.week => 'sleep_weekly.pdf',
-                    ReportMode.month => 'sleep_monthly.pdf',
-                  };
-
-                  String filepath = await downloadBytes(bytes, filename);
-
-                  await OpenFilex.open(filepath);
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('PDF error: $e')));
-                }
-              },
-              icon: Icon(Icons.picture_as_pdf, color: Colors.indigo),
+            title: const Text(
+              "😴  Sleep Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-          ],
-        ),
-        body: SafeArea(
-          top: false,
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 12),
-                  child: Center(
-                    child: _GlassSegmented(
-                      value: _mode,
-                      onChanged: (m) {
-                        setState(() {
-                          _mode = m;
-                          _future = _fetchByMode(_mode);
-                        });
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+                onPressed: () async {
+                  setState(() {
+                    isLoading = true;
+                  });
+                  try {
+                    // ✅ mümkünse cache’li veriyi kullan
+                    final sleeps = _cachedSleeps ?? await _future;
+                    if (sleeps.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No sleep data to export.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : _computeReport(sleeps);
+
+                    final ai = await TrackerAIService().analyzeSleepReport(
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      sleeps: sleeps,
+                      totalSleepMinutes: computed.totalMinutes,
+                      sleepCount: computed.count,
+                      avgSleepMinutes: computed.avgMinutes,
+                      longestSleepMinutes: computed.longestMinutes,
+                      lastEndTime: computed.lastEndStr,
+                      distributionStartHourMinutes: computed.distHourMinutes,
+                      howItHappenedCounts: computed.howCounts,
+                      startMoodCounts: computed.startMoodCounts,
+                      endMoodCounts: computed.endMoodCounts,
+                    );
+
+                    final bytes = await SleepReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      sleeps: sleeps,
+                      ai: ai, // ✅ PDF’e AI bas
+                    );
+
+                    final filename = _buildPdfFileName(_mode);
+
+                    final filepath = await downloadBytes(bytes, filename);
+                    await OpenFilex.open(filepath);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  }
+                  setState(() {
+                    isLoading = false;
+                  });
+                },
+              ),
+            ],
+          ),
+          body: SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, top: 12),
+                    child: Center(
+                      child: _GlassSegmented(
+                        value: _mode,
+                        onChanged: (m) {
+                          setState(() {
+                            _mode = m;
+                            _future = _fetchByMode(_mode);
+                            _clearCache(); // ✅ mod değişince cache temiz
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: FutureBuilder<List<SleepModel>>(
+                      future: _future,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const _LoadingView();
+                        }
+                        if (snapshot.hasError) {
+                          return _CenteredMessage(
+                            emoji: '⚠️',
+                            title: 'Something went wrong',
+                            subtitle: snapshot.error.toString(),
+                          );
+                        }
+
+                        final sleeps = snapshot.data ?? [];
+                        if (sleeps.isEmpty) {
+                          return const _CenteredMessage(
+                            emoji: '😴',
+                            title: 'No record found',
+                            subtitle:
+                                "You'll see it here when you add sleep for this interval.",
+                          );
+                        }
+
+                        // ✅ burada tek hesap + cache
+                        final computed = _getOrCompute(sleeps);
+
+                        return _buildReportBody(context, sleeps, computed);
                       },
                     ),
                   ),
-                ),
-                Expanded(
-                  child: FutureBuilder<List<SleepModel>>(
-                    future: _future,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const _LoadingView();
-                      }
-                      if (snapshot.hasError) {
-                        return _CenteredMessage(
-                          emoji: '⚠️',
-                          title: 'Something went wrong',
-                          subtitle: snapshot.error.toString(),
-                        );
-                      }
-                      final sleeps = snapshot.data ?? [];
-                      if (sleeps.isEmpty) {
-                        return const _CenteredMessage(
-                          emoji: '😴',
-                          title: 'No record found',
-                          subtitle:
-                              "You'll see it here when you add sleep for this interval.",
-                        );
-                      }
-                      return _buildReportBody(context, sleeps);
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -193,106 +260,162 @@ class _SleepReportPageState extends State<SleepReportPage> {
     );
   }
 
+  String _buildPdfFileName(SleepReportMode mode) {
+    final now = DateTime.now();
+
+    switch (mode) {
+      case SleepReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'sleep_daily_$d.pdf';
+
+      case SleepReportMode.week:
+        final start = now.startOfWeekTR;
+        final end = now.endOfWeekTR;
+        final a = DateFormat('dd_MM_yyyy').format(start);
+        final b = DateFormat('dd_MM_yyyy').format(end);
+        return 'sleep_weekly_${a}_$b.pdf';
+
+      case SleepReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'sleep_monthly_$m.pdf';
+    }
+  }
+
   Future<String> downloadBytes(Uint8List bytes, String filename) async {
-    // filename güvenli olsun
-    final safeName = filename.trim().isEmpty ? 'report.pdf' : filename;
+    final safeName = filename.trim().isEmpty ? 'report.pdf' : filename.trim();
     final name = safeName.toLowerCase().endsWith('.pdf')
         ? safeName
         : '$safeName.pdf';
 
-    final dir = Directory.systemTemp; // Ek paket yok -> en garanti
+    final dir = Directory.systemTemp; // mobilde hızlı ve garanti
     final file = File('${dir.path}/$name');
 
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }
 
-  // --- REPORT BODY (bugünkü/haftalık/aylık hepsi aynı görselleştirmeyi kullanır) ---
-  Widget _buildReportBody(BuildContext context, List<SleepModel> sleeps) {
-    // Aggregate
+  // =========================
+  // ✅ SINGLE COMPUTE (1 kez)
+  // =========================
+
+  _SleepReportComputed _computeReport(List<SleepModel> sleeps) {
     final minutesList = <int>[];
-    final byHourRaw = <int, int>{}; // 0..23 -> toplam dakika
+    final byHourRaw = <int, int>{}; // 0..23 -> total minutes
+    final byHow = <String, int>{};
     final byStartMood = <String, int>{};
     final byEndMood = <String, int>{};
-    final byHow = <String, int>{};
 
     DateTime? latestEnd;
     String lastEndStr = '-';
 
+    final sleepsWithDur = <_SleepWithDur>[];
+    int longest = 0;
+
     for (final s in sleeps) {
       final dur = _calcDurationMinutes(s);
       minutesList.add(dur);
+      sleepsWithDur.add(_SleepWithDur(s, dur));
+      if (dur > longest) longest = dur;
 
+      // start hour distribution
       final h = _parseHourSafe(s.startTime);
       byHourRaw[h] = (byHourRaw[h] ?? 0) + dur;
 
-      if ((s.startOfSleep ?? '').trim().isNotEmpty) {
-        final k = _normalizeLabel(s.startOfSleep!);
-        byStartMood[k] = (byStartMood[k] ?? 0) + 1;
-      } else {
-        byStartMood['none'] = (byStartMood['none'] ?? 0) + 1;
-      }
+      // labels
+      final how = (s.howItHappened ?? '').trim();
+      final startMood = (s.startOfSleep ?? '').trim();
+      final endMood = (s.endOfSleep ?? '').trim();
 
-      if ((s.endOfSleep ?? '').trim().isNotEmpty) {
-        final k = _normalizeLabel(s.endOfSleep!);
-        byEndMood[k] = (byEndMood[k] ?? 0) + 1;
-      } else {
-        byEndMood['none'] = (byEndMood['none'] ?? 0) + 1;
-      }
+      final howKey = _normalizeLabel(how.isEmpty ? 'none' : how);
+      final startKey = _normalizeLabel(startMood.isEmpty ? 'none' : startMood);
+      final endKey = _normalizeLabel(endMood.isEmpty ? 'none' : endMood);
 
-      if ((s.howItHappened ?? '').trim().isNotEmpty) {
-        final k = _normalizeLabel(s.howItHappened!);
-        byHow[k] = (byHow[k] ?? 0) + 1;
-      } else {
-        byHow['none'] = (byHow['none'] ?? 0) + 1;
-      }
+      byHow[howKey] = (byHow[howKey] ?? 0) + 1;
+      byStartMood[startKey] = (byStartMood[startKey] ?? 0) + 1;
+      byEndMood[endKey] = (byEndMood[endKey] ?? 0) + 1;
 
+      // latest end time
+      final startDt = _combineDateAndTime(s.sleepDate, s.startTime);
       final endDt = _combineDateAndTime(
         s.sleepDate,
         s.endTime,
         allowNextDay: true,
       );
-      if (endDt != null && (latestEnd == null || endDt.isAfter(latestEnd))) {
-        latestEnd = endDt;
-        lastEndStr = DateFormat('HH:mm').format(endDt);
+
+      if (startDt != null && endDt != null) {
+        var fixedEnd = endDt;
+        if (fixedEnd.isBefore(startDt)) {
+          fixedEnd = fixedEnd.add(const Duration(days: 1));
+        }
+        if (latestEnd == null || fixedEnd.isAfter(latestEnd)) {
+          latestEnd = fixedEnd;
+          lastEndStr = DateFormat('HH:mm').format(fixedEnd);
+        }
       }
     }
 
     final totalMinutes = minutesList.fold<int>(0, (sum, m) => sum + m);
-    final napsCount = sleeps.length;
-    final avgMinutes = napsCount == 0 ? 0 : (totalMinutes / napsCount).round();
+    final count = sleeps.length;
+    final avgMinutes = count == 0 ? 0 : (totalMinutes / count).round();
 
-    final byHour = <_KV>[];
+    // 24 hour map "00".."23"
+    final distHourMinutes = <String, int>{};
     for (int h = 0; h < 24; h++) {
-      byHour.add(_KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)));
+      distHourMinutes[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
     }
 
-    final howList = byHow.entries.map((e) => _KV(e.key, e.value)).toList()
-      ..sort((a, b) => b.v.compareTo(a.v));
+    return _SleepReportComputed(
+      totalMinutes: totalMinutes,
+      count: count,
+      avgMinutes: avgMinutes,
+      longestMinutes: longest,
+      lastEndStr: lastEndStr,
+      distHourMinutes: distHourMinutes,
+      howCounts: byHow,
+      startMoodCounts: byStartMood,
+      endMoodCounts: byEndMood,
+      sleepsWithDur: sleepsWithDur,
+    );
+  }
+
+  // =========================
+  // UI BUILD (computed kullan)
+  // =========================
+
+  Widget _buildReportBody(
+    BuildContext context,
+    List<SleepModel> sleeps,
+    _SleepReportComputed computed,
+  ) {
+    final totalMinutes = computed.totalMinutes;
+    final napsCount = computed.count;
+    final avgMinutes = computed.avgMinutes;
+    final lastEndStr = computed.lastEndStr;
+
+    final byHour = computed.distHourMinutes.entries
+        .map((e) => _KV(e.key, e.value))
+        .toList();
+
+    final howList =
+        computed.howCounts.entries.map((e) => _KV(e.key, e.value)).toList()
+          ..sort((a, b) => b.v.compareTo(a.v));
 
     final startMoodList =
-        byStartMood.entries.map((e) => _KV(e.key, e.value)).toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
-    final endMoodList =
-        byEndMood.entries.map((e) => _KV(e.key, e.value)).toList()
+        computed.startMoodCounts.entries
+            .map((e) => _KV(e.key, e.value))
+            .toList()
           ..sort((a, b) => b.v.compareTo(a.v));
 
-    final sortedByDuration =
-        sleeps.map((s) => _SleepWithDur(s, _calcDurationMinutes(s))).toList()
-          ..sort((a, b) {
-            final aDt = _combineDateAndTime(
-              a.model.sleepDate,
-              a.model.startTime,
-            );
-            final bDt = _combineDateAndTime(
-              b.model.sleepDate,
-              b.model.startTime,
-            );
-            if (aDt == null && bDt == null) return 0;
-            if (aDt == null) return 1;
-            if (bDt == null) return -1;
-            return aDt.compareTo(bDt);
-          });
+    final endMoodList =
+        computed.endMoodCounts.entries.map((e) => _KV(e.key, e.value)).toList()
+          ..sort((a, b) => b.v.compareTo(a.v));
+
+    final sortedByDuration = [...computed.sleepsWithDur]
+      ..sort((a, b) => b.minutes.compareTo(a.minutes));
+
+    final maxDur = sortedByDuration.isEmpty
+        ? 0
+        : sortedByDuration.first.minutes;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -407,20 +530,11 @@ class _SleepReportPageState extends State<SleepReportPage> {
           leading: "⭐",
           child: Column(
             children: [
-              for (final e
-                  in (sortedByDuration
-                        ..sort((a, b) => b.minutes.compareTo(a.minutes)))
-                      .take(5))
+              for (final e in sortedByDuration.take(5))
                 _TopSleepTile(
                   label: "${e.model.startTime} → ${e.model.endTime}",
                   minutes: e.minutes,
-                  ratio: sortedByDuration.isEmpty
-                      ? 0
-                      : (e.minutes /
-                                (sortedByDuration
-                                    .map((x) => x.minutes)
-                                    .fold<int>(0, (p, c) => c > p ? c : p)))
-                            .clamp(0, 1),
+                  ratio: maxDur == 0 ? 0 : (e.minutes / maxDur).clamp(0, 1),
                 ),
             ],
           ),
@@ -429,7 +543,7 @@ class _SleepReportPageState extends State<SleepReportPage> {
     );
   }
 
-  // ---- Helpers (senin önceki kodundan) ----
+  // ---- Helpers ----
 
   int _parseHourSafe(String hhmm) {
     final h = int.tryParse(hhmm.split(':').first);
@@ -473,7 +587,42 @@ class _SleepReportPageState extends State<SleepReportPage> {
   String _normalizeLabel(String s) => s.trim().toLowerCase();
 }
 
-// --- Shared view classes (seninkilerle aynı) ---
+// =========================
+// COMPUTED MODEL
+// =========================
+
+class _SleepReportComputed {
+  final int totalMinutes;
+  final int count;
+  final int avgMinutes;
+  final int longestMinutes;
+  final String lastEndStr;
+
+  final Map<String, int> distHourMinutes; // "00".."23" -> minutes
+  final Map<String, int> howCounts; // method -> count
+  final Map<String, int> startMoodCounts; // start mood -> count
+  final Map<String, int> endMoodCounts; // end mood -> count
+
+  final List<_SleepWithDur>
+  sleepsWithDur; // ✅ duration list (UI tekrar hesaplamaz)
+
+  const _SleepReportComputed({
+    required this.totalMinutes,
+    required this.count,
+    required this.avgMinutes,
+    required this.longestMinutes,
+    required this.lastEndStr,
+    required this.distHourMinutes,
+    required this.howCounts,
+    required this.startMoodCounts,
+    required this.endMoodCounts,
+    required this.sleepsWithDur,
+  });
+}
+
+// =========================
+// UI SHARED CLASSES
+// =========================
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
@@ -757,8 +906,8 @@ class _TopSleepTile extends StatelessWidget {
 }
 
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final SleepReportMode value;
+  final ValueChanged<SleepReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -796,8 +945,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == SleepReportMode.today,
+                    onTap: () => onChanged(SleepReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -807,8 +956,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == SleepReportMode.week,
+                    onTap: () => onChanged(SleepReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -818,8 +967,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == SleepReportMode.month,
+                    onTap: () => onChanged(SleepReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
