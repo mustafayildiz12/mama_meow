@@ -66,7 +66,7 @@ class DiaperReminderNotificationService {
         '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     }
