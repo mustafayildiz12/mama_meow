@@ -16,22 +16,31 @@ class NursingReportPdfBuilder {
   }) async {
     final doc = pw.Document();
 
-    final regularFontData =
-        await rootBundle.load("assets/fonts/nunito/Nunito-Regular.ttf");
+    final regularFontData = await rootBundle.load(
+      "assets/fonts/nunito/Nunito-Regular.ttf",
+    );
     final regularTtf = pw.Font.ttf(regularFontData);
 
-    final semiboldTtfData =
-        await rootBundle.load("assets/fonts/nunito/Nunito-SemiBold.ttf");
+    final semiboldTtfData = await rootBundle.load(
+      "assets/fonts/nunito/Nunito-SemiBold.ttf",
+    );
     final semiboldTtf = pw.Font.ttf(semiboldTtfData);
 
     final totalDuration = _totalDurationMinutes(nursings);
-    final avgDuration =
-        nursings.isEmpty ? 0 : (totalDuration / nursings.length).round();
+    final avgDuration = nursings.isEmpty
+        ? 0
+        : (totalDuration / nursings.length).round();
     final lastTime = _latestSessionTime(nursings);
 
     final PdfColor scaffoldColor = PdfColor(0.9725, 0.9803, 0.9882);
-    final PdfColor cardColor = PdfColor(0.7803, 0.8078, 0.9176);
-    final PdfColor cardWhiteColor = PdfColor(1, 1, 1);
+
+    final PdfColor cardColor = PdfColor(
+      1.0, // R (ff)
+      0.604, // G (9a)
+      0.635, // B (a2)
+    );
+
+    final PdfColor cardWhiteColor = PdfColor(0.98, 0.98, 0.98);
 
     final pw.LinearGradient gradient = pw.LinearGradient(
       begin: pw.Alignment.topLeft,
@@ -99,11 +108,13 @@ class NursingReportPdfBuilder {
     pw.Font semiBold,
     PdfColor scaffoldColor,
   ) {
-    final title =
-        ai.aiTitle.trim().isNotEmpty ? ai.aiTitle.trim() : "AI Nursing Analysis";
+    final title = ai.aiTitle.trim().isNotEmpty
+        ? ai.aiTitle.trim()
+        : "AI Nursing Analysis";
 
-    final summary =
-        ai.aiSummaryBullets.where((e) => e.trim().isNotEmpty).toList();
+    final summary = ai.aiSummaryBullets
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
     final patterns = ai.patterns.where((e) => e.trim().isNotEmpty).toList();
     final watchOuts = ai.watchOuts.where((e) => e.trim().isNotEmpty).toList();
     final actions = ai.actionPlan.where((e) => e.trim().isNotEmpty).toList();
@@ -138,8 +149,10 @@ class NursingReportPdfBuilder {
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text("•  ",
-                      style: pw.TextStyle(font: regularTtf, fontSize: 10)),
+                  pw.Text(
+                    "•  ",
+                    style: pw.TextStyle(font: regularTtf, fontSize: 10),
+                  ),
                   pw.Expanded(
                     child: pw.Text(
                       it,
@@ -177,8 +190,10 @@ class NursingReportPdfBuilder {
           if (actions.isNotEmpty) bullets("Action plan", actions),
           if (confidence.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text("Confidence",
-                style: pw.TextStyle(font: semiBold, fontSize: 11)),
+            pw.Text(
+              "Confidence",
+              style: pw.TextStyle(font: semiBold, fontSize: 11),
+            ),
             pw.SizedBox(height: 3),
             pw.Text(
               confidence,
@@ -200,8 +215,10 @@ class NursingReportPdfBuilder {
           ),
           if (sourceLines.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text("Sources",
-                style: pw.TextStyle(font: semiBold, fontSize: 11)),
+            pw.Text(
+              "Sources",
+              style: pw.TextStyle(font: semiBold, fontSize: 11),
+            ),
             pw.SizedBox(height: 3),
             for (final line in sourceLines)
               pw.Text(

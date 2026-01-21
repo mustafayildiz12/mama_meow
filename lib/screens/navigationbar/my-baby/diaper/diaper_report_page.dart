@@ -147,7 +147,7 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.green),
                 onPressed: () async {
                   setState(() => isLoading = true);
                   try {
@@ -170,6 +170,8 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
                       mode: _mode,
                       rangeLabel: _rangeLabel(_mode),
                       c: computed,
+                      userLanguage: "en", // veya "tr-TR"
+                      notes: const [],
                     );
 
                     final bytes = await DiaperReportPdfBuilder.build(

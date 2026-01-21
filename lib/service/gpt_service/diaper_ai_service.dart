@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart'; // apiValue, askMiaModel, currentMeowUser vs.
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 
 class DiaperAIService {
   static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
@@ -12,25 +12,33 @@ class DiaperAIService {
   final String? _babyName = currentMeowUser?.babyName;
   final String? _babyAgeKey = currentMeowUser?.ageRange;
 
+  // ✅ Reduced JSON + No Math standard prompt
   static final String _systemPrompt = r'''
-You are "MamaMeow" 🐱, an evidence-informed diaper report assistant inside a mother-baby app.
+You are "MamaMeow" 🐱, an evidence-informed diaper report assistant.
 
 GOAL
-- Analyze diaper changes (types & timing) for the selected interval.
-- Provide a concise, supportive summary for a parent for embedding in a PDF.
+- You will receive ONE REDUCED, PRE-COMPUTED JSON summary of diaper data for the selected interval.
+- Interpret it and produce concise, supportive insights for a parent.
+- Output will be embedded in a PDF above a table.
+
+IMPORTANT (NO MATH)
+- Do NOT recalculate totals, averages, or percentages.
+- Treat all numbers as ground truth. Focus on interpretation.
 
 STYLE
-- English, short bullet points.
+- Output Language: Use the provided "userLanguage" if present (e.g., "en", "tr-TR"). If missing, use English.
+- Short bullets, scannable.
 - Supportive, non-judgmental.
-- No diagnosis; no medical certainty.
+- No diagnosis, no medical certainty.
 
 DATA RULES
-- Use only the provided data.
-- If limited data, say "Not enough data to conclude".
-- Focus on patterns: timing clusters, long gaps, changes in mix of types.
+- Use ONLY provided JSON.
+- If missing info, say "Not enough data to conclude".
+- If total changes < 2, focus on limitations and gentle tips.
 
 SAFETY
-- If very long gaps or unusual patterns, mention gently and recommend consulting a pediatrician if concerned.
+- If very long gaps or unusual patterns are implied, mention gently and recommend consulting a pediatrician if concerned.
+- Always include: "Not medical advice."
 
 OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
 {
@@ -39,11 +47,20 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
   "patterns": ["pattern 1","pattern 2","pattern 3"],
   "watch_outs": ["watch out 1","watch out 2"],
   "action_plan": ["action 1","action 2","action 3","action 4"],
-  "confidence_note": "string (1 short line about data limits)",
+  "confidence_note": "string",
   "disclaimer": "string (include Not medical advice...)",
-  "sources": [
-    {"title":"string","publisher":"string","url":"https://...","year":2023}
-  ],
+  "echo": {
+    "period": "Daily|Weekly|Monthly",
+    "totalChanges": 0,
+    "lastChangeLabel": "string",
+    "avgGapMinutes": 0,
+    "maxGapMinutes": 0,
+    "maxGapHours": 0,
+    "mostFrequentTimeWindow": "string",
+    "typeCounts": {},
+    "hourDistribution": {}
+  },
+  "sources": [{"title":"string","publisher":"string","url":"https://...","year":2023}],
   "last_updated": "YYYY-MM-DD"
 }
 ''';
@@ -61,40 +78,46 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
     final ageText = _babyAgeKey != null ? (map[_babyAgeKey] ?? _babyAgeKey) : null;
 
     if (_babyName != null && ageText != null) {
-      return "\n\nIMPORTANT PERSONALIZATION: The user's baby is named $_babyName and is $ageText. Personalize gently and use the baby's name when helpful.";
+      return "\n\nPERSONALIZATION: Baby name is $_babyName and age range is $ageText. Use baby's name gently if helpful.";
     } else if (_babyName != null) {
-      return "\n\nIMPORTANT PERSONALIZATION: The user's baby is named $_babyName. Personalize gently and use the baby's name when helpful.";
-    } else {
-      return "\n\nIMPORTANT PERSONALIZATION: The user's baby is $ageText. Personalize gently based on age.";
+      return "\n\nPERSONALIZATION: Baby name is $_babyName. Use baby's name gently if helpful.";
+    } else if (ageText != null) {
+      return "\n\nPERSONALIZATION: Baby age range is $ageText. Tailor suggestions gently to age.";
     }
+    return '';
   }
 
   Future<DiaperAiInsight?> analyze({
     required DiaperReportMode mode,
     required String rangeLabel,
     required DiaperReportComputed c,
+    String userLanguage = "en",
+    List<String> notes = const [],
     int maxTokens = 650,
     double temperature = 0.4,
   }) async {
     try {
       final system = '$_systemPrompt${_buildPersonalization()}';
 
-      final userPrompt = _buildUserPrompt(
-        mode: mode,
+      // ✅ Reduced payload from computed
+      final payload = DiaperAiCompute.buildPayload(
+        period: _modeText(mode),
         rangeLabel: rangeLabel,
         c: c,
+        userLanguage: userLanguage,
+        notes: notes,
+        babyName: _babyName,
+        babyAgeRange: _babyAgeKey,
       );
+
+      // ✅ Send as pure JSON (not long text)
+      final userJson = jsonEncode(payload.toMap());
 
       final body = {
         "model": askMiaModel,
         "messages": [
           {"role": "system", "content": system},
-          {
-            "role": "user",
-            "content": [
-              {"type": "text", "text": userPrompt},
-            ],
-          },
+          {"role": "user", "content": userJson},
         ],
         "max_tokens": maxTokens,
         "temperature": temperature,
@@ -117,7 +140,6 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
       final raw = (data['choices'] as List?)?.isNotEmpty == true
           ? (data['choices'][0]['message']['content'] as String? ?? '')
           : '';
-
       if (raw.trim().isEmpty) return null;
 
       final cleaned = _stripJsonFences(raw);
@@ -128,49 +150,11 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
     }
   }
 
-  String _buildUserPrompt({
-    required DiaperReportMode mode,
-    required String rangeLabel,
-    required DiaperReportComputed c,
-  }) {
-    String modeText = switch (mode) {
-      DiaperReportMode.today => "daily",
-      DiaperReportMode.week => "weekly",
-      DiaperReportMode.month => "monthly",
-    };
-
-    String mapLinesInt(Map<String, int> m, {int limit = 60}) {
-      final entries = m.entries.toList();
-      if (entries.length <= limit) {
-        return entries.map((e) => "- ${e.key}: ${e.value}").join("\n");
-      }
-      return entries.take(30).map((e) => "- ${e.key}: ${e.value}").join("\n");
-    }
-
-    return '''
-Analyze the selected diaper report and produce AI insights for a PDF.
-
-REPORT_MODE: $modeText
-RANGE_LABEL: $rangeLabel
-
-DIAPER_METRICS:
-- total_changes: ${c.totalCount}
-- last_change_time: ${c.lastChangeLabel}
-- avg_gap_minutes: ${c.avgGapMinutes}
-- max_gap_minutes: ${c.maxGapMinutes}
-
-DISTRIBUTION_BY_HOUR (hour -> count):
-${mapLinesInt(c.distHourCount)}
-
-TYPE_COUNTS (type -> count):
-${mapLinesInt(c.typeCounts)}
-
-INSTRUCTIONS:
-- Keep it short for PDF: 4 summary bullets, 3 patterns, 2 watch-outs, 4 action steps.
-- If gaps look long or inconsistent, mention gently (no diagnosis).
-- Always include "Not medical advice."
-''';
-  }
+  String _modeText(DiaperReportMode mode) => switch (mode) {
+        DiaperReportMode.today => "Daily",
+        DiaperReportMode.week => "Weekly",
+        DiaperReportMode.month => "Monthly",
+      };
 
   String _stripJsonFences(String s) {
     var t = s.trim();
@@ -182,6 +166,141 @@ INSTRUCTIONS:
   }
 }
 
+/// ------------------------------
+/// Payload + Compute (developer-side)
+/// ------------------------------
+
+class DiaperAiPayload {
+  final String period; // Daily/Weekly/Monthly
+  final String rangeLabel;
+  final String userLanguage;
+
+  final String? babyName;
+  final String? babyAgeRange;
+
+  final int totalChanges;
+  final String lastChangeLabel;
+
+  final int avgGapMinutes;
+  final int maxGapMinutes;
+
+  /// developer-side convenience (no AI math)
+  final int maxGapHours;
+
+  final String mostFrequentTimeWindow; // e.g. "06:00 - 10:00"
+  final Map<String, int> typeCounts;
+  final Map<String, int> hourDistribution; // "00".."23" -> count
+
+  final List<String> notes;
+
+  DiaperAiPayload({
+    required this.period,
+    required this.rangeLabel,
+    required this.userLanguage,
+    required this.babyName,
+    required this.babyAgeRange,
+    required this.totalChanges,
+    required this.lastChangeLabel,
+    required this.avgGapMinutes,
+    required this.maxGapMinutes,
+    required this.maxGapHours,
+    required this.mostFrequentTimeWindow,
+    required this.typeCounts,
+    required this.hourDistribution,
+    required this.notes,
+  });
+
+  Map<String, dynamic> toMap() => {
+        "period": period,
+        "rangeLabel": rangeLabel,
+        "userLanguage": userLanguage,
+        "babyName": babyName,
+        "babyAgeRange": babyAgeRange,
+        "stats": {
+          "totalChanges": totalChanges,
+          "lastChangeLabel": lastChangeLabel,
+          "avgGapMinutes": avgGapMinutes,
+          "maxGapMinutes": maxGapMinutes,
+          "maxGapHours": maxGapHours,
+        },
+        "patterns": {
+          "mostFrequentTimeWindow": mostFrequentTimeWindow,
+        },
+        "distributions": {
+          "typeCounts": typeCounts,
+          "hourDistribution": hourDistribution,
+        },
+        "notes": notes,
+      };
+}
+
+class DiaperAiCompute {
+  static DiaperAiPayload buildPayload({
+    required String period,
+    required String rangeLabel,
+    required DiaperReportComputed c,
+    required String userLanguage,
+    required List<String> notes,
+    required String? babyName,
+    required String? babyAgeRange,
+  }) {
+    // hourDistribution: ensure keys "00".."23" exist (stable payload)
+    final hourDist = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      final key = h.toString().padLeft(2, '0');
+      hourDist[key] = c.distHourCount[key] ?? 0;
+    }
+
+    // best 4-hour window (00-03, 04-07, ... 20-23)
+    final bestWindow = _best4HourWindow(hourDist);
+
+    final maxGapHours = (c.maxGapMinutes <= 0) ? 0 : ((c.maxGapMinutes / 60).ceil());
+
+    return DiaperAiPayload(
+      period: period,
+      rangeLabel: rangeLabel,
+      userLanguage: userLanguage,
+      babyName: babyName,
+      babyAgeRange: babyAgeRange,
+      totalChanges: c.totalCount,
+      lastChangeLabel: c.lastChangeLabel,
+      avgGapMinutes: c.avgGapMinutes,
+      maxGapMinutes: c.maxGapMinutes,
+      maxGapHours: maxGapHours,
+      mostFrequentTimeWindow: bestWindow,
+      typeCounts: Map<String, int>.from(c.typeCounts),
+      hourDistribution: hourDist,
+      notes: notes,
+    );
+  }
+
+  static String _best4HourWindow(Map<String, int> hourDist) {
+    int bestSum = -1;
+    int bestStart = 0;
+
+    for (int start = 0; start <= 20; start += 4) {
+      int sum = 0;
+      for (int h = start; h < start + 4; h++) {
+        final key = h.toString().padLeft(2, '0');
+        sum += hourDist[key] ?? 0;
+      }
+      if (sum > bestSum) {
+        bestSum = sum;
+        bestStart = start;
+      }
+    }
+
+    final end = bestStart + 4;
+    final s = bestStart.toString().padLeft(2, '0');
+    final e = end.toString().padLeft(2, '0');
+    // "05:00 - 09:00" format
+    return "$s:00 - $e:00";
+  }
+}
+
+/// ------------------------------
+/// Insight model (+ echo optional)
+/// ------------------------------
 
 class DiaperAiInsight {
   final String aiTitle;
@@ -194,6 +313,8 @@ class DiaperAiInsight {
   final List<DiaperAiSource> sources;
   final String lastUpdated;
 
+  final Map<String, dynamic>? echo; // ✅ optional echo
+
   DiaperAiInsight({
     required this.aiTitle,
     required this.aiSummaryBullets,
@@ -204,6 +325,7 @@ class DiaperAiInsight {
     required this.disclaimer,
     required this.sources,
     required this.lastUpdated,
+    this.echo,
   });
 
   factory DiaperAiInsight.fromMap(Map<String, dynamic> m) {
@@ -234,6 +356,7 @@ class DiaperAiInsight {
       disclaimer: (m['disclaimer'] ?? '').toString(),
       sources: sources,
       lastUpdated: (m['last_updated'] ?? '').toString(),
+      echo: (m['echo'] is Map) ? (m['echo'] as Map).cast<String, dynamic>() : null,
     );
   }
 }

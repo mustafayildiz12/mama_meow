@@ -131,7 +131,10 @@ class _NursingReportPageState extends State<NursingReportPage> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+                icon: const Icon(
+                  Icons.picture_as_pdf,
+                  color: Color(0xFFff9aa2),
+                ),
                 onPressed: () async {
                   setState(() {
                     isLoading = true;

@@ -36,11 +36,13 @@ class MedicineReportPdfBuilder {
       0.9803921569,
       0.9882352941,
     );
+    
     final PdfColor cardColor = PdfColor(
-      0.7803921569,
-      0.8078431373,
-      0.9176470588,
+      0.7098, // R
+      0.8863, // G
+      0.8392, // B  → Color(0xFFb5e2d6)
     );
+
     final PdfColor cardWhiteColor = PdfColor(1, 1, 1);
 
     final pw.LinearGradient gradient = pw.LinearGradient(
@@ -377,7 +379,7 @@ class MedicineReportPdfBuilder {
       cellStyle: const pw.TextStyle(fontSize: 9),
       headerDecoration: pw.BoxDecoration(color: cardColor),
       rowDecoration: pw.BoxDecoration(color: scaffoldColor),
-      cellAlignment: pw.Alignment.centerLeft,
+      cellAlignment: pw.Alignment.center,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
     );

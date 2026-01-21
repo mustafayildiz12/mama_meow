@@ -150,7 +150,10 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                icon: const Icon(
+                  Icons.picture_as_pdf,
+                  color: Color(0xFFA8E6CF),
+                ),
                 onPressed: () async {
                   setState(() => isLoading = true);
                   try {
@@ -185,7 +188,10 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                     );
 
                     final filename = _buildPdfFileName(_mode);
-                    final filepath = await globalFunctions.downloadBytes(bytes, filename);
+                    final filepath = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
                     await OpenFilex.open(filepath);
                   } catch (e) {
                     customSnackBar.warning('PDF error: $e');

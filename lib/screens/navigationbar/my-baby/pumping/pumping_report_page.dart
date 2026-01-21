@@ -2,7 +2,16 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_pdf_builder.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_computed.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/pumping_ai_service.dart'
+    hide PumpingAiCompute;
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:mama_meow/constants/app_colors.dart';
@@ -10,7 +19,7 @@ import 'package:mama_meow/models/activities/pumping_model.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 // GlassSegmented widget'ını kendi dosyandan import etmeyi unutma.
 
-enum ReportMode { today, week, month }
+enum PumpingReportMode { today, week, month }
 
 class PumpingReportPage extends StatefulWidget {
   const PumpingReportPage({super.key});
@@ -20,8 +29,15 @@ class PumpingReportPage extends StatefulWidget {
 }
 
 class _PumpingReportPageState extends State<PumpingReportPage> {
-  ReportMode _mode = ReportMode.today;
+  PumpingReportMode _mode = PumpingReportMode.today;
   late Future<List<PumpingModel>> _future;
+
+  bool isLoading = false;
+
+  // ✅ cache
+  List<PumpingModel>? _cachedPumpings;
+  PumpingReportComputed? _cachedComputed;
+  PumpingReportMode? _cachedMode;
 
   @override
   void initState() {
@@ -37,13 +53,13 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
     super.initState();
   }
 
-  Future<List<PumpingModel>> _fetchByMode(ReportMode mode) {
+  Future<List<PumpingModel>> _fetchByMode(PumpingReportMode mode) {
     switch (mode) {
-      case ReportMode.today:
+      case PumpingReportMode.today:
         return pumpingService.todayPumpings();
-      case ReportMode.week:
+      case PumpingReportMode.week:
         return pumpingService.weekPumpings();
-      case ReportMode.month:
+      case PumpingReportMode.month:
         return pumpingService.monthPumpings();
     }
   }
@@ -53,11 +69,11 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
     await _future;
   }
 
-  String _rangeLabel(ReportMode mode) {
+  String _rangeLabel(PumpingReportMode mode) {
     final now = DateTime.now();
-    if (mode == ReportMode.today) {
+    if (mode == PumpingReportMode.today) {
       return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == ReportMode.week) {
+    } else if (mode == PumpingReportMode.week) {
       final s = now.startOfWeekTR, e = now.endOfWeekTR;
       return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
     } else {
@@ -66,80 +82,171 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
     }
   }
 
+  String _buildPdfFileName(PumpingReportMode mode) {
+    final now = DateTime.now();
+
+    switch (mode) {
+      case PumpingReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'pumping_daily_$d.pdf';
+
+      case PumpingReportMode.week:
+        final start = now.startOfWeekTR;
+        final end = now.endOfWeekTR;
+        final a = DateFormat('dd_MM_yyyy').format(start);
+        final b = DateFormat('dd_MM_yyyy').format(end);
+        return 'pumping_weekly_${a}_$b.pdf';
+
+      case PumpingReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'pumping_monthly_$m.pdf';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
-          ),
-          title: const Text(
-            "🫗  Pumping Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 12),
-                child: Center(
-                  child: _GlassSegmented(
-                    value: _mode,
-                    onChanged: (m) => setState(() {
-                      _mode = m;
-                      _future = _fetchByMode(_mode);
-                    }),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: FutureBuilder<List<PumpingModel>>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const _LoadingView();
-                    }
-                    if (snapshot.hasError) {
-                      return _CenteredMessage(
-                        emoji: '⚠️',
-                        title: 'Something went wrong',
-                        subtitle: snapshot.error.toString(),
-                      );
-                    }
-                    final pumpings = snapshot.data ?? [];
+            title: const Text(
+              "🫗  Pumping Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                onPressed: () async {
+                  if (isLoading) return; // ✅ double tap guard
+                  if (!mounted) return;
+
+                  setState(() => isLoading = true);
+
+                  try {
+                    // ✅ 1) Data
+                    final pumpings = _cachedPumpings ?? await _future;
+
                     if (pumpings.isEmpty) {
-                      return const _CenteredMessage(
-                        emoji: '🍼',
-                        title: 'No record found',
-                        subtitle:
-                            "You'll see it here when you add pumping for this interval.",
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No pumping data to export.'),
+                        ),
                       );
+                      return;
                     }
-                    return _buildReportBody(context, pumpings);
-                  },
-                ),
+
+                    // ✅ 2) Compute (cache-safe) -> PumpingAiCompute
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : PumpingAiCompute.compute(
+                            pumpings: pumpings,
+                            mode: _mode,
+                          );
+
+                    // ✅ 3) AI (computed üzerinden payload kur)
+                    final ai = await PumpingAIService().analyzePumpingReport(
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      pumpings:
+                          pumpings, // (istersen serviste hiç kullanma; sadece payload için computed kullan)
+                      computed: computed, // ✅ esas
+                      userLanguage: "en",
+                      notes: const [],
+                    );
+
+                    // ✅ 4) PDF bytes
+                    final bytes = await PumpingReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      pumpings: pumpings,
+                      computed: computed, // ✅ PDF'de header vb için de kullan
+                      ai: ai,
+                    );
+
+                    // ✅ 5) Save & open
+                    final filename = _buildPdfFileName(_mode);
+                    final filepath = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
+                    await OpenFilex.open(filepath);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  } finally {
+                    if (mounted) setState(() => isLoading = false);
+                  }
+                },
               ),
             ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 12),
+                  child: Center(
+                    child: _GlassSegmented(
+                      value: _mode,
+                      onChanged: (m) => setState(() {
+                        _mode = m;
+                        _future = _fetchByMode(_mode);
+                      }),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<PumpingModel>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const _LoadingView();
+                      }
+                      if (snapshot.hasError) {
+                        return _CenteredMessage(
+                          emoji: '⚠️',
+                          title: 'Something went wrong',
+                          subtitle: snapshot.error.toString(),
+                        );
+                      }
+                      final pumpings = snapshot.data ?? [];
+                      if (pumpings.isEmpty) {
+                        return const _CenteredMessage(
+                          emoji: '🍼',
+                          title: 'No record found',
+                          subtitle:
+                              "You'll see it here when you add pumping for this interval.",
+                        );
+                      }
+                      return _buildReportBody(context, pumpings);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -148,12 +255,23 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
 
   // ---- RAPOR GÖVDESİ (seçili aralık) ----
   Widget _buildReportBody(BuildContext context, List<PumpingModel> pumpings) {
-    final totalMinutes = pumpings.fold<int>(0, (sum, p) => sum + p.duration);
-    final sessions = pumpings.length;
-    final avgMinutes = sessions == 0 ? 0 : (totalMinutes / sessions).round();
+    final c = (_cachedComputed != null && _cachedMode == _mode)
+        ? _cachedComputed!
+        : PumpingAiCompute.compute(pumpings: pumpings, mode: _mode);
 
-    final byHourRaw = <int, int>{}; // 0..23 -> toplam dakika
-    int leftCount = 0, rightCount = 0;
+    final totalMinutes = c.totalMinutes;
+    final sessions = c.sessions;
+    final avgMinutes = c.avgSessionMinutes;
+
+    // hour chart data
+    final byHour = <_KV>[];
+    for (int h = 0; h < 24; h++) {
+      byHour.add(_KV(h.toString().padLeft(2, '0'), c.minutesByHour[h] ?? 0));
+    }
+
+    // side distribution (UI pie sen count kullanıyordu, süre daha doğru)
+    final leftMinutes = c.leftMinutes;
+    final rightMinutes = c.rightMinutes;
 
     final sortedByTime = [...pumpings]
       ..sort((a, b) {
@@ -173,20 +291,6 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
       lastSessionTime = dt != null
           ? DateFormat('HH:mm').format(dt)
           : last.startTime;
-    }
-
-    for (final p in pumpings) {
-      final h = _hourFromRecord(p);
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + p.duration;
-      if (p.isLeft)
-        leftCount++;
-      else
-        rightCount++;
-    }
-
-    final byHour = <_KV>[];
-    for (int h = 0; h < 24; h++) {
-      byHour.add(_KV(h.toString().padLeft(2, '0'), byHourRaw[h] ?? 0));
     }
 
     final longest = pumpings.map((p) => _PumpingWithDur(p, p.duration)).toList()
@@ -252,8 +356,8 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
               series: <CircularSeries<_KV, String>>[
                 PieSeries<_KV, String>(
                   dataSource: [
-                    _KV('Left', leftCount),
-                    _KV('Right', rightCount),
+                    _KV('Left', leftMinutes),
+                    _KV('Right', rightMinutes),
                   ],
                   xValueMapper: (e, _) => e.k,
                   yValueMapper: (e, _) => e.v,
@@ -728,8 +832,8 @@ class _TopSessionTile extends StatelessWidget {
 }
 
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final PumpingReportMode value;
+  final ValueChanged<PumpingReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -768,8 +872,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == PumpingReportMode.today,
+                    onTap: () => onChanged(PumpingReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -779,8 +883,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == PumpingReportMode.week,
+                    onTap: () => onChanged(PumpingReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -790,8 +894,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == PumpingReportMode.month,
+                    onTap: () => onChanged(PumpingReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
