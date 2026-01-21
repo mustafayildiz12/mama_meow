@@ -1,8 +1,18 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_compute.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/medicine_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:mama_meow/constants/app_colors.dart';
@@ -10,7 +20,7 @@ import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 
 // GlassSegmented'i kendi dosyandan import et.
-enum ReportMode { today, week, month }
+enum MedicineReportMode { today, week, month }
 
 class MedicineReportPage extends StatefulWidget {
   const MedicineReportPage({super.key});
@@ -19,8 +29,14 @@ class MedicineReportPage extends StatefulWidget {
 }
 
 class _MedicineReportPageState extends State<MedicineReportPage> {
-  ReportMode _mode = ReportMode.today;
+  MedicineReportMode _mode = MedicineReportMode.today;
   late Future<List<MedicineModel>> _future;
+
+  List<MedicineModel>? _cachedMedicines;
+  MedicineReportComputed? _cachedComputed;
+  MedicineReportMode? _cachedMode;
+
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -36,27 +52,45 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
     super.initState();
   }
 
-  Future<List<MedicineModel>> _fetchByMode(ReportMode mode) {
+  void _clearCache() {
+    _cachedMedicines = null;
+    _cachedComputed = null;
+    _cachedMode = null;
+  }
+
+  MedicineReportComputed _getOrCompute(List<MedicineModel> medicines) {
+    if (_cachedComputed == null || _cachedMode != _mode) {
+      _cachedMedicines = medicines;
+      _cachedComputed = _computeMedicineReport(medicines);
+      _cachedMode = _mode;
+    }
+    return _cachedComputed!;
+  }
+
+  Future<List<MedicineModel>> _fetchByMode(MedicineReportMode mode) {
     switch (mode) {
-      case ReportMode.today:
+      case MedicineReportMode.today:
         return medicineService.todayMedicines();
-      case ReportMode.week:
+      case MedicineReportMode.week:
         return medicineService.weekMedicines();
-      case ReportMode.month:
+      case MedicineReportMode.month:
         return medicineService.monthMedicines();
     }
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _fetchByMode(_mode));
+    setState(() {
+      _future = _fetchByMode(_mode);
+      _clearCache();
+    });
     await _future;
   }
 
-  String _rangeLabel(ReportMode mode) {
+  String _rangeLabel(MedicineReportMode mode) {
     final now = DateTime.now();
-    if (mode == ReportMode.today) {
+    if (mode == MedicineReportMode.today) {
       return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == ReportMode.week) {
+    } else if (mode == MedicineReportMode.week) {
       final s = now.startOfWeekTR, e = now.endOfWeekTR;
       return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
     } else {
@@ -65,80 +99,150 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
     }
   }
 
+  String _buildPdfFileName(MedicineReportMode mode) {
+    final now = DateTime.now();
+    switch (mode) {
+      case MedicineReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'medicine_daily_$d.pdf';
+      case MedicineReportMode.week:
+        final start = now.startOfWeekTR;
+        final end = now.endOfWeekTR;
+        final a = DateFormat('dd_MM_yyyy').format(start);
+        final b = DateFormat('dd_MM_yyyy').format(end);
+        return 'medicine_weekly_${a}_$b.pdf';
+      case MedicineReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'medicine_monthly_$m.pdf';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
-          ),
-          title: const Text(
-            "💊  Medicine Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 12),
-                child: Center(
-                  child: _GlassSegmented(
-                    value: _mode,
-                    onChanged: (m) => setState(() {
-                      _mode = m;
-                      _future = _fetchByMode(_mode);
-                    }),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: FutureBuilder<List<MedicineModel>>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const _LoadingView();
-                    }
-                    if (snapshot.hasError) {
-                      return _CenteredMessage(
-                        emoji: '⚠️',
-                        title: 'Something went wrong',
-                        subtitle: snapshot.error.toString(),
-                      );
-                    }
-                    final medicines = snapshot.data ?? [];
+            title: const Text(
+              "💊  Medicine Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                onPressed: () async {
+                  setState(() => isLoading = true);
+                  try {
+                    final medicines = _cachedMedicines ?? await _future;
                     if (medicines.isEmpty) {
-                      return const _CenteredMessage(
-                        emoji: '💊',
-                        title: 'No record found',
-                        subtitle:
-                            'You will see it here when you add medication for this period.',
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No medicine data to export.'),
+                        ),
                       );
+                      return;
                     }
-                    return _buildReportBody(context, medicines);
-                  },
-                ),
+
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : _computeMedicineReport(medicines);
+
+                    final ai = await MedicineAIService().analyze(
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      c: computed,
+                    );
+
+                    final bytes = await MedicineReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      medicines: medicines,
+                      computed: computed,
+                      ai: ai,
+                    );
+
+                    final filename = _buildPdfFileName(_mode);
+                    final filepath = await globalFunctions.downloadBytes(bytes, filename);
+                    await OpenFilex.open(filepath);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  } finally {
+                    setState(() => isLoading = false);
+                  }
+                },
               ),
             ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 12),
+                  child: Center(
+                    child: _GlassSegmented(
+                      value: _mode,
+                      onChanged: (m) => setState(() {
+                        _mode = m;
+                        _future = _fetchByMode(_mode);
+                        _clearCache();
+                      }),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<MedicineModel>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const _LoadingView();
+                      }
+                      if (snapshot.hasError) {
+                        return _CenteredMessage(
+                          emoji: '⚠️',
+                          title: 'Something went wrong',
+                          subtitle: snapshot.error.toString(),
+                        );
+                      }
+                      final medicines = snapshot.data ?? [];
+                      if (medicines.isEmpty) {
+                        return const _CenteredMessage(
+                          emoji: '💊',
+                          title: 'No record found',
+                          subtitle:
+                              'You will see it here when you add medication for this period.',
+                        );
+                      }
+                      final computed = _getOrCompute(medicines);
+                      return _buildReportBody(context, medicines, computed);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -146,74 +250,34 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
   }
 
   // ---- RAPOR GÖVDESİ (seçili tarih aralığı) ----
-  Widget _buildReportBody(BuildContext context, List<MedicineModel> medicines) {
-    final byHourRaw = <int, int>{}; // 0..23 -> count
-    final byMedicine = <String, int>{}; // ilac adı -> count
-    final byAmountType = <String, double>{}; // birim -> toplam miktar
-    final details = <_MedicineDetail>[];
-
-    String lastTime = '-';
-    DateTime? latest;
-
-    for (final m in medicines) {
-      // saat (startTime "HH:mm" tercih; yoksa createdAt)
-      final h = _parseHourSafe(m.startTime, createdAt: m.createdAt);
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-      final nameKey = _normalize(m.medicineName);
-      byMedicine[nameKey] = (byMedicine[nameKey] ?? 0) + 1;
-
-      byAmountType[m.amountType] = (byAmountType[m.amountType] ?? 0) + m.amount;
-
-      details.add(
-        _MedicineDetail(
-          name: m.medicineName,
-          time: _bestTime(m),
-          amount: m.amount,
-          amountType: m.amountType,
-          createdAt: m.createdAt,
-        ),
-      );
-
-      final ct = _tryParseDateTime(m.createdAt);
-      if (ct != null && (latest == null || ct.isAfter(latest))) {
-        latest = ct;
-        lastTime = _bestTime(m);
-      }
-    }
-
-    final total = medicines.length;
-    final unique = byMedicine.keys.length;
-
-    details.sort((a, b) {
-      final at = _parseTime(a.time), bt = _parseTime(b.time);
-      if (at == null && bt == null) return 0;
-      if (at == null) return 1;
-      if (bt == null) return -1;
-      return at.compareTo(bt);
-    });
-
-    final byHour = <_KV>[];
-    for (int h = 0; h < 24; h++) {
-      byHour.add(_KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)));
-    }
+  Widget _buildReportBody(
+    BuildContext context,
+    List<MedicineModel> medicines,
+    MedicineReportComputed computed,
+  ) {
+    final byHour = computed.distHourCount.entries
+        .map((e) => _KV(e.key, e.value))
+        .toList();
 
     final medicineList =
-        byMedicine.entries.map((e) => _KV(e.key, e.value)).toList()
+        computed.medicineCounts.entries.map((e) => _KV(e.key, e.value)).toList()
           ..sort((a, b) => b.v.compareTo(a.v));
 
     final amountTypeList =
-        byAmountType.entries.map((e) => _AmountKV(e.key, e.value)).toList()
+        computed.amountTypeTotals.entries
+            .map((e) => _AmountKV(e.key, e.value))
+            .toList()
           ..sort((a, b) => b.v.compareTo(a.v));
 
+    final details = computed.details;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
         _HeaderCard(
           dateLabel: _rangeLabel(_mode),
-          total: total,
-          unique: unique,
-          lastTime: lastTime,
+          total: computed.totalCount,
+          unique: computed.uniqueMedicineCount,
+          lastTime: computed.lastTimeLabel,
         ),
         const SizedBox(height: 16),
 
@@ -442,6 +506,67 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
   }
 
   String _normalize(String s) => s.trim().toLowerCase();
+
+  MedicineReportComputed _computeMedicineReport(List<MedicineModel> medicines) {
+    final byHourRaw = <int, int>{};
+    final byMedicine = <String, int>{};
+    final byAmountType = <String, double>{};
+    final details = <MedicineDetail>[];
+
+    String lastTime = '-';
+    DateTime? latest;
+
+    for (final m in medicines) {
+      final h = _parseHourSafe(m.startTime, createdAt: m.createdAt);
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      final nameKey = _normalize(m.medicineName);
+      byMedicine[nameKey] = (byMedicine[nameKey] ?? 0) + 1;
+
+      byAmountType[m.amountType] =
+          (byAmountType[m.amountType] ?? 0) + m.amount.toDouble();
+
+      final time = _bestTime(m);
+      details.add(
+        MedicineDetail(
+          name: m.medicineName,
+          time: time,
+          amount: m.amount,
+          amountType: m.amountType,
+          createdAt: m.createdAt,
+        ),
+      );
+
+      final ct = _tryParseDateTime(m.createdAt);
+      if (ct != null && (latest == null || ct.isAfter(latest))) {
+        latest = ct;
+        lastTime = time;
+      }
+    }
+
+    details.sort((a, b) {
+      final at = _parseTime(a.time), bt = _parseTime(b.time);
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return at.compareTo(bt);
+    });
+
+    final distHourCount = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      distHourCount[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    return MedicineReportComputed(
+      totalCount: medicines.length,
+      uniqueMedicineCount: byMedicine.keys.length,
+      lastTimeLabel: lastTime,
+      distHourCount: distHourCount,
+      medicineCounts: byMedicine,
+      amountTypeTotals: byAmountType,
+      details: details,
+    );
+  }
 }
 
 // --- küçük view modelleri ---
@@ -736,8 +861,8 @@ class _MedicineTile extends StatelessWidget {
 }
 
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final MedicineReportMode value;
+  final ValueChanged<MedicineReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -777,8 +902,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == MedicineReportMode.today,
+                    onTap: () => onChanged(MedicineReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -788,8 +913,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == MedicineReportMode.week,
+                    onTap: () => onChanged(MedicineReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -799,8 +924,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == MedicineReportMode.month,
+                    onTap: () => onChanged(MedicineReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,

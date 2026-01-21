@@ -1,14 +1,21 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_compute.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_pdf_builder.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/solid_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-enum ReportMode { today, week, month }
+enum SolidReportMode { today, week, month }
 
 class SolidReportPage extends StatefulWidget {
   const SolidReportPage({super.key});
@@ -22,7 +29,14 @@ class _SolidReportPageState extends State<SolidReportPage> {
   late Future<List<SolidModel>> _futureWeek;
   late Future<List<SolidModel>> _futureMonth;
 
-  ReportMode _mode = ReportMode.today;
+  SolidReportMode _mode = SolidReportMode.today;
+
+  bool isLoading = false;
+
+  // cache
+  List<SolidModel>? _cachedSolids;
+  SolidReportComputed? _cachedComputed;
+  SolidReportMode? _cachedMode;
 
   @override
   void initState() {
@@ -41,68 +55,180 @@ class _SolidReportPageState extends State<SolidReportPage> {
     super.initState();
   }
 
+  void _clearCache() {
+    _cachedSolids = null;
+    _cachedComputed = null;
+    _cachedMode = null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF8FAFC), // #f8fafc
-            Color(0xFFF1F5F9),
-          ],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF8FAFC), // #f8fafc
+              Color(0xFFF1F5F9),
+            ],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
+            title: Text(
+              "🥄   Food Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.teal),
+                onPressed: () async {
+                  setState(
+                    () => isLoading = true,
+                  ); // senin CustomLoader mantığın varsa
+
+                  try {
+                    // 1) aktif mode’a göre data al
+                    final solids = await switch (_mode) {
+                      SolidReportMode.today => _futureToday,
+                      SolidReportMode.week => _futureWeek,
+                      SolidReportMode.month => _futureMonth,
+                    };
+
+                    if (solids.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No food data to export.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // 2) compute (cache varsa onu kullan)
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : _computeSolidReport(solids);
+
+                    // 3) AI analyze
+                    final ai = await SolidAIService().analyzeSolidReport(
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      solids: solids,
+                    );
+
+                    // 4) PDF build
+                    final bytes = await SolidReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      solids: solids,
+                      computed:
+                          computed, // PDF’de hem tablo hem header için iyi
+                      ai: ai,
+                    );
+
+                    final filename = _buildSolidPdfFileName(_mode);
+                    final path = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
+                    await OpenFilex.open(path);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  } finally {
+                    setState(() => isLoading = false);
+                  }
+                },
+              ),
+            ],
           ),
-          title: Text(
-            "🥄   Food Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 12),
-                  child: Center(
-                    child: _GlassSegmented(
-                      value: _mode,
-                      onChanged: (m) => setState(() => _mode = m),
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, top: 12),
+                    child: Center(
+                      child: _GlassSegmented(
+                        value: _mode,
+                        onChanged: (m) {
+                          setState(() {
+                            _mode = m;
+                            _clearCache();
+                          });
+                        },
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: _mode == ReportMode.today
-                      ? todayBody()
-                      : _mode == ReportMode.week
-                      ? weeklyBody()
-                      : monthlyBody(),
-                ),
-              ],
+                  Expanded(
+                    child: _mode == SolidReportMode.today
+                        ? todayBody()
+                        : _mode == SolidReportMode.week
+                        ? weeklyBody()
+                        : monthlyBody(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _rangeLabel(SolidReportMode mode) {
+    final now = DateTime.now();
+    if (mode == SolidReportMode.today) {
+      return DateFormat('EEEE, d MMM').format(now);
+    } else if (mode == SolidReportMode.week) {
+      final s = now.startOfWeekTR;
+      final e = now.endOfWeekTR;
+      final a = DateFormat('d MMM').format(s);
+      final b = DateFormat('d MMM').format(e);
+      return "$a – $b";
+    } else {
+      final s = now.startOfMonth;
+      final e = now.endOfMonth;
+      final a = DateFormat('MMM yyyy').format(s);
+      final b = DateFormat('d').format(e);
+      return "$a (1–$b)";
+    }
+  }
+
+  String _buildSolidPdfFileName(SolidReportMode mode) {
+    final now = DateTime.now();
+    switch (mode) {
+      case SolidReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'solid_daily_$d.pdf';
+      case SolidReportMode.week:
+        final a = DateFormat('dd_MM_yyyy').format(now.startOfWeekTR);
+        final b = DateFormat('dd_MM_yyyy').format(now.endOfWeekTR);
+        return 'solid_weekly_${a}_$b.pdf';
+      case SolidReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'solid_monthly_$m.pdf';
+    }
   }
 
   Widget nutritionTips() {
@@ -769,6 +895,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
       _futureToday = _fetchTodaySolids();
       _futureWeek = _fetchWeekSolids();
       _futureMonth = _fetchMonthSolids();
+      _clearCache();
     });
     await Future.wait([_futureToday, _futureWeek]);
   }
@@ -804,12 +931,64 @@ class _SolidReportPageState extends State<SolidReportPage> {
     final end = now.endOfMonth;
     return await solidService.getUserSolidsInRange(start, end);
   }
+
+  SolidReportComputed _computeSolidReport(List<SolidModel> solids) {
+    int total = 0;
+
+    final byHourRaw = <int, int>{}; // 0..23 -> amount
+    final byFood = <String, int>{}; // food -> amount
+    final byReaction = <String, int>{}; // reaction -> count
+
+    DateTime? latest;
+    String lastEatTime = '-';
+
+    for (final s in solids) {
+      final amt = int.tryParse(s.solidAmount) ?? 0;
+      total += amt;
+
+      // hour
+      final h = int.tryParse(s.eatTime.split(':').first) ?? 0;
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + amt;
+
+      // food
+      final food = (s.solidName).trim().isEmpty
+          ? 'unknown'
+          : s.solidName.trim();
+      byFood[food] = (byFood[food] ?? 0) + amt;
+
+      // reaction
+      final rx = s.reactions == null ? 'none' : reactionToText(s.reactions!);
+      byReaction[rx] = (byReaction[rx] ?? 0) + 1;
+
+      // last eat time by createdAt
+      final dt = DateTime.tryParse(s.createdAt);
+      if (dt != null && (latest == null || dt.isAfter(latest))) {
+        latest = dt;
+        lastEatTime = s.eatTime;
+      }
+    }
+
+    // fill 24h map "00".."23"
+    final dist = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      dist[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    return SolidReportComputed(
+      totalAmount: total,
+      mealCount: solids.length,
+      lastEatTime: lastEatTime,
+      distEatHourAmount: dist,
+      byFoodAmount: byFood,
+      reactionCounts: byReaction,
+    );
+  }
 }
 
 // Ayrı, küçük bir segmented bileşeni:
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final SolidReportMode value;
+  final ValueChanged<SolidReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -849,8 +1028,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == SolidReportMode.today,
+                    onTap: () => onChanged(SolidReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -860,8 +1039,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == SolidReportMode.week,
+                    onTap: () => onChanged(SolidReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -871,8 +1050,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == SolidReportMode.month,
+                    onTap: () => onChanged(SolidReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,

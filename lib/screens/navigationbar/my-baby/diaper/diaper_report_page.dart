@@ -2,13 +2,21 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/diaper_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 
 // GlassSegmented widget'ını kendi dosyandan import et.
-enum ReportMode { today, week, month }
+enum DiaperReportMode { today, week, month }
 
 class DiaperReportPage extends StatefulWidget {
   const DiaperReportPage({super.key});
@@ -17,8 +25,15 @@ class DiaperReportPage extends StatefulWidget {
 }
 
 class _DiaperReportPageState extends State<DiaperReportPage> {
-  ReportMode _mode = ReportMode.today;
+  DiaperReportMode _mode = DiaperReportMode.today;
   late Future<List<DiaperModel>> _future;
+
+  bool isLoading = false;
+
+  // ✅ cache
+  List<DiaperModel>? _cachedDiapers;
+  DiaperReportComputed? _cachedComputed;
+  DiaperReportMode? _cachedMode;
 
   @override
   void initState() {
@@ -34,27 +49,45 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
     super.initState();
   }
 
-  Future<List<DiaperModel>> _fetchByMode(ReportMode mode) {
+  void _clearCache() {
+    _cachedDiapers = null;
+    _cachedComputed = null;
+    _cachedMode = null;
+  }
+
+  DiaperReportComputed _getOrCompute(List<DiaperModel> diapers) {
+    if (_cachedComputed == null || _cachedMode != _mode) {
+      _cachedDiapers = diapers;
+      _cachedComputed = _computeDiaperReport(diapers);
+      _cachedMode = _mode;
+    }
+    return _cachedComputed!;
+  }
+
+  Future<List<DiaperModel>> _fetchByMode(DiaperReportMode mode) {
     switch (mode) {
-      case ReportMode.today:
+      case DiaperReportMode.today:
         return diaperService.todayDiapers();
-      case ReportMode.week:
+      case DiaperReportMode.week:
         return diaperService.weekDiapers();
-      case ReportMode.month:
+      case DiaperReportMode.month:
         return diaperService.monthDiapers();
     }
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _fetchByMode(_mode));
+    setState(() {
+      _future = _fetchByMode(_mode);
+      _clearCache();
+    });
     await _future;
   }
 
-  String _rangeLabel(ReportMode mode) {
+  String _rangeLabel(DiaperReportMode mode) {
     final now = DateTime.now();
-    if (mode == ReportMode.today) {
+    if (mode == DiaperReportMode.today) {
       return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == ReportMode.week) {
+    } else if (mode == DiaperReportMode.week) {
       final s = now.startOfWeekTR, e = now.endOfWeekTR;
       return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
     } else {
@@ -63,80 +96,153 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
     }
   }
 
+  String _buildPdfFileName(DiaperReportMode mode) {
+    final now = DateTime.now();
+    switch (mode) {
+      case DiaperReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'diaper_daily_$d.pdf';
+      case DiaperReportMode.week:
+        final start = now.startOfWeekTR;
+        final end = now.endOfWeekTR;
+        final a = DateFormat('dd_MM_yyyy').format(start);
+        final b = DateFormat('dd_MM_yyyy').format(end);
+        return 'diaper_weekly_${a}_$b.pdf';
+      case DiaperReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'diaper_monthly_$m.pdf';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
-          ),
-          title: const Text(
-            "🚼  Diaper Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 12),
-                child: Center(
-                  child: _GlassSegmented(
-                    value: _mode,
-                    onChanged: (m) => setState(() {
-                      _mode = m;
-                      _future = _fetchByMode(_mode);
-                    }),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: FutureBuilder<List<DiaperModel>>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const _LoadingView();
-                    }
-                    if (snapshot.hasError) {
-                      return _CenteredMessage(
-                        emoji: '⚠️',
-                        title: 'Something went wrong',
-                        subtitle: snapshot.error.toString(),
-                      );
-                    }
-                    final diapers = snapshot.data ?? [];
+            title: const Text(
+              "🚼  Diaper Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                onPressed: () async {
+                  setState(() => isLoading = true);
+                  try {
+                    final diapers = _cachedDiapers ?? await _future;
                     if (diapers.isEmpty) {
-                      return const _CenteredMessage(
-                        emoji: '🧷',
-                        title: 'No record found',
-                        subtitle:
-                            "You'll see it here when you add a diaper change for this period.",
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No diaper data to export.'),
+                        ),
                       );
+                      return;
                     }
-                    return _buildReportBody(context, diapers);
-                  },
-                ),
+
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : _computeDiaperReport(diapers);
+
+                    final ai = await DiaperAIService().analyze(
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      c: computed,
+                    );
+
+                    final bytes = await DiaperReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      diapers: diapers,
+                      computed: computed,
+                      ai: ai,
+                    );
+
+                    final filename = _buildPdfFileName(_mode);
+                    final filepath = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
+                    await OpenFilex.open(filepath);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  } finally {
+                    setState(() => isLoading = false);
+                  }
+                },
               ),
             ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 12),
+                  child: Center(
+                    child: _GlassSegmented(
+                      value: _mode,
+                      onChanged: (m) => setState(() {
+                        _mode = m;
+                        _future = _fetchByMode(_mode);
+                        _clearCache();
+                      }),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<List<DiaperModel>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const _LoadingView();
+                      }
+                      if (snapshot.hasError) {
+                        return _CenteredMessage(
+                          emoji: '⚠️',
+                          title: 'Something went wrong',
+                          subtitle: snapshot.error.toString(),
+                        );
+                      }
+                      final diapers = snapshot.data ?? [];
+                      if (diapers.isEmpty) {
+                        return const _CenteredMessage(
+                          emoji: '🧷',
+                          title: 'No record found',
+                          subtitle:
+                              "You'll see it here when you add a diaper change for this period.",
+                        );
+                      }
+                      final computed = _getOrCompute(diapers);
+                      return _buildReportBody(context, diapers, computed);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -144,62 +250,28 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
   }
 
   // ---- RAPOR GÖVDESİ (seçili aralığa uygulanır) ----
-  Widget _buildReportBody(BuildContext context, List<DiaperModel> diapers) {
-    final byHourRaw = <int, int>{}; // 0..23 -> count
-    final byType = <String, int>{}; // wet/dirty/mixed/pee/poop/other
+  Widget _buildReportBody(
+    BuildContext context,
+    List<DiaperModel> diapers,
+    DiaperReportComputed computed,
+  ) {
+    final byHour = computed.distHourCount.entries
+        .map((e) => _KV(e.key, e.value))
+        .toList();
 
-    final sortedByTime = [...diapers]
-      ..sort((a, b) {
-        final aDt =
-            DateTime.tryParse(a.createdAt) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final bDt =
-            DateTime.tryParse(b.createdAt) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return aDt.compareTo(bDt);
-      });
-
-    // Son değişim saati
-    String lastChange = '-';
-    if (sortedByTime.isNotEmpty) {
-      final dt = DateTime.tryParse(sortedByTime.last.createdAt);
-      lastChange = dt != null
-          ? DateFormat('HH:mm').format(dt)
-          : sortedByTime.last.diaperTime;
-    }
-
-    // Ortalama ve max aralık (dakika)
-    final gaps = _computeGapsInMinutes(sortedByTime);
-    final avgGapMin = gaps.isEmpty
-        ? 0
-        : (gaps.reduce((a, b) => a + b) / gaps.length).round();
-    final maxGapMin = gaps.isEmpty ? 0 : gaps.reduce((a, b) => a > b ? a : b);
-
-    // Dağılımlar
-    for (final d in diapers) {
-      final h = _hourFromRecord(d);
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-      final typeKey = _typeKey(_normalize(d.diaperName));
-      byType[typeKey] = (byType[typeKey] ?? 0) + 1;
-    }
-
-    final byHour = <_KV>[];
-    for (int h = 0; h < 24; h++) {
-      byHour.add(_KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)));
-    }
-    final byTypeList = byType.entries.map((e) => _KV(e.key, e.value)).toList()
-      ..sort((a, b) => b.v.compareTo(a.v));
+    final byTypeList =
+        computed.typeCounts.entries.map((e) => _KV(e.key, e.value)).toList()
+          ..sort((a, b) => b.v.compareTo(a.v));
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
         _HeaderCard(
           dateLabel: _rangeLabel(_mode),
-          total: diapers.length.toString(),
-          lastChange: lastChange,
-          avgGap: _fmtMin(avgGapMin),
-          maxGap: _fmtMin(maxGapMin),
+          total: computed.totalCount.toString(),
+          lastChange: computed.lastChangeLabel,
+          avgGap: _fmtMin(computed.avgGapMinutes),
+          maxGap: _fmtMin(computed.maxGapMinutes),
         ),
         const SizedBox(height: 16),
 
@@ -265,12 +337,80 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
           subtitle: "Chronological diaper changes for ${_rangeLabel(_mode)}",
           child: Column(
             children: [
-              for (final d in sortedByTime)
-                _TimelineTile(time: _bestTime(d), label: d.diaperName),
+              for (final d in computed.timeline)
+                _TimelineTile(time: d.time, label: d.label),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  DiaperReportComputed _computeDiaperReport(List<DiaperModel> diapers) {
+    final sortedByTime = [...diapers]
+      ..sort((a, b) {
+        final aDt =
+            DateTime.tryParse(a.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bDt =
+            DateTime.tryParse(b.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return aDt.compareTo(bDt);
+      });
+
+    String lastChange = '-';
+    if (sortedByTime.isNotEmpty) {
+      final dt = DateTime.tryParse(sortedByTime.last.createdAt);
+      lastChange = dt != null
+          ? DateFormat('HH:mm').format(dt)
+          : sortedByTime.last.diaperTime;
+    }
+
+    final gaps = <int>[];
+    for (int i = 1; i < sortedByTime.length; i++) {
+      final prev = DateTime.tryParse(sortedByTime[i - 1].createdAt);
+      final cur = DateTime.tryParse(sortedByTime[i].createdAt);
+      if (prev != null && cur != null) {
+        gaps.add(cur.difference(prev).inMinutes.abs());
+      }
+    }
+
+    final avgGapMin = gaps.isEmpty
+        ? 0
+        : (gaps.reduce((a, b) => a + b) / gaps.length).round();
+    final maxGapMin = gaps.isEmpty ? 0 : gaps.reduce((a, b) => a > b ? a : b);
+
+    final byHourRaw = <int, int>{};
+    final byType = <String, int>{};
+
+    final timeline = <DiaperDetail>[];
+
+    for (final d in sortedByTime) {
+      final h = _hourFromRecord(d);
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      final typeKey = _typeKey(_normalize(d.diaperName));
+      byType[typeKey] = (byType[typeKey] ?? 0) + 1;
+
+      final time = _bestTime(d);
+      timeline.add(
+        DiaperDetail(time: time, label: d.diaperName, createdAt: d.createdAt),
+      );
+    }
+
+    final distHourCount = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      distHourCount[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    return DiaperReportComputed(
+      totalCount: diapers.length,
+      lastChangeLabel: lastChange,
+      avgGapMinutes: avgGapMin,
+      maxGapMinutes: maxGapMin,
+      distHourCount: distHourCount,
+      typeCounts: byType,
+      timeline: timeline,
     );
   }
 
@@ -287,24 +427,15 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
     return dt != null ? DateFormat('HH:mm').format(dt) : d.diaperTime;
   }
 
-  List<int> _computeGapsInMinutes(List<DiaperModel> sorted) {
-    final out = <int>[];
-    for (int i = 1; i < sorted.length; i++) {
-      final prev = DateTime.tryParse(sorted[i - 1].createdAt);
-      final cur = DateTime.tryParse(sorted[i].createdAt);
-      if (prev != null && cur != null) {
-        out.add(cur.difference(prev).inMinutes.abs());
-      }
-    }
-    return out;
-  }
-
   String _normalize(String s) => s.trim().toLowerCase();
 
   String _typeKey(String name) {
     if (name.contains('pee')) return 'pee';
-    if (name.contains('poo') || name.contains('poop') || name.contains('dirty'))
+    if (name.contains('poo') ||
+        name.contains('poop') ||
+        name.contains('dirty')) {
       return 'poop';
+    }
     if (name.contains('mixed')) return 'mixed';
     if (name.contains('wet')) return 'wet';
     if (name.contains('dry')) return 'dry';
@@ -554,8 +685,8 @@ class _TimelineTile extends StatelessWidget {
 }
 
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final DiaperReportMode value;
+  final ValueChanged<DiaperReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -595,8 +726,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == DiaperReportMode.today,
+                    onTap: () => onChanged(DiaperReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -606,8 +737,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == DiaperReportMode.week,
+                    onTap: () => onChanged(DiaperReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -617,8 +748,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == DiaperReportMode.month,
+                    onTap: () => onChanged(DiaperReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,

@@ -10,7 +10,8 @@ import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_pdf_builder.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
-import 'package:mama_meow/service/gpt_service/tracker_ai_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/sleep_ai_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:open_filex/open_filex.dart';
@@ -160,19 +161,10 @@ class _SleepReportPageState extends State<SleepReportPage> {
                         ? _cachedComputed!
                         : _computeReport(sleeps);
 
-                    final ai = await TrackerAIService().analyzeSleepReport(
+                    final ai = await SleepAIService().analyzeSleepReport(
                       mode: _mode,
                       rangeLabel: _rangeLabel(_mode),
                       sleeps: sleeps,
-                      totalSleepMinutes: computed.totalMinutes,
-                      sleepCount: computed.count,
-                      avgSleepMinutes: computed.avgMinutes,
-                      longestSleepMinutes: computed.longestMinutes,
-                      lastEndTime: computed.lastEndStr,
-                      distributionStartHourMinutes: computed.distHourMinutes,
-                      howItHappenedCounts: computed.howCounts,
-                      startMoodCounts: computed.startMoodCounts,
-                      endMoodCounts: computed.endMoodCounts,
                     );
 
                     final bytes = await SleepReportPdfBuilder.build(
@@ -185,7 +177,10 @@ class _SleepReportPageState extends State<SleepReportPage> {
 
                     final filename = _buildPdfFileName(_mode);
 
-                    final filepath = await downloadBytes(bytes, filename);
+                    final filepath = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
                     await OpenFilex.open(filepath);
                   } catch (e) {
                     customSnackBar.warning('PDF error: $e');
@@ -279,19 +274,6 @@ class _SleepReportPageState extends State<SleepReportPage> {
         final m = DateFormat('MM_yyyy').format(now);
         return 'sleep_monthly_$m.pdf';
     }
-  }
-
-  Future<String> downloadBytes(Uint8List bytes, String filename) async {
-    final safeName = filename.trim().isEmpty ? 'report.pdf' : filename.trim();
-    final name = safeName.toLowerCase().endsWith('.pdf')
-        ? safeName
-        : '$safeName.pdf';
-
-    final dir = Directory.systemTemp; // mobilde hızlı ve garanti
-    final file = File('${dir.path}/$name');
-
-    await file.writeAsBytes(bytes, flush: true);
-    return file.path;
   }
 
   // =========================

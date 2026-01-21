@@ -1,21 +1,20 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/models/activities/diaper_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
+import 'package:mama_meow/service/gpt_service/diaper_ai_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/service/gpt_service/sleep_ai_service.dart'; // ✅ SleepAiInsight burada ise
-import 'sleep_report_page.dart';
-
-class SleepReportPdfBuilder {
+class DiaperReportPdfBuilder {
   static Future<Uint8List> build({
     required PdfPageFormat format,
-    required SleepReportMode mode,
+    required DiaperReportMode mode,
     required String rangeLabel,
-    required List<SleepModel> sleeps,
-
-    // ✅ NEW
-    SleepAiInsight? ai,
+    required List<DiaperModel> diapers,
+    DiaperAiInsight? ai,
+    DiaperReportComputed? computed,
   }) async {
     final doc = pw.Document();
 
@@ -29,22 +28,17 @@ class SleepReportPdfBuilder {
     );
     final semiboldTtf = pw.Font.ttf(semiboldTtfData);
 
-    final totalMinutes = _totalMinutes(sleeps);
-    final avgMinutes = sleeps.isEmpty
-        ? 0
-        : (totalMinutes / sleeps.length).round();
-    final lastEnd = _latestEndTime(sleeps);
+    final c = computed ?? _compute(diapers);
 
     final PdfColor scaffoldColor = PdfColor(
-      0.9725490196078431,
-      0.9803921568627451,
-      0.9882352941176471,
+      0.9725490196,
+      0.9803921569,
+      0.9882352941,
     );
-
     final PdfColor cardColor = PdfColor(
-      0.7803921568627451,
-      0.807843137254902,
-      0.9176470588235294,
+      0.7803921569,
+      0.8078431373,
+      0.9176470588,
     );
     final PdfColor cardWhiteColor = PdfColor(1, 1, 1);
 
@@ -65,22 +59,19 @@ class SleepReportPdfBuilder {
           _summaryCards(
             regularTtf: regularTtf,
             semiBold: semiboldTtf,
-            total: _fmtMin(totalMinutes),
-            count: sleeps.length,
-            avg: _fmtMin(avgMinutes),
-            lastEnd: lastEnd,
+            total: "${c.totalCount}",
+            last: c.lastChangeLabel,
+            avgGap: _fmtMin(c.avgGapMinutes),
+            maxGap: _fmtMin(c.maxGapMinutes),
             gradient: gradient,
           ),
-
-          // ✅ AI ANALYSIS bloğu (tablonun üstünde)
           if (ai != null) ...[
             pw.SizedBox(height: 14),
             _aiBlock(ai, regularTtf, semiboldTtf, scaffoldColor),
           ],
-
           pw.SizedBox(height: 18),
           pw.Text(
-            "Sleeps",
+            "Diaper changes",
             style: pw.TextStyle(
               font: semiboldTtf,
               fontSize: 16,
@@ -88,7 +79,7 @@ class SleepReportPdfBuilder {
             ),
           ),
           pw.SizedBox(height: 8),
-          _table(sleeps, cardColor, scaffoldColor),
+          _table(diapers, cardColor, scaffoldColor),
           pw.SizedBox(height: 12),
           pw.Text(
             "Generated at: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
@@ -106,51 +97,41 @@ class SleepReportPdfBuilder {
     return Uint8List.fromList(bytes);
   }
 
-  // ✅ AI widget
+  // ---- AI Block ----
   static pw.Widget _aiBlock(
-    SleepAiInsight ai,
+    DiaperAiInsight ai,
     pw.Font regularTtf,
     pw.Font semiBold,
     PdfColor scaffoldColor,
   ) {
-    // ====== SleepAiInsight alanlarını burada okuyoruz ======
-    // Eğer field isimleri sende farklıysa sadece aşağıyı düzelt.
-    final title = (ai.aiTitle.trim().isNotEmpty == true)
+    final title = ai.aiTitle.trim().isNotEmpty
         ? ai.aiTitle.trim()
-        : "AI Sleep Analysis";
+        : "AI Diaper Analysis";
 
-    final summary = (ai.aiSummaryBullets)
+    final summary = ai.aiSummaryBullets
         .where((e) => e.trim().isNotEmpty)
         .toList();
+    final patterns = ai.patterns.where((e) => e.trim().isNotEmpty).toList();
+    final watchOuts = ai.watchOuts.where((e) => e.trim().isNotEmpty).toList();
+    final actions = ai.actionPlan.where((e) => e.trim().isNotEmpty).toList();
 
-    final patterns = (ai.patterns).where((e) => e.trim().isNotEmpty).toList();
-
-    final watchOuts = (ai.watchOuts).where((e) => e.trim().isNotEmpty).toList();
-
-    final actions = (ai.actionPlan).where((e) => e.trim().isNotEmpty).toList();
-
-    final confidence = (ai.confidenceNote).trim();
-    final disclaimer = (ai.disclaimer).trim().isNotEmpty
-        ? (ai.disclaimer).trim()
+    final confidence = ai.confidenceNote.trim();
+    final disclaimer = ai.disclaimer.trim().isNotEmpty
+        ? ai.disclaimer.trim()
         : "Not medical advice. Consult a healthcare professional for concerns.";
 
-    // Sources (opsiyonel, 1-2 satır bas)
     final sourceLines = <String>[];
-    final sources = ai.sources;
-    for (final s in sources.take(2)) {
-      // SleepAiSource modelin varsa alan adları değişebilir:
-      final t = (s.title).trim();
-      final p = (s.publisher).trim();
+    for (final s in ai.sources.take(2)) {
+      final t = s.title.trim();
+      final p = s.publisher.trim();
       final y = (s.year != null) ? s.year.toString() : '';
-      final u = (s.url).trim();
-
+      final u = s.url.trim();
       final line = [
         if (t.isNotEmpty) t,
         if (p.isNotEmpty) p,
         if (y.isNotEmpty) y,
         if (u.isNotEmpty) u,
       ].join(' • ');
-
       if (line.trim().isNotEmpty) sourceLines.add(line);
     }
 
@@ -195,25 +176,18 @@ class SleepReportPdfBuilder {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  title,
-                  style: pw.TextStyle(
-                    font: semiBold,
-                    fontSize: 13,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              font: semiBold,
+              fontSize: 13,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           if (summary.isNotEmpty) bullets("Summary", summary),
           if (patterns.isNotEmpty) bullets("Patterns", patterns),
           if (watchOuts.isNotEmpty) bullets("Watch outs", watchOuts),
           if (actions.isNotEmpty) bullets("Action plan", actions),
-
           if (confidence.isNotEmpty) ...[
             pw.SizedBox(height: 8),
             pw.Text(
@@ -230,7 +204,6 @@ class SleepReportPdfBuilder {
               ),
             ),
           ],
-
           pw.SizedBox(height: 8),
           pw.Text(
             disclaimer,
@@ -240,7 +213,6 @@ class SleepReportPdfBuilder {
               color: PdfColors.grey700,
             ),
           ),
-
           if (sourceLines.isNotEmpty) ...[
             pw.SizedBox(height: 8),
             pw.Text(
@@ -263,19 +235,18 @@ class SleepReportPdfBuilder {
     );
   }
 
-  // ====== aşağısı senin mevcut helper’ların (aynı) ======
-
+  // ---- Header ----
   static pw.Widget _header(
-    SleepReportMode mode,
+    DiaperReportMode mode,
     String rangeLabel,
     pw.Font regularTtf,
     pw.Font semiBold,
     pw.LinearGradient gradient,
   ) {
     final title = switch (mode) {
-      SleepReportMode.today => "Daily Sleep Report",
-      SleepReportMode.week => "Weekly Sleep Report",
-      SleepReportMode.month => "Monthly Sleep Report",
+      DiaperReportMode.today => "Daily Diaper Report",
+      DiaperReportMode.week => "Weekly Diaper Report",
+      DiaperReportMode.month => "Monthly Diaper Report",
     };
 
     return pw.Container(
@@ -286,7 +257,6 @@ class SleepReportPdfBuilder {
         gradient: gradient,
       ),
       child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(
             child: pw.Column(
@@ -317,11 +287,12 @@ class SleepReportPdfBuilder {
     );
   }
 
+  // ---- Summary Cards ----
   static pw.Widget _summaryCards({
     required String total,
-    required int count,
-    required String avg,
-    required String lastEnd,
+    required String last,
+    required String avgGap,
+    required String maxGap,
     required pw.Font regularTtf,
     required pw.Font semiBold,
     required pw.LinearGradient gradient,
@@ -365,41 +336,41 @@ class SleepReportPdfBuilder {
       children: [
         card("Total", total),
         pw.SizedBox(width: 10),
-        card("Sleeps", "$count"),
+        card("Last", last),
         pw.SizedBox(width: 10),
-        card("Avg", avg),
+        card("Avg gap", avgGap),
         pw.SizedBox(width: 10),
-        card("Last End", lastEnd),
+        card("Max gap", maxGap),
       ],
     );
   }
 
+  // ---- Table ----
   static pw.Widget _table(
-    List<SleepModel> sleeps,
+    List<DiaperModel> diapers,
     PdfColor cardColor,
     PdfColor scaffoldColor,
   ) {
-    final headers = <String>[
-      "Date",
-      "Start",
-      "End",
-      "Duration",
-      "How",
-      "Start Mood",
-      "End Mood",
-    ];
+    final headers = <String>["Date", "Time", "Type"];
 
-    final rows = sleeps.map((s) {
-      final dur = _calcDurationMinutes(s);
-      return <String>[
-        _safeDate(s.sleepDate),
-        s.startTime,
-        s.endTime,
-        _fmtMin(dur),
-        (s.howItHappened ?? "-"),
-        (s.startOfSleep ?? "-"),
-        (s.endOfSleep ?? "-"),
-      ];
+    final sorted = [...diapers]
+      ..sort((a, b) {
+        final aDt =
+            DateTime.tryParse(a.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bDt =
+            DateTime.tryParse(b.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return aDt.compareTo(bDt);
+      });
+
+    final rows = sorted.map((d) {
+      final dt = DateTime.tryParse(d.createdAt);
+      final date = dt != null
+          ? DateFormat('yyyy-MM-dd').format(dt)
+          : d.createdAt.split(' ').first;
+      final time = dt != null ? DateFormat('HH:mm').format(dt) : d.diaperTime;
+      return <String>[date, time, d.diaperName];
     }).toList();
 
     return pw.TableHelper.fromTextArray(
@@ -409,66 +380,108 @@ class SleepReportPdfBuilder {
       cellStyle: const pw.TextStyle(fontSize: 9),
       headerDecoration: pw.BoxDecoration(color: cardColor),
       rowDecoration: pw.BoxDecoration(color: scaffoldColor),
-      cellAlignment: pw.Alignment.center,
+      cellAlignment: pw.Alignment.centerLeft,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
     );
   }
 
-  static int _totalMinutes(List<SleepModel> sleeps) {
-    var sum = 0;
-    for (final s in sleeps) {
-      sum += _calcDurationMinutes(s);
+  // ---- Compute (PDF için minimal) ----
+  static DiaperReportComputed _compute(List<DiaperModel> diapers) {
+    final sortedByTime = [...diapers]
+      ..sort((a, b) {
+        final aDt =
+            DateTime.tryParse(a.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bDt =
+            DateTime.tryParse(b.createdAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return aDt.compareTo(bDt);
+      });
+
+    String lastChange = '-';
+    if (sortedByTime.isNotEmpty) {
+      final dt = DateTime.tryParse(sortedByTime.last.createdAt);
+      lastChange = dt != null
+          ? DateFormat('HH:mm').format(dt)
+          : sortedByTime.last.diaperTime;
     }
-    return sum;
-  }
 
-  static String _latestEndTime(List<SleepModel> sleeps) {
-    DateTime? latest;
-    for (final s in sleeps) {
-      final end = _combineDateAndTime(s.sleepDate, s.endTime);
-      final start = _combineDateAndTime(s.sleepDate, s.startTime);
-      if (end == null || start == null) continue;
-
-      var endFixed = end;
-      if (endFixed.isBefore(start)) {
-        endFixed = endFixed.add(const Duration(days: 1));
+    final gaps = <int>[];
+    for (int i = 1; i < sortedByTime.length; i++) {
+      final prev = DateTime.tryParse(sortedByTime[i - 1].createdAt);
+      final cur = DateTime.tryParse(sortedByTime[i].createdAt);
+      if (prev != null && cur != null) {
+        gaps.add(cur.difference(prev).inMinutes.abs());
       }
-      if (latest == null || endFixed.isAfter(latest)) latest = endFixed;
     }
-    return latest == null ? "-" : DateFormat('HH:mm').format(latest);
-  }
 
-  static DateTime? _combineDateAndTime(String dateStr, String hhmm) {
-    try {
-      final dateOnly = dateStr.split(' ').first;
-      final ymd = DateFormat('yyyy-MM-dd').parseStrict(dateOnly);
-      final parts = hhmm.split(':');
-      final h = int.tryParse(parts[0]) ?? 0;
-      final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-      return DateTime(ymd.year, ymd.month, ymd.day, h, m);
-    } catch (_) {
-      return null;
+    final avgGapMin = gaps.isEmpty
+        ? 0
+        : (gaps.reduce((a, b) => a + b) / gaps.length).round();
+    final maxGapMin = gaps.isEmpty ? 0 : gaps.reduce((a, b) => a > b ? a : b);
+
+    final byHourRaw = <int, int>{};
+    final byType = <String, int>{};
+
+    int hourFromRecord(DiaperModel d) {
+      final dt = DateTime.tryParse(d.createdAt);
+      if (dt != null) return dt.hour;
+      final hh = int.tryParse(d.diaperTime.split(':').first);
+      return (hh == null || hh < 0 || hh > 23) ? 0 : hh;
     }
-  }
 
-  static int _calcDurationMinutes(SleepModel s) {
-    final start = _combineDateAndTime(s.sleepDate, s.startTime);
-    var end = _combineDateAndTime(s.sleepDate, s.endTime);
-    if (start == null || end == null) return 0;
+    String normalize(String s) => s.trim().toLowerCase();
 
-    if (end.isBefore(start)) {
-      end = end.add(const Duration(days: 1));
+    String typeKey(String name) {
+      if (name.contains('pee')) return 'pee';
+      if (name.contains('poo') ||
+          name.contains('poop') ||
+          name.contains('dirty'))
+        return 'poop';
+      if (name.contains('mixed')) return 'mixed';
+      if (name.contains('wet')) return 'wet';
+      if (name.contains('dry')) return 'dry';
+      return 'other';
     }
-    return end.difference(start).inMinutes;
+
+    final timeline = <DiaperDetail>[];
+    for (final d in sortedByTime) {
+      final h = hourFromRecord(d);
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      final type = typeKey(normalize(d.diaperName));
+      byType[type] = (byType[type] ?? 0) + 1;
+
+      final dt = DateTime.tryParse(d.createdAt);
+      final time = dt != null ? DateFormat('HH:mm').format(dt) : d.diaperTime;
+      timeline.add(
+        DiaperDetail(time: time, label: d.diaperName, createdAt: d.createdAt),
+      );
+    }
+
+    final distHourCount = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      distHourCount[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    return DiaperReportComputed(
+      totalCount: diapers.length,
+      lastChangeLabel: lastChange,
+      avgGapMinutes: avgGapMin,
+      maxGapMinutes: maxGapMin,
+      distHourCount: distHourCount,
+      typeCounts: byType,
+      timeline: timeline,
+    );
   }
 
   static String _fmtMin(int minutes) {
     final h = minutes ~/ 60;
     final m = minutes % 60;
+    if (minutes == 0) return "0m";
     if (h == 0) return "${m}m";
+    if (m == 0) return "${h}h";
     return "${h}h ${m}m";
   }
-
-  static String _safeDate(String raw) => raw.split(' ').first;
 }

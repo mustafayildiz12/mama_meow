@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -177,6 +178,19 @@ class GlobalFunction {
     }
 
     return deviceVersion;
+  }
+
+    Future<String> downloadBytes(Uint8List bytes, String filename) async {
+    final safeName = filename.trim().isEmpty ? 'report.pdf' : filename.trim();
+    final name = safeName.toLowerCase().endsWith('.pdf')
+        ? safeName
+        : '$safeName.pdf';
+
+    final dir = Directory.systemTemp; // mobilde hızlı ve garanti
+    final file = File('${dir.path}/$name');
+
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
   }
 }
 

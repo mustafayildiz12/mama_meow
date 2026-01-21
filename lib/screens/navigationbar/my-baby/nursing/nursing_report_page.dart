@@ -1,15 +1,24 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_computed.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
+import 'package:mama_meow/service/gpt_service/nursing_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
 // GlassSegmented widget'ını senin paylaştığın yerden import et.
 
-enum ReportMode { today, week, month }
+enum NursingReportMode { today, week, month }
 
 class NursingReportPage extends StatefulWidget {
   const NursingReportPage({super.key});
@@ -19,8 +28,29 @@ class NursingReportPage extends StatefulWidget {
 }
 
 class _NursingReportPageState extends State<NursingReportPage> {
-  ReportMode _mode = ReportMode.today;
+  NursingReportMode _mode = NursingReportMode.today;
   late Future<List<NursingModel>> _future;
+
+  List<NursingModel>? _cachedNursings;
+  NursingReportComputed? _cachedComputed;
+  NursingReportMode? _cachedMode;
+
+  bool isLoading = false;
+
+  void _clearCache() {
+    _cachedNursings = null;
+    _cachedComputed = null;
+    _cachedMode = null;
+  }
+
+  NursingReportComputed _getOrCompute(List<NursingModel> nursings) {
+    if (_cachedComputed == null || _cachedMode != _mode) {
+      _cachedNursings = nursings;
+      _cachedComputed = _computeNursingReport(nursings);
+      _cachedMode = _mode;
+    }
+    return _cachedComputed!;
+  }
 
   @override
   void initState() {
@@ -36,27 +66,30 @@ class _NursingReportPageState extends State<NursingReportPage> {
     super.initState();
   }
 
-  Future<List<NursingModel>> _fetchByMode(ReportMode mode) {
+  Future<List<NursingModel>> _fetchByMode(NursingReportMode mode) {
     switch (mode) {
-      case ReportMode.today:
+      case NursingReportMode.today:
         return nursingService.todayNursings();
-      case ReportMode.week:
+      case NursingReportMode.week:
         return nursingService.weekNursings();
-      case ReportMode.month:
+      case NursingReportMode.month:
         return nursingService.monthNursings();
     }
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _fetchByMode(_mode));
+    setState(() {
+      _future = _fetchByMode(_mode);
+      _clearCache();
+    });
     await _future;
   }
 
-  String _rangeLabel(ReportMode mode) {
+  String _rangeLabel(NursingReportMode mode) {
     final now = DateTime.now();
-    if (mode == ReportMode.today) {
+    if (mode == NursingReportMode.today) {
       return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == ReportMode.week) {
+    } else if (mode == NursingReportMode.week) {
       final s = now.startOfWeekTR, e = now.endOfWeekTR;
       return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
     } else {
@@ -67,80 +100,141 @@ class _NursingReportPageState extends State<NursingReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    return CustomLoader(
+      inAsyncCall: isLoading,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+          ),
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.arrow_back_ios),
+                ),
               ),
             ),
+            title: const Text(
+              "🍼  Nursing Reports",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+                onPressed: () async {
+                  setState(() {
+                    isLoading = true;
+                  });
+                  try {
+                    // ✅ mümkünse cache’li veriyi kullan
+                    final sleeps = _cachedNursings ?? await _future;
+                    if (sleeps.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No sleep data to export.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final computed =
+                        (_cachedComputed != null && _cachedMode == _mode)
+                        ? _cachedComputed!
+                        : _computeNursingReport(sleeps);
+
+                    final ai = await NursingAIService().analyze(
+                      mode: _mode,
+                      c: computed,
+                      rangeLabel: _rangeLabel(_mode),
+                    );
+
+                    final bytes = await NursingReportPdfBuilder.build(
+                      format: PdfPageFormat.a4,
+                      mode: _mode,
+                      rangeLabel: _rangeLabel(_mode),
+                      nursings: sleeps,
+                      ai: ai,
+                    );
+
+                    final filename = _buildPdfFileName(_mode);
+
+                    final filepath = await globalFunctions.downloadBytes(
+                      bytes,
+                      filename,
+                    );
+                    await OpenFilex.open(filepath);
+                  } catch (e) {
+                    customSnackBar.warning('PDF error: $e');
+                  }
+                  setState(() {
+                    isLoading = false;
+                  });
+                },
+              ),
+            ],
           ),
-          title: const Text(
-            "🍼  Nursing Reports",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: SafeArea(
-          top: false,
-          child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 12),
-                  child: Center(
-                    child: _GlassSegmented(
-                      value: _mode,
-                      onChanged: (m) => setState(() {
-                        _mode = m;
-                        _future = _fetchByMode(_mode);
-                      }),
+          body: SafeArea(
+            top: false,
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, top: 12),
+                    child: Center(
+                      child: _GlassSegmented(
+                        value: _mode,
+                        onChanged: (m) => setState(() {
+                          _mode = m;
+                          _future = _fetchByMode(_mode);
+                          _clearCache();
+                        }),
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: FutureBuilder<List<NursingModel>>(
-                    future: _future,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const _LoadingView();
-                      }
-                      if (snapshot.hasError) {
-                        return _CenteredMessage(
-                          emoji: '⚠️',
-                          title: 'Something went wrong',
-                          subtitle: snapshot.error.toString(),
-                        );
-                      }
-                      final nursings = snapshot.data ?? [];
-                      if (nursings.isEmpty) {
-                        return const _CenteredMessage(
-                          emoji: '🍼',
-                          title: 'No record found',
-                          subtitle:
-                              'You will see it here when you add breastfeeding for this month.',
-                        );
-                      }
-                      return _buildReportBody(context, nursings);
-                    },
+                  Expanded(
+                    child: FutureBuilder<List<NursingModel>>(
+                      future: _future,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const _LoadingView();
+                        }
+                        if (snapshot.hasError) {
+                          return _CenteredMessage(
+                            emoji: '⚠️',
+                            title: 'Something went wrong',
+                            subtitle: snapshot.error.toString(),
+                          );
+                        }
+                        final nursings = snapshot.data ?? [];
+                        if (nursings.isEmpty) {
+                          return const _CenteredMessage(
+                            emoji: '🍼',
+                            title: 'No record found',
+                            subtitle:
+                                'You will see it here when you add breastfeeding for this month.',
+                          );
+                        }
+
+                        final computed = _getOrCompute(nursings);
+                        return _buildReportBody(context, nursings, computed);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -148,8 +242,33 @@ class _NursingReportPageState extends State<NursingReportPage> {
     );
   }
 
+  String _buildPdfFileName(NursingReportMode mode) {
+    final now = DateTime.now();
+
+    switch (mode) {
+      case NursingReportMode.today:
+        final d = DateFormat('dd_MM_yyyy').format(now);
+        return 'nursing_daily_$d.pdf';
+
+      case NursingReportMode.week:
+        final start = now.startOfWeekTR;
+        final end = now.endOfWeekTR;
+        final a = DateFormat('dd_MM_yyyy').format(start);
+        final b = DateFormat('dd_MM_yyyy').format(end);
+        return 'nursing_weekly_${a}_$b.pdf';
+
+      case NursingReportMode.month:
+        final m = DateFormat('MM_yyyy').format(now);
+        return 'nursing_monthly_$m.pdf';
+    }
+  }
+
   // ---- RAPOR GÖVDESİ (seçili aralığa uygulanır) ----
-  Widget _buildReportBody(BuildContext context, List<NursingModel> nursings) {
+  Widget _buildReportBody(
+    BuildContext context,
+    List<NursingModel> nursings,
+    NursingReportComputed computed,
+  ) {
     final byHourRaw = <int, int>{}; // 0..23 -> count
     final bySide = <String, int>{}; // side -> count
     final byFeedingType = <String, int>{}; // feeding type -> count
@@ -577,6 +696,74 @@ class _NursingReportPageState extends State<NursingReportPage> {
   }
 
   String _normalize(String s) => s.trim().toLowerCase();
+
+  NursingReportComputed _computeNursingReport(List<NursingModel> nursings) {
+    final byHourRaw = <int, int>{};
+    final bySide = <String, int>{};
+    final byFeedingType = <String, int>{};
+    final byMilkType = <String, int>{};
+    final byAmountType = <String, double>{};
+
+    int totalDuration = 0;
+    DateTime? latest;
+    String lastTimeLabel = '-';
+
+    for (final n in nursings) {
+      // hour
+      final h = int.tryParse(n.startTime.split(':').first) ?? 0;
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      // side
+      bySide[_norm(n.side)] = (bySide[_norm(n.side)] ?? 0) + 1;
+
+      // feeding type
+      byFeedingType[_norm(n.feedingType)] =
+          (byFeedingType[_norm(n.feedingType)] ?? 0) + 1;
+
+      // milk type (bottle only)
+      if (n.milkType != null) {
+        byMilkType[_norm(n.milkType!)] =
+            (byMilkType[_norm(n.milkType!)] ?? 0) + 1;
+      }
+
+      // amount
+      byAmountType[n.amountType] =
+          (byAmountType[n.amountType] ?? 0) + n.amount.toDouble();
+
+      // duration
+      totalDuration += n.duration;
+
+      // last session
+      final dt = DateTime.tryParse(n.createdAt);
+      if (dt != null && (latest == null || dt.isAfter(latest))) {
+        latest = dt;
+        lastTimeLabel = n.startTime;
+      }
+    }
+
+    // 24h map
+    final distHour = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      distHour[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    final count = nursings.length;
+    final avg = count == 0 ? 0 : (totalDuration / count).round();
+
+    return NursingReportComputed(
+      sessionCount: count,
+      totalDuration: totalDuration,
+      avgDuration: avg,
+      lastTimeLabel: lastTimeLabel,
+      distHourCount: distHour,
+      sideCounts: bySide,
+      feedingTypeCounts: byFeedingType,
+      milkTypeCounts: byMilkType,
+      amountTypeTotals: byAmountType,
+    );
+  }
+
+  String _norm(String s) => s.trim().toLowerCase();
 }
 
 // --- view models / tiles ---
@@ -837,8 +1024,8 @@ class _NursingTile extends StatelessWidget {
 }
 
 class _GlassSegmented extends StatelessWidget {
-  final ReportMode value;
-  final ValueChanged<ReportMode> onChanged;
+  final NursingReportMode value;
+  final ValueChanged<NursingReportMode> onChanged;
 
   const _GlassSegmented({
     super.key,
@@ -876,8 +1063,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Daily',
-                    selected: value == ReportMode.today,
-                    onTap: () => onChanged(ReportMode.today),
+                    selected: value == NursingReportMode.today,
+                    onTap: () => onChanged(NursingReportMode.today),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -887,8 +1074,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Weekly',
-                    selected: value == ReportMode.week,
-                    onTap: () => onChanged(ReportMode.week),
+                    selected: value == NursingReportMode.week,
+                    onTap: () => onChanged(NursingReportMode.week),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,
@@ -898,8 +1085,8 @@ class _GlassSegmented extends StatelessWidget {
                 Expanded(
                   child: _SegmentButton(
                     label: 'Monthly',
-                    selected: value == ReportMode.month,
-                    onTap: () => onChanged(ReportMode.month),
+                    selected: value == NursingReportMode.month,
+                    onTap: () => onChanged(NursingReportMode.month),
                     activeFg: activeFg,
                     inactiveFg: inactiveFg,
                     activeFill: activeFill,

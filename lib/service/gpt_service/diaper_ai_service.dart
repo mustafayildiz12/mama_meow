@@ -2,49 +2,47 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart'; // apiValue, askMiaModel, currentMeowUser vs.
 
-class TrackerAIService {
-  final String? _babyName = currentMeowUser?.babyName;
-  final String? _babyAgeKey = currentMeowUser?.ageRange;
-
+class DiaperAIService {
   static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
   final Duration _timeout = const Duration(seconds: 60);
 
+  final String? _babyName = currentMeowUser?.babyName;
+  final String? _babyAgeKey = currentMeowUser?.ageRange;
+
   static final String _systemPrompt = r'''
-You are "MamaMeow" 🐱, an evidence-informed baby sleep report assistant inside a mother-baby app.
+You are "MamaMeow" 🐱, an evidence-informed diaper report assistant inside a mother-baby app.
 
 GOAL
-- Analyze the user's selected sleep report interval (daily/weekly/monthly) and produce a concise, practical summary for a parent.
-- The output will be embedded into a PDF report above a table. Keep it short, scannable, and non-judgmental.
+- Analyze diaper changes (types & timing) for the selected interval.
+- Provide a concise, supportive summary for a parent for embedding in a PDF.
 
 STYLE
-- Write in English.
-- Use short bullet points, no long paragraphs.
-- Be supportive and encouraging (warm but not overly chatty).
-- Avoid diagnosis. Never claim medical certainty.
+- English, short bullet points.
+- Supportive, non-judgmental.
+- No diagnosis; no medical certainty.
 
-DATA RULES (IMPORTANT)
-- You will receive structured sleep report data for the selected interval.
-- Only use the provided data. If something is missing or uncertain, say "Not enough data to conclude".
-- If the dataset is too small (e.g., fewer than 2 sleeps), focus on gentle suggestions and note the limitation.
+DATA RULES
+- Use only the provided data.
+- If limited data, say "Not enough data to conclude".
+- Focus on patterns: timing clusters, long gaps, changes in mix of types.
 
 SAFETY
-- If you detect possible red flags (very low total sleep, extremely fragmented sleep, large day-night reversal patterns, or caregiver concern implied), mention it gently and recommend consulting a pediatrician.
-- Always include: "Not medical advice."
+- If very long gaps or unusual patterns, mention gently and recommend consulting a pediatrician if concerned.
 
 OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
 {
   "ai_title": "string",
-  "ai_summary_bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4"],
-  "patterns": ["pattern 1", "pattern 2", "pattern 3"],
-  "watch_outs": ["watch out 1", "watch out 2"],
-  "action_plan": ["action 1", "action 2", "action 3", "action 4"],
+  "ai_summary_bullets": ["bullet 1","bullet 2","bullet 3","bullet 4"],
+  "patterns": ["pattern 1","pattern 2","pattern 3"],
+  "watch_outs": ["watch out 1","watch out 2"],
+  "action_plan": ["action 1","action 2","action 3","action 4"],
   "confidence_note": "string (1 short line about data limits)",
   "disclaimer": "string (include Not medical advice...)",
   "sources": [
-    {"title": "string", "publisher": "string", "url": "https://...", "year": 2023}
+    {"title":"string","publisher":"string","url":"https://...","year":2023}
   ],
   "last_updated": "YYYY-MM-DD"
 }
@@ -60,9 +58,7 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
       'school': '5+ years old',
       'expecting': 'expecting (not born yet)',
     };
-    final ageText = _babyAgeKey != null
-        ? (map[_babyAgeKey] ?? _babyAgeKey)
-        : null;
+    final ageText = _babyAgeKey != null ? (map[_babyAgeKey] ?? _babyAgeKey) : null;
 
     if (_babyName != null && ageText != null) {
       return "\n\nIMPORTANT PERSONALIZATION: The user's baby is named $_babyName and is $ageText. Personalize gently and use the baby's name when helpful.";
@@ -73,48 +69,20 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
     }
   }
 
-  /// Sleep report için AI analizi üretir.
-  /// - mode: today/week/month
-  /// - rangeLabel: ekranda gösterdiğin tarih aralığı
-  /// - sleeps: ham kayıtlar (opsiyonel ama faydalı)
-  /// - metrics: senin hesapladığın özet metrikler
-  /// - dist maps: senin hesapladığın dağılımlar (counts/minutes)
-  Future<SleepAiInsight?> analyzeSleepReport({
-    required SleepReportMode mode,
+  Future<DiaperAiInsight?> analyze({
+    required DiaperReportMode mode,
     required String rangeLabel,
-    required List<SleepModel> sleeps,
-
-    // ÖZET METRİKLER (sen hesaplayıp veriyorsun)
-    required int totalSleepMinutes,
-    required int sleepCount,
-    required int avgSleepMinutes,
-    required int longestSleepMinutes,
-    required String lastEndTime,
-
-    // DAĞILIMLAR
-    required Map<String, int> distributionStartHourMinutes, // "00" -> dakika
-    required Map<String, int> howItHappenedCounts,
-    required Map<String, int> startMoodCounts,
-    required Map<String, int> endMoodCounts,
-
+    required DiaperReportComputed c,
     int maxTokens = 650,
     double temperature = 0.4,
   }) async {
     try {
       final system = '$_systemPrompt${_buildPersonalization()}';
 
-      final userText = _buildSleepReportUserPrompt(
+      final userPrompt = _buildUserPrompt(
         mode: mode,
         rangeLabel: rangeLabel,
-        totalSleepMinutes: totalSleepMinutes,
-        sleepCount: sleepCount,
-        avgSleepMinutes: avgSleepMinutes,
-        longestSleepMinutes: longestSleepMinutes,
-        lastEndTime: lastEndTime,
-        distributionStartHourMinutes: distributionStartHourMinutes,
-        howItHappenedCounts: howItHappenedCounts,
-        startMoodCounts: startMoodCounts,
-        endMoodCounts: endMoodCounts,
+        c: c,
       );
 
       final body = {
@@ -124,7 +92,7 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
           {
             "role": "user",
             "content": [
-              {"type": "text", "text": userText},
+              {"type": "text", "text": userPrompt},
             ],
           },
         ],
@@ -154,88 +122,59 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
 
       final cleaned = _stripJsonFences(raw);
       final map = jsonDecode(cleaned) as Map<String, dynamic>;
-      return SleepAiInsight.fromMap(map);
+      return DiaperAiInsight.fromMap(map);
     } catch (_) {
       return null;
     }
   }
 
-  // -----------------------
-  // Prompt Builder
-  // -----------------------
-
-  String _buildSleepReportUserPrompt({
-    required SleepReportMode mode,
+  String _buildUserPrompt({
+    required DiaperReportMode mode,
     required String rangeLabel,
-    required int totalSleepMinutes,
-    required int sleepCount,
-    required int avgSleepMinutes,
-    required int longestSleepMinutes,
-    required String lastEndTime,
-    required Map<String, int> distributionStartHourMinutes,
-    required Map<String, int> howItHappenedCounts,
-    required Map<String, int> startMoodCounts,
-    required Map<String, int> endMoodCounts,
+    required DiaperReportComputed c,
   }) {
     String modeText = switch (mode) {
-      SleepReportMode.today => "daily",
-      SleepReportMode.week => "weekly",
-      SleepReportMode.month => "monthly",
+      DiaperReportMode.today => "daily",
+      DiaperReportMode.week => "weekly",
+      DiaperReportMode.month => "monthly",
     };
 
-    String mapLines(Map<String, int> m, {int limit = 60}) {
-      // Çok uzamasın diye küçük maplerde hepsini, büyükse non-zero'ları dök
+    String mapLinesInt(Map<String, int> m, {int limit = 60}) {
       final entries = m.entries.toList();
-
-      // Saat dağılımı gibi 24 item varsa hepsini basabiliriz:
       if (entries.length <= limit) {
         return entries.map((e) => "- ${e.key}: ${e.value}").join("\n");
       }
-
-      // büyük map ise ilk 30 item
       return entries.take(30).map((e) => "- ${e.key}: ${e.value}").join("\n");
     }
 
     return '''
-Analyze the selected sleep report and produce AI insights for a PDF.
+Analyze the selected diaper report and produce AI insights for a PDF.
 
 REPORT_MODE: $modeText
 RANGE_LABEL: $rangeLabel
 
-SLEEP_METRICS:
-- total_sleep_minutes: $totalSleepMinutes
-- sleep_count: $sleepCount
-- avg_sleep_minutes: $avgSleepMinutes
-- longest_sleep_minutes: $longestSleepMinutes
-- last_end_time: $lastEndTime
+DIAPER_METRICS:
+- total_changes: ${c.totalCount}
+- last_change_time: ${c.lastChangeLabel}
+- avg_gap_minutes: ${c.avgGapMinutes}
+- max_gap_minutes: ${c.maxGapMinutes}
 
-DISTRIBUTION_START_HOUR_MINUTES (hour -> total minutes):
-${mapLines(distributionStartHourMinutes)}
+DISTRIBUTION_BY_HOUR (hour -> count):
+${mapLinesInt(c.distHourCount)}
 
-HOW_IT_HAPPENED_COUNTS:
-${mapLines(howItHappenedCounts)}
-
-START_MOOD_COUNTS:
-${mapLines(startMoodCounts)}
-
-END_MOOD_COUNTS:
-${mapLines(endMoodCounts)}
+TYPE_COUNTS (type -> count):
+${mapLinesInt(c.typeCounts)}
 
 INSTRUCTIONS:
 - Keep it short for PDF: 4 summary bullets, 3 patterns, 2 watch-outs, 4 action steps.
-- If data seems incomplete, mention it in confidence_note.
-- Avoid medical claims; include Not medical advice.
+- If gaps look long or inconsistent, mention gently (no diagnosis).
+- Always include "Not medical advice."
 ''';
   }
-
-  // -----------------------
-  // JSON fence stripper
-  // -----------------------
 
   String _stripJsonFences(String s) {
     var t = s.trim();
     if (t.startsWith('```')) {
-      // ```json ... ```
       t = t.replaceAll(RegExp(r'^```[a-zA-Z]*\s*'), '');
       t = t.replaceAll(RegExp(r'\s*```$'), '');
     }
@@ -243,7 +182,8 @@ INSTRUCTIONS:
   }
 }
 
-class SleepAiInsight {
+
+class DiaperAiInsight {
   final String aiTitle;
   final List<String> aiSummaryBullets;
   final List<String> patterns;
@@ -251,10 +191,10 @@ class SleepAiInsight {
   final List<String> actionPlan;
   final String confidenceNote;
   final String disclaimer;
-  final List<SleepAiSource> sources;
+  final List<DiaperAiSource> sources;
   final String lastUpdated;
 
-  SleepAiInsight({
+  DiaperAiInsight({
     required this.aiTitle,
     required this.aiSummaryBullets,
     required this.patterns,
@@ -266,7 +206,7 @@ class SleepAiInsight {
     required this.lastUpdated,
   });
 
-  factory SleepAiInsight.fromMap(Map<String, dynamic> m) {
+  factory DiaperAiInsight.fromMap(Map<String, dynamic> m) {
     List<String> ls(String key) {
       final v = m[key];
       if (v is List) {
@@ -281,10 +221,10 @@ class SleepAiInsight {
     final src = (m['sources'] is List) ? (m['sources'] as List) : const [];
     final sources = src
         .whereType<Map>()
-        .map((e) => SleepAiSource.fromMap(e.cast<String, dynamic>()))
+        .map((e) => DiaperAiSource.fromMap(e.cast<String, dynamic>()))
         .toList();
 
-    return SleepAiInsight(
+    return DiaperAiInsight(
       aiTitle: (m['ai_title'] ?? '').toString(),
       aiSummaryBullets: ls('ai_summary_bullets'),
       patterns: ls('patterns'),
@@ -298,22 +238,22 @@ class SleepAiInsight {
   }
 }
 
-class SleepAiSource {
+class DiaperAiSource {
   final String title;
   final String publisher;
   final String url;
   final int? year;
 
-  SleepAiSource({
+  DiaperAiSource({
     required this.title,
     required this.publisher,
     required this.url,
     required this.year,
   });
 
-  factory SleepAiSource.fromMap(Map<String, dynamic> m) {
+  factory DiaperAiSource.fromMap(Map<String, dynamic> m) {
     final y = m['year'];
-    return SleepAiSource(
+    return DiaperAiSource(
       title: (m['title'] ?? '').toString(),
       publisher: (m['publisher'] ?? '').toString(),
       url: (m['url'] ?? '').toString(),

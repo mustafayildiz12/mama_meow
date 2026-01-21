@@ -1,51 +1,36 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_page.dart';
+import 'package:mama_meow/service/gpt_service/nursing_ai_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/service/gpt_service/sleep_ai_service.dart'; // ✅ SleepAiInsight burada ise
-import 'sleep_report_page.dart';
-
-class SleepReportPdfBuilder {
+class NursingReportPdfBuilder {
   static Future<Uint8List> build({
     required PdfPageFormat format,
-    required SleepReportMode mode,
+    required NursingReportMode mode,
     required String rangeLabel,
-    required List<SleepModel> sleeps,
-
-    // ✅ NEW
-    SleepAiInsight? ai,
+    required List<NursingModel> nursings,
+    NursingAiInsight? ai,
   }) async {
     final doc = pw.Document();
 
-    final regularFontData = await rootBundle.load(
-      "assets/fonts/nunito/Nunito-Regular.ttf",
-    );
+    final regularFontData =
+        await rootBundle.load("assets/fonts/nunito/Nunito-Regular.ttf");
     final regularTtf = pw.Font.ttf(regularFontData);
 
-    final semiboldTtfData = await rootBundle.load(
-      "assets/fonts/nunito/Nunito-SemiBold.ttf",
-    );
+    final semiboldTtfData =
+        await rootBundle.load("assets/fonts/nunito/Nunito-SemiBold.ttf");
     final semiboldTtf = pw.Font.ttf(semiboldTtfData);
 
-    final totalMinutes = _totalMinutes(sleeps);
-    final avgMinutes = sleeps.isEmpty
-        ? 0
-        : (totalMinutes / sleeps.length).round();
-    final lastEnd = _latestEndTime(sleeps);
+    final totalDuration = _totalDurationMinutes(nursings);
+    final avgDuration =
+        nursings.isEmpty ? 0 : (totalDuration / nursings.length).round();
+    final lastTime = _latestSessionTime(nursings);
 
-    final PdfColor scaffoldColor = PdfColor(
-      0.9725490196078431,
-      0.9803921568627451,
-      0.9882352941176471,
-    );
-
-    final PdfColor cardColor = PdfColor(
-      0.7803921568627451,
-      0.807843137254902,
-      0.9176470588235294,
-    );
+    final PdfColor scaffoldColor = PdfColor(0.9725, 0.9803, 0.9882);
+    final PdfColor cardColor = PdfColor(0.7803, 0.8078, 0.9176);
     final PdfColor cardWhiteColor = PdfColor(1, 1, 1);
 
     final pw.LinearGradient gradient = pw.LinearGradient(
@@ -65,14 +50,13 @@ class SleepReportPdfBuilder {
           _summaryCards(
             regularTtf: regularTtf,
             semiBold: semiboldTtf,
-            total: _fmtMin(totalMinutes),
-            count: sleeps.length,
-            avg: _fmtMin(avgMinutes),
-            lastEnd: lastEnd,
+            totalDuration: _fmtMin(totalDuration),
+            sessionCount: nursings.length,
+            avgDuration: _fmtMin(avgDuration),
+            lastTime: lastTime,
             gradient: gradient,
           ),
 
-          // ✅ AI ANALYSIS bloğu (tablonun üstünde)
           if (ai != null) ...[
             pw.SizedBox(height: 14),
             _aiBlock(ai, regularTtf, semiboldTtf, scaffoldColor),
@@ -80,7 +64,7 @@ class SleepReportPdfBuilder {
 
           pw.SizedBox(height: 18),
           pw.Text(
-            "Sleeps",
+            "Nursing Sessions",
             style: pw.TextStyle(
               font: semiboldTtf,
               fontSize: 16,
@@ -88,7 +72,7 @@ class SleepReportPdfBuilder {
             ),
           ),
           pw.SizedBox(height: 8),
-          _table(sleeps, cardColor, scaffoldColor),
+          _table(nursings, cardColor, scaffoldColor, regularTtf),
           pw.SizedBox(height: 12),
           pw.Text(
             "Generated at: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
@@ -106,52 +90,38 @@ class SleepReportPdfBuilder {
     return Uint8List.fromList(bytes);
   }
 
-  // ✅ AI widget
+  // =========================
+  // AI block (NursingAiInsight)
+  // =========================
   static pw.Widget _aiBlock(
-    SleepAiInsight ai,
+    NursingAiInsight ai,
     pw.Font regularTtf,
     pw.Font semiBold,
     PdfColor scaffoldColor,
   ) {
-    // ====== SleepAiInsight alanlarını burada okuyoruz ======
-    // Eğer field isimleri sende farklıysa sadece aşağıyı düzelt.
-    final title = (ai.aiTitle.trim().isNotEmpty == true)
-        ? ai.aiTitle.trim()
-        : "AI Sleep Analysis";
+    final title =
+        ai.aiTitle.trim().isNotEmpty ? ai.aiTitle.trim() : "AI Nursing Analysis";
 
-    final summary = (ai.aiSummaryBullets)
-        .where((e) => e.trim().isNotEmpty)
-        .toList();
+    final summary =
+        ai.aiSummaryBullets.where((e) => e.trim().isNotEmpty).toList();
+    final patterns = ai.patterns.where((e) => e.trim().isNotEmpty).toList();
+    final watchOuts = ai.watchOuts.where((e) => e.trim().isNotEmpty).toList();
+    final actions = ai.actionPlan.where((e) => e.trim().isNotEmpty).toList();
 
-    final patterns = (ai.patterns).where((e) => e.trim().isNotEmpty).toList();
-
-    final watchOuts = (ai.watchOuts).where((e) => e.trim().isNotEmpty).toList();
-
-    final actions = (ai.actionPlan).where((e) => e.trim().isNotEmpty).toList();
-
-    final confidence = (ai.confidenceNote).trim();
-    final disclaimer = (ai.disclaimer).trim().isNotEmpty
-        ? (ai.disclaimer).trim()
+    final confidence = ai.confidenceNote.trim();
+    final disclaimer = ai.disclaimer.trim().isNotEmpty
+        ? ai.disclaimer.trim()
         : "Not medical advice. Consult a healthcare professional for concerns.";
 
-    // Sources (opsiyonel, 1-2 satır bas)
     final sourceLines = <String>[];
-    final sources = ai.sources;
-    for (final s in sources.take(2)) {
-      // SleepAiSource modelin varsa alan adları değişebilir:
-      final t = (s.title).trim();
-      final p = (s.publisher).trim();
-      final y = (s.year != null) ? s.year.toString() : '';
-      final u = (s.url).trim();
-
-      final line = [
-        if (t.isNotEmpty) t,
-        if (p.isNotEmpty) p,
-        if (y.isNotEmpty) y,
-        if (u.isNotEmpty) u,
-      ].join(' • ');
-
-      if (line.trim().isNotEmpty) sourceLines.add(line);
+    for (final s in ai.sources.take(2)) {
+      final parts = <String>[
+        if (s.title.trim().isNotEmpty) s.title.trim(),
+        if (s.publisher.trim().isNotEmpty) s.publisher.trim(),
+        if (s.year != null) s.year.toString(),
+        if (s.url.trim().isNotEmpty) s.url.trim(),
+      ];
+      if (parts.isNotEmpty) sourceLines.add(parts.join(' • '));
     }
 
     pw.Widget bullets(String head, List<String> items) {
@@ -168,10 +138,8 @@ class SleepReportPdfBuilder {
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(
-                    "•  ",
-                    style: pw.TextStyle(font: regularTtf, fontSize: 10),
-                  ),
+                  pw.Text("•  ",
+                      style: pw.TextStyle(font: regularTtf, fontSize: 10)),
                   pw.Expanded(
                     child: pw.Text(
                       it,
@@ -195,31 +163,22 @@ class SleepReportPdfBuilder {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  title,
-                  style: pw.TextStyle(
-                    font: semiBold,
-                    fontSize: 13,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              font: semiBold,
+              fontSize: 13,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           if (summary.isNotEmpty) bullets("Summary", summary),
           if (patterns.isNotEmpty) bullets("Patterns", patterns),
           if (watchOuts.isNotEmpty) bullets("Watch outs", watchOuts),
           if (actions.isNotEmpty) bullets("Action plan", actions),
-
           if (confidence.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text(
-              "Confidence",
-              style: pw.TextStyle(font: semiBold, fontSize: 11),
-            ),
+            pw.Text("Confidence",
+                style: pw.TextStyle(font: semiBold, fontSize: 11)),
             pw.SizedBox(height: 3),
             pw.Text(
               confidence,
@@ -230,7 +189,6 @@ class SleepReportPdfBuilder {
               ),
             ),
           ],
-
           pw.SizedBox(height: 8),
           pw.Text(
             disclaimer,
@@ -240,13 +198,10 @@ class SleepReportPdfBuilder {
               color: PdfColors.grey700,
             ),
           ),
-
           if (sourceLines.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text(
-              "Sources",
-              style: pw.TextStyle(font: semiBold, fontSize: 11),
-            ),
+            pw.Text("Sources",
+                style: pw.TextStyle(font: semiBold, fontSize: 11)),
             pw.SizedBox(height: 3),
             for (final line in sourceLines)
               pw.Text(
@@ -263,19 +218,20 @@ class SleepReportPdfBuilder {
     );
   }
 
-  // ====== aşağısı senin mevcut helper’ların (aynı) ======
-
+  // =========================
+  // Header
+  // =========================
   static pw.Widget _header(
-    SleepReportMode mode,
+    NursingReportMode mode,
     String rangeLabel,
     pw.Font regularTtf,
     pw.Font semiBold,
     pw.LinearGradient gradient,
   ) {
     final title = switch (mode) {
-      SleepReportMode.today => "Daily Sleep Report",
-      SleepReportMode.week => "Weekly Sleep Report",
-      SleepReportMode.month => "Monthly Sleep Report",
+      NursingReportMode.today => "Daily Nursing Report",
+      NursingReportMode.week => "Weekly Nursing Report",
+      NursingReportMode.month => "Monthly Nursing Report",
     };
 
     return pw.Container(
@@ -317,11 +273,14 @@ class SleepReportPdfBuilder {
     );
   }
 
+  // =========================
+  // Summary cards
+  // =========================
   static pw.Widget _summaryCards({
-    required String total,
-    required int count,
-    required String avg,
-    required String lastEnd,
+    required String totalDuration,
+    required int sessionCount,
+    required String avgDuration,
+    required String lastTime,
     required pw.Font regularTtf,
     required pw.Font semiBold,
     required pw.LinearGradient gradient,
@@ -363,42 +322,48 @@ class SleepReportPdfBuilder {
 
     return pw.Row(
       children: [
-        card("Total", total),
+        card("Total", totalDuration),
         pw.SizedBox(width: 10),
-        card("Sleeps", "$count"),
+        card("Sessions", "$sessionCount"),
         pw.SizedBox(width: 10),
-        card("Avg", avg),
+        card("Avg", avgDuration),
         pw.SizedBox(width: 10),
-        card("Last End", lastEnd),
+        card("Last", lastTime),
       ],
     );
   }
 
+  // =========================
+  // Table
+  // =========================
   static pw.Widget _table(
-    List<SleepModel> sleeps,
+    List<NursingModel> nursings,
     PdfColor cardColor,
     PdfColor scaffoldColor,
+    pw.Font regularTtf,
   ) {
     final headers = <String>[
       "Date",
-      "Start",
-      "End",
+      "Time",
       "Duration",
-      "How",
-      "Start Mood",
-      "End Mood",
+      "Side",
+      "Feeding",
+      "Milk Type",
+      "Amount",
     ];
 
-    final rows = sleeps.map((s) {
-      final dur = _calcDurationMinutes(s);
+    final rows = nursings.map((n) {
+      final date = _safeDateFromIso(n.createdAt);
+      final milk = (n.milkType ?? "-");
+      final amountStr = "${_fmtAmount(n.amount)} ${n.amountType}";
       return <String>[
-        _safeDate(s.sleepDate),
-        s.startTime,
-        s.endTime,
-        _fmtMin(dur),
-        (s.howItHappened ?? "-"),
-        (s.startOfSleep ?? "-"),
-        (s.endOfSleep ?? "-"),
+        date,
+        n.startTime,
+        _fmtMin(n.duration),
+        n.side,
+        n.feedingType,
+        milk,
+        amountStr,
       ];
     }).toList();
 
@@ -406,7 +371,7 @@ class SleepReportPdfBuilder {
       headers: headers,
       data: rows,
       headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-      cellStyle: const pw.TextStyle(fontSize: 9),
+      cellStyle: pw.TextStyle(fontSize: 9, font: regularTtf),
       headerDecoration: pw.BoxDecoration(color: cardColor),
       rowDecoration: pw.BoxDecoration(color: scaffoldColor),
       cellAlignment: pw.Alignment.center,
@@ -415,52 +380,35 @@ class SleepReportPdfBuilder {
     );
   }
 
-  static int _totalMinutes(List<SleepModel> sleeps) {
+  // =========================
+  // Helpers
+  // =========================
+  static int _totalDurationMinutes(List<NursingModel> nursings) {
     var sum = 0;
-    for (final s in sleeps) {
-      sum += _calcDurationMinutes(s);
+    for (final n in nursings) {
+      sum += n.duration;
     }
     return sum;
   }
 
-  static String _latestEndTime(List<SleepModel> sleeps) {
+  static String _latestSessionTime(List<NursingModel> nursings) {
     DateTime? latest;
-    for (final s in sleeps) {
-      final end = _combineDateAndTime(s.sleepDate, s.endTime);
-      final start = _combineDateAndTime(s.sleepDate, s.startTime);
-      if (end == null || start == null) continue;
-
-      var endFixed = end;
-      if (endFixed.isBefore(start)) {
-        endFixed = endFixed.add(const Duration(days: 1));
+    String last = "-";
+    for (final n in nursings) {
+      final dt = DateTime.tryParse(n.createdAt);
+      if (dt == null) continue;
+      if (latest == null || dt.isAfter(latest)) {
+        latest = dt;
+        last = n.startTime;
       }
-      if (latest == null || endFixed.isAfter(latest)) latest = endFixed;
     }
-    return latest == null ? "-" : DateFormat('HH:mm').format(latest);
+    return last;
   }
 
-  static DateTime? _combineDateAndTime(String dateStr, String hhmm) {
-    try {
-      final dateOnly = dateStr.split(' ').first;
-      final ymd = DateFormat('yyyy-MM-dd').parseStrict(dateOnly);
-      final parts = hhmm.split(':');
-      final h = int.tryParse(parts[0]) ?? 0;
-      final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-      return DateTime(ymd.year, ymd.month, ymd.day, h, m);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static int _calcDurationMinutes(SleepModel s) {
-    final start = _combineDateAndTime(s.sleepDate, s.startTime);
-    var end = _combineDateAndTime(s.sleepDate, s.endTime);
-    if (start == null || end == null) return 0;
-
-    if (end.isBefore(start)) {
-      end = end.add(const Duration(days: 1));
-    }
-    return end.difference(start).inMinutes;
+  static String _safeDateFromIso(String iso) {
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return iso.split(' ').first;
+    return DateFormat('yyyy-MM-dd').format(dt);
   }
 
   static String _fmtMin(int minutes) {
@@ -470,5 +418,10 @@ class SleepReportPdfBuilder {
     return "${h}h ${m}m";
   }
 
-  static String _safeDate(String raw) => raw.split(' ').first;
+  static String _fmtAmount(num v) {
+    // 5 -> "5", 5.0 -> "5", 5.25 -> "5.25"
+    final d = v.toDouble();
+    if ((d - d.roundToDouble()).abs() < 0.000001) return d.toInt().toString();
+    return d.toStringAsFixed(2);
+  }
 }

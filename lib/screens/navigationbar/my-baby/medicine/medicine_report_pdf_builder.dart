@@ -1,21 +1,21 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/models/activities/medicine_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_compute.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_page.dart';
+import 'package:mama_meow/service/gpt_service/medicine_ai_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/service/gpt_service/sleep_ai_service.dart'; // ✅ SleepAiInsight burada ise
-import 'sleep_report_page.dart';
-
-class SleepReportPdfBuilder {
+class MedicineReportPdfBuilder {
   static Future<Uint8List> build({
     required PdfPageFormat format,
-    required SleepReportMode mode,
+    required MedicineReportMode mode,
     required String rangeLabel,
-    required List<SleepModel> sleeps,
-
-    // ✅ NEW
-    SleepAiInsight? ai,
+    required List<MedicineModel> medicines,
+    MedicineAiInsight? ai,
+    MedicineReportComputed?
+    computed, // opsiyonel: hazırsa tekrar hesaplamayalım
   }) async {
     final doc = pw.Document();
 
@@ -29,22 +29,17 @@ class SleepReportPdfBuilder {
     );
     final semiboldTtf = pw.Font.ttf(semiboldTtfData);
 
-    final totalMinutes = _totalMinutes(sleeps);
-    final avgMinutes = sleeps.isEmpty
-        ? 0
-        : (totalMinutes / sleeps.length).round();
-    final lastEnd = _latestEndTime(sleeps);
+    final c = computed ?? _compute(medicines);
 
     final PdfColor scaffoldColor = PdfColor(
-      0.9725490196078431,
-      0.9803921568627451,
-      0.9882352941176471,
+      0.9725490196,
+      0.9803921569,
+      0.9882352941,
     );
-
     final PdfColor cardColor = PdfColor(
-      0.7803921568627451,
-      0.807843137254902,
-      0.9176470588235294,
+      0.7803921569,
+      0.8078431373,
+      0.9176470588,
     );
     final PdfColor cardWhiteColor = PdfColor(1, 1, 1);
 
@@ -65,22 +60,18 @@ class SleepReportPdfBuilder {
           _summaryCards(
             regularTtf: regularTtf,
             semiBold: semiboldTtf,
-            total: _fmtMin(totalMinutes),
-            count: sleeps.length,
-            avg: _fmtMin(avgMinutes),
-            lastEnd: lastEnd,
+            total: "${c.totalCount}",
+            unique: "${c.uniqueMedicineCount}",
+            lastTime: c.lastTimeLabel,
             gradient: gradient,
           ),
-
-          // ✅ AI ANALYSIS bloğu (tablonun üstünde)
           if (ai != null) ...[
             pw.SizedBox(height: 14),
             _aiBlock(ai, regularTtf, semiboldTtf, scaffoldColor),
           ],
-
           pw.SizedBox(height: 18),
           pw.Text(
-            "Sleeps",
+            "Medicines",
             style: pw.TextStyle(
               font: semiboldTtf,
               fontSize: 16,
@@ -88,7 +79,7 @@ class SleepReportPdfBuilder {
             ),
           ),
           pw.SizedBox(height: 8),
-          _table(sleeps, cardColor, scaffoldColor),
+          _table(medicines, cardColor, scaffoldColor),
           pw.SizedBox(height: 12),
           pw.Text(
             "Generated at: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
@@ -106,51 +97,41 @@ class SleepReportPdfBuilder {
     return Uint8List.fromList(bytes);
   }
 
-  // ✅ AI widget
+  // ---- AI Block (Sleep’teki ile aynı) ----
   static pw.Widget _aiBlock(
-    SleepAiInsight ai,
+    MedicineAiInsight ai,
     pw.Font regularTtf,
     pw.Font semiBold,
     PdfColor scaffoldColor,
   ) {
-    // ====== SleepAiInsight alanlarını burada okuyoruz ======
-    // Eğer field isimleri sende farklıysa sadece aşağıyı düzelt.
-    final title = (ai.aiTitle.trim().isNotEmpty == true)
+    final title = ai.aiTitle.trim().isNotEmpty
         ? ai.aiTitle.trim()
-        : "AI Sleep Analysis";
+        : "AI Medicine Analysis";
 
-    final summary = (ai.aiSummaryBullets)
+    final summary = ai.aiSummaryBullets
         .where((e) => e.trim().isNotEmpty)
         .toList();
+    final patterns = ai.patterns.where((e) => e.trim().isNotEmpty).toList();
+    final watchOuts = ai.watchOuts.where((e) => e.trim().isNotEmpty).toList();
+    final actions = ai.actionPlan.where((e) => e.trim().isNotEmpty).toList();
 
-    final patterns = (ai.patterns).where((e) => e.trim().isNotEmpty).toList();
+    final confidence = ai.confidenceNote.trim();
+    final disclaimer = ai.disclaimer.trim().isNotEmpty
+        ? ai.disclaimer.trim()
+        : "Not medical advice. Confirm any medication concerns with your pediatrician or pharmacist.";
 
-    final watchOuts = (ai.watchOuts).where((e) => e.trim().isNotEmpty).toList();
-
-    final actions = (ai.actionPlan).where((e) => e.trim().isNotEmpty).toList();
-
-    final confidence = (ai.confidenceNote).trim();
-    final disclaimer = (ai.disclaimer).trim().isNotEmpty
-        ? (ai.disclaimer).trim()
-        : "Not medical advice. Consult a healthcare professional for concerns.";
-
-    // Sources (opsiyonel, 1-2 satır bas)
     final sourceLines = <String>[];
-    final sources = ai.sources;
-    for (final s in sources.take(2)) {
-      // SleepAiSource modelin varsa alan adları değişebilir:
-      final t = (s.title).trim();
-      final p = (s.publisher).trim();
+    for (final s in ai.sources.take(2)) {
+      final t = s.title.trim();
+      final p = s.publisher.trim();
       final y = (s.year != null) ? s.year.toString() : '';
-      final u = (s.url).trim();
-
+      final u = s.url.trim();
       final line = [
         if (t.isNotEmpty) t,
         if (p.isNotEmpty) p,
         if (y.isNotEmpty) y,
         if (u.isNotEmpty) u,
       ].join(' • ');
-
       if (line.trim().isNotEmpty) sourceLines.add(line);
     }
 
@@ -195,19 +176,13 @@ class SleepReportPdfBuilder {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  title,
-                  style: pw.TextStyle(
-                    font: semiBold,
-                    fontSize: 13,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              font: semiBold,
+              fontSize: 13,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           if (summary.isNotEmpty) bullets("Summary", summary),
           if (patterns.isNotEmpty) bullets("Patterns", patterns),
@@ -263,19 +238,18 @@ class SleepReportPdfBuilder {
     );
   }
 
-  // ====== aşağısı senin mevcut helper’ların (aynı) ======
-
+  // ---- Header ----
   static pw.Widget _header(
-    SleepReportMode mode,
+    MedicineReportMode mode,
     String rangeLabel,
     pw.Font regularTtf,
     pw.Font semiBold,
     pw.LinearGradient gradient,
   ) {
     final title = switch (mode) {
-      SleepReportMode.today => "Daily Sleep Report",
-      SleepReportMode.week => "Weekly Sleep Report",
-      SleepReportMode.month => "Monthly Sleep Report",
+      MedicineReportMode.today => "Daily Medicine Report",
+      MedicineReportMode.week => "Weekly Medicine Report",
+      MedicineReportMode.month => "Monthly Medicine Report",
     };
 
     return pw.Container(
@@ -286,7 +260,6 @@ class SleepReportPdfBuilder {
         gradient: gradient,
       ),
       child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(
             child: pw.Column(
@@ -317,11 +290,11 @@ class SleepReportPdfBuilder {
     );
   }
 
+  // ---- Summary Cards ----
   static pw.Widget _summaryCards({
     required String total,
-    required int count,
-    required String avg,
-    required String lastEnd,
+    required String unique,
+    required String lastTime,
     required pw.Font regularTtf,
     required pw.Font semiBold,
     required pw.LinearGradient gradient,
@@ -365,40 +338,35 @@ class SleepReportPdfBuilder {
       children: [
         card("Total", total),
         pw.SizedBox(width: 10),
-        card("Sleeps", "$count"),
+        card("Unique", unique),
         pw.SizedBox(width: 10),
-        card("Avg", avg),
-        pw.SizedBox(width: 10),
-        card("Last End", lastEnd),
+        card("Last Time", lastTime),
       ],
     );
   }
 
+  // ---- Table ----
   static pw.Widget _table(
-    List<SleepModel> sleeps,
+    List<MedicineModel> medicines,
     PdfColor cardColor,
     PdfColor scaffoldColor,
   ) {
-    final headers = <String>[
-      "Date",
-      "Start",
-      "End",
-      "Duration",
-      "How",
-      "Start Mood",
-      "End Mood",
-    ];
+    final headers = <String>["Date", "Time", "Medicine", "Amount"];
 
-    final rows = sleeps.map((s) {
-      final dur = _calcDurationMinutes(s);
+    final rows = medicines.map((m) {
+      final dt = _tryParseDateTime(m.createdAt);
+      final date = dt != null
+          ? DateFormat('yyyy-MM-dd').format(dt)
+          : m.createdAt.split(' ').first;
+      final time = m.startTime.trim().isNotEmpty
+          ? m.startTime
+          : (dt != null ? DateFormat('HH:mm').format(dt) : "-");
+
       return <String>[
-        _safeDate(s.sleepDate),
-        s.startTime,
-        s.endTime,
-        _fmtMin(dur),
-        (s.howItHappened ?? "-"),
-        (s.startOfSleep ?? "-"),
-        (s.endOfSleep ?? "-"),
+        date,
+        time,
+        m.medicineName,
+        "${m.amount} ${m.amountType}",
       ];
     }).toList();
 
@@ -409,66 +377,107 @@ class SleepReportPdfBuilder {
       cellStyle: const pw.TextStyle(fontSize: 9),
       headerDecoration: pw.BoxDecoration(color: cardColor),
       rowDecoration: pw.BoxDecoration(color: scaffoldColor),
-      cellAlignment: pw.Alignment.center,
+      cellAlignment: pw.Alignment.centerLeft,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
     );
   }
 
-  static int _totalMinutes(List<SleepModel> sleeps) {
-    var sum = 0;
-    for (final s in sleeps) {
-      sum += _calcDurationMinutes(s);
-    }
-    return sum;
-  }
+  // ---- Computed (PDF builder içi minimal) ----
+  static MedicineReportComputed _compute(List<MedicineModel> medicines) {
+    final byHourRaw = <int, int>{};
+    final byMedicine = <String, int>{};
+    final byAmountType = <String, double>{};
+    final details = <MedicineDetail>[];
 
-  static String _latestEndTime(List<SleepModel> sleeps) {
+    String lastTime = '-';
     DateTime? latest;
-    for (final s in sleeps) {
-      final end = _combineDateAndTime(s.sleepDate, s.endTime);
-      final start = _combineDateAndTime(s.sleepDate, s.startTime);
-      if (end == null || start == null) continue;
 
-      var endFixed = end;
-      if (endFixed.isBefore(start)) {
-        endFixed = endFixed.add(const Duration(days: 1));
-      }
-      if (latest == null || endFixed.isAfter(latest)) latest = endFixed;
+    int parseHourSafe(MedicineModel m) {
+      final h = int.tryParse(m.startTime.split(':').first);
+      if (h != null && h >= 0 && h <= 23) return h;
+      final dt = _tryParseDateTime(m.createdAt);
+      return dt?.hour ?? 0;
     }
-    return latest == null ? "-" : DateFormat('HH:mm').format(latest);
+
+    String bestTime(MedicineModel m) {
+      final t = m.startTime.trim();
+      if (t.isNotEmpty) return t;
+      final dt = _tryParseDateTime(m.createdAt);
+      return dt != null ? DateFormat('HH:mm').format(dt) : '-';
+    }
+
+    String norm(String s) => s.trim().toLowerCase();
+
+    for (final m in medicines) {
+      final h = parseHourSafe(m);
+      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
+
+      final nameKey = norm(m.medicineName);
+      byMedicine[nameKey] = (byMedicine[nameKey] ?? 0) + 1;
+
+      byAmountType[m.amountType] =
+          (byAmountType[m.amountType] ?? 0) + m.amount.toDouble();
+
+      details.add(
+        MedicineDetail(
+          name: m.medicineName,
+          time: bestTime(m),
+          amount: m.amount,
+          amountType: m.amountType,
+          createdAt: m.createdAt,
+        ),
+      );
+
+      final ct = _tryParseDateTime(m.createdAt);
+      if (ct != null && (latest == null || ct.isAfter(latest))) {
+        latest = ct;
+        lastTime = bestTime(m);
+      }
+    }
+
+    details.sort((a, b) {
+      final at = _parseTime(a.time);
+      final bt = _parseTime(b.time);
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return at.compareTo(bt);
+    });
+
+    final distHourCount = <String, int>{};
+    for (int h = 0; h < 24; h++) {
+      distHourCount[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
+    }
+
+    return MedicineReportComputed(
+      totalCount: medicines.length,
+      uniqueMedicineCount: byMedicine.keys.length,
+      lastTimeLabel: lastTime,
+      distHourCount: distHourCount,
+      medicineCounts: byMedicine,
+      amountTypeTotals: byAmountType,
+      details: details,
+    );
   }
 
-  static DateTime? _combineDateAndTime(String dateStr, String hhmm) {
+  static DateTime? _tryParseDateTime(String s) {
     try {
-      final dateOnly = dateStr.split(' ').first;
-      final ymd = DateFormat('yyyy-MM-dd').parseStrict(dateOnly);
-      final parts = hhmm.split(':');
-      final h = int.tryParse(parts[0]) ?? 0;
-      final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-      return DateTime(ymd.year, ymd.month, ymd.day, h, m);
+      return DateTime.parse(s);
+    } catch (_) {}
+    try {
+      return DateFormat('yyyy-MM-dd HH:mm').parseStrict(s);
     } catch (_) {
       return null;
     }
   }
 
-  static int _calcDurationMinutes(SleepModel s) {
-    final start = _combineDateAndTime(s.sleepDate, s.startTime);
-    var end = _combineDateAndTime(s.sleepDate, s.endTime);
-    if (start == null || end == null) return 0;
-
-    if (end.isBefore(start)) {
-      end = end.add(const Duration(days: 1));
+  static DateTime? _parseTime(String timeStr) {
+    try {
+      final p = timeStr.split(':');
+      return DateTime(2000, 1, 1, int.parse(p[0]), int.parse(p[1]));
+    } catch (_) {
+      return null;
     }
-    return end.difference(start).inMinutes;
   }
-
-  static String _fmtMin(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    if (h == 0) return "${m}m";
-    return "${h}h ${m}m";
-  }
-
-  static String _safeDate(String raw) => raw.split(' ').first;
 }
