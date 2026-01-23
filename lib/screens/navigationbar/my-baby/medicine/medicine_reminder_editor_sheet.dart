@@ -33,8 +33,7 @@ class _MedicineReminderEditorSheetState
     super.initState();
     analyticService.screenView('medicine_reminder_editor');
     final it = widget.initial;
-    _time =
-        it?.timeOfDay ?? const TimeOfDay(hour: 8, minute: 0); // default 08:00
+    _time = it?.timeOfDay ?? TimeOfDay.now(); // default 08:00
     _days = Set<int>.from(it?.weekdays ?? {});
     _enabled = it?.enabled ?? true;
   }

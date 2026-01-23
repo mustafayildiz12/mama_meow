@@ -8,6 +8,7 @@ import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 class AddDiaperBottomSheet extends StatefulWidget {
   const AddDiaperBottomSheet({super.key});
@@ -80,6 +81,9 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
                     children: [
                       IconButton(
                         onPressed: () async {
+                          await AlarmPolicy.instance.ensure();
+
+                          
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -87,6 +91,7 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
                                   const DiaperRemindersManagerPage(),
                             ),
                           );
+                          
                         },
                         icon: const Icon(
                           Icons.alarm_add,

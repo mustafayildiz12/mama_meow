@@ -6,6 +6,7 @@ import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 /// ---- Sabitler ----
 const int kDayMinutes = 24 * 60; // 1440
@@ -93,7 +94,7 @@ class _SleepExtendedMultiSliderBottomSheetState
   @override
   void initState() {
     super.initState();
-     analyticService.screenView('add_sleep_sheet');
+    analyticService.screenView('add_sleep_sheet');
     if (widget.initialStartEnds != null &&
         widget.initialStartEnds!.length.isEven &&
         widget.initialStartEnds!.isNotEmpty) {
@@ -299,6 +300,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                         ),
                         IconButton(
                           onPressed: () async {
+                            await AlarmPolicy.instance.ensure();
                             await Navigator.push(
                               context,
                               MaterialPageRoute(

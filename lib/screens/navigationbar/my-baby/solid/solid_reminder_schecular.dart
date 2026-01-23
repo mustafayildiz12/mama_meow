@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mama_meow/models/reminders/solid_reminder_model.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class SolidReminderNotificationService {
@@ -52,7 +53,9 @@ class SolidReminderNotificationService {
 
   tz.TZDateTime _nextWeekly(int weekday, int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var sched = tz.TZDateTime(
+
+    // Bugün hedef saat
+    final todayAt = tz.TZDateTime(
       tz.local,
       now.year,
       now.month,
@@ -60,10 +63,16 @@ class SolidReminderNotificationService {
       hour,
       minute,
     );
-    int addDays = (weekday - sched.weekday) % 7;
-    if (addDays < 0) addDays += 7;
-    if (addDays == 0 && sched.isBefore(now)) addDays = 7;
-    return sched.add(Duration(days: addDays));
+
+    // Hedef güne kaç gün kaldı? (0..6)
+    var daysUntil = (weekday - now.weekday + 7) % 7;
+
+    // Eğer hedef gün bugün ve saat geçmişse -> 7 gün sonrası
+    if (daysUntil == 0 && !todayAt.isAfter(now)) {
+      daysUntil = 7;
+    }
+
+    return todayAt.add(Duration(days: daysUntil));
   }
 
   Future<void> scheduleItem(SolidReminderItem item) async {
@@ -85,13 +94,20 @@ class SolidReminderNotificationService {
     final details = NotificationDetails(android: android, iOS: ios);
 
     for (final d in item.weekdays) {
+      tz.TZDateTime x = _nextWeekly(
+        d,
+        item.timeOfDay.hour,
+        item.timeOfDay.minute,
+      );
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
         'You’re doing great, mama — time to feed 💕🐱',
         '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
-        _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
+        x,
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AlarmPolicy.instance.canExact
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     }
@@ -111,8 +127,6 @@ class SolidReminderNotificationService {
       await scheduleItem(it);
     }
   }
-
-
 
   String _two(int n) => n.toString().padLeft(2, '0');
 }

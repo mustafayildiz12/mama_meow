@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mama_meow/models/reminders/pumping_reminder_model.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class PumpingReminderNotificationService {
@@ -52,7 +53,9 @@ class PumpingReminderNotificationService {
 
   tz.TZDateTime _nextWeekly(int weekday, int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var sched = tz.TZDateTime(
+
+    // Bugün hedef saat
+    final todayAt = tz.TZDateTime(
       tz.local,
       now.year,
       now.month,
@@ -60,10 +63,16 @@ class PumpingReminderNotificationService {
       hour,
       minute,
     );
-    int addDays = (weekday - sched.weekday) % 7;
-    if (addDays < 0) addDays += 7;
-    if (addDays == 0 && sched.isBefore(now)) addDays = 7;
-    return sched.add(Duration(days: addDays));
+
+    // Hedef güne kaç gün kaldı? (0..6)
+    var daysUntil = (weekday - now.weekday + 7) % 7;
+
+    // Eğer hedef gün bugün ve saat geçmişse -> 7 gün sonrası
+    if (daysUntil == 0 && !todayAt.isAfter(now)) {
+      daysUntil = 7;
+    }
+
+    return todayAt.add(Duration(days: daysUntil));
   }
 
   Future<void> scheduleItem(PumpingReminderItem item) async {
@@ -86,7 +95,9 @@ class PumpingReminderNotificationService {
         '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AlarmPolicy.instance.canExact
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     }

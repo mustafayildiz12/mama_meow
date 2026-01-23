@@ -41,21 +41,22 @@ class AppInitService {
   static Future<void> initNotification() async {
     await requestAndroidNotificationPermission();
 
-    // 1) TZ veritabanını yükle
-    tz.initializeTimeZones(); // 2025b IANA veritabanı dâhil. :contentReference[oaicite:2]{index=2}
+    tz.initializeTimeZones();
 
-    // 2) Cihazın timezone adını al (örn. "Europe/Istanbul")
-    String timeZoneName = "UTC";
     try {
-      var xx = await FlutterTimezone.getLocalTimezone();
-      timeZoneName = xx.identifier;
-    } catch (_) {
-      timeZoneName = 'UTC'; // güvenli geri dönüş
-    }
-    print("Timezone: $timeZoneName");
+      final TimezoneInfo info = await FlutterTimezone.getLocalTimezone();
 
-    // 3) Yerel lokasyonu ayarla
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+      // ✅ IANA id: "Europe/Istanbul"
+      tz.setLocalLocation(tz.getLocation(info.identifier));
+
+      print("🌍 Timezone identifier: ${info.identifier}");
+      print(
+        "🌍 Timezone localized: ${info.localizedName?.name} (${info.localizedName?.locale})",
+      );
+    } catch (e) {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+      print("⚠️ Timezone fallback to UTC: $e");
+    }
 
     // Notifications
     await NotificationService.instance.init();

@@ -14,6 +14,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_man
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
@@ -297,6 +298,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                 ),
                 IconButton(
                   onPressed: () async {
+                    await AlarmPolicy.instance.ensure();
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -304,7 +306,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.alarm_add), // or Icons.alarm_add
+                  icon: const Icon(Icons.alarm_add),
                 ),
               ],
             ),

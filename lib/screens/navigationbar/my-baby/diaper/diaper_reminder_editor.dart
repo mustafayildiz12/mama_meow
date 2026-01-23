@@ -32,8 +32,7 @@ class _DiaperReminderEditorSheetState extends State<DiaperReminderEditorSheet> {
     super.initState();
     analyticService.screenView('diaper_reminder_editor');
     final it = widget.initial;
-    _time =
-        it?.timeOfDay ?? const TimeOfDay(hour: 10, minute: 0); // default 10:00
+    _time = it?.timeOfDay ?? TimeOfDay.now(); // default 10:00
     _days = Set<int>.from(it?.weekdays ?? {});
     _enabled = it?.enabled ?? true;
   }

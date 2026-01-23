@@ -33,8 +33,7 @@ class _PumpingReminderEditorSheetState
     super.initState();
     analyticService.screenView('pumping_reminder_editor');
     final it = widget.initial;
-    _time =
-        it?.timeOfDay ?? const TimeOfDay(hour: 9, minute: 0); // default 09:00
+    _time = it?.timeOfDay ?? TimeOfDay.now(); // default 09:00
     _days = Set<int>.from(it?.weekdays ?? {});
     _enabled = it?.enabled ?? true;
   }

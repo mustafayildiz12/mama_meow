@@ -31,7 +31,7 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
     super.initState();
     analyticService.screenView('nursing_reminder_sheet');
     final it = widget.initial;
-    _time = it?.timeOfDay ?? const TimeOfDay(hour: 12, minute: 0);
+    _time = it?.timeOfDay ?? TimeOfDay.now();
     _days = Set<int>.from(it?.weekdays ?? {});
     _enabled = it?.enabled ?? true;
   }

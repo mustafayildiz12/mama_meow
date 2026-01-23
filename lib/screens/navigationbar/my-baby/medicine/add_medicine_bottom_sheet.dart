@@ -7,6 +7,7 @@ import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 /// Medicine amount types
 class MedicineAmountTypes {
@@ -225,6 +226,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                       ),
                       IconButton(
                         onPressed: () async {
+                           await AlarmPolicy.instance.ensure();
                           await Navigator.push(
                             context,
                             MaterialPageRoute(

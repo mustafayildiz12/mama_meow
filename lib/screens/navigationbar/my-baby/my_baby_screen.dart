@@ -22,6 +22,7 @@ import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
@@ -30,7 +31,8 @@ class MyBabyScreen extends StatefulWidget {
   State<MyBabyScreen> createState() => _MyBabyScreenState();
 }
 
-class _MyBabyScreenState extends State<MyBabyScreen> {
+class _MyBabyScreenState extends State<MyBabyScreen>
+    with WidgetsBindingObserver {
   late final Stream<int> _solidCount$;
   late final Stream<int> _sleepCount$;
   late final Stream<int> _diaperCount$;
@@ -56,10 +58,25 @@ class _MyBabyScreenState extends State<MyBabyScreen> {
     _nursingCount$ = nursingService
         .todayNursingCountStream()
         .asBroadcastStream();
+    WidgetsBinding.instance.addObserver(this);
+    AlarmPolicy.instance.refresh(); // sessiz kontrol
     super.initState();
   }
 
-  updateTopUi() {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AlarmPolicy.instance.refresh();
+    }
+  }
+
+  void updateTopUi() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
