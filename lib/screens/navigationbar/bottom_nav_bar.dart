@@ -1,40 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mama_meow/screens/navigationbar/home/home_screen.dart';
-import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/my_baby_screen.dart';
-import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
-import 'package:mama_meow/service/authentication_service.dart';
-import 'package:mama_meow/service/database_service.dart';
+import 'package:go_router/go_router.dart';
 
-class BottomNavBarScreen extends StatefulWidget {
-  const BottomNavBarScreen({super.key});
+class AppShellScaffold extends StatelessWidget {
+  const AppShellScaffold({super.key, required this.navigationShell});
 
-  @override
-  State<BottomNavBarScreen> createState() => _BottomNavBarScreenState();
-}
-
-class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    AskMeowView(),
-    MyBabyScreen(),
-    LearnPage(),
-    ProfilePage(),
-  ];
-
-  @override
-  void initState() {
-    checkAppVersion();
-    super.initState();
-  }
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = navigationShell.currentIndex;
+
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: navigationShell, // aktif branch burada render edilir
       bottomNavigationBar: SafeArea(
         bottom: Platform.isAndroid ? true : false,
         child: Container(
@@ -42,37 +20,43 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
             color: Colors.white,
           ),
-
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
               Expanded(
-                child: _buildNavItemPng(
+                child: _navItem(
+                  context,
                   imagePath: "assets/happy.png",
                   label: 'Ask Meow',
                   index: 0,
+                  isSelected: currentIndex == 0,
                 ),
               ),
               Expanded(
-                child: _buildNavItemPng(
+                child: _navItem(
+                  context,
                   imagePath: "assets/baby.png",
                   label: 'My Baby',
                   index: 1,
+                  isSelected: currentIndex == 1,
                 ),
               ),
-             
               Expanded(
-                child: _buildNavItemPng(
+                child: _navItem(
+                  context,
                   imagePath: "assets/mic.png",
                   label: 'Learn',
                   index: 2,
+                  isSelected: currentIndex == 2,
                 ),
               ),
               Expanded(
-                child: _buildNavItemPng(
+                child: _navItem(
+                  context,
                   imagePath: "assets/cat.png",
                   label: 'Profile',
                   index: 3,
+                  isSelected: currentIndex == 3,
                 ),
               ),
             ],
@@ -82,51 +66,26 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
     );
   }
 
-  Widget _buildNavItemSvg({required String label, required int index}) {
-    final isSelected = _currentIndex == index;
-    final color = isSelected ? Colors.pink.shade600 : Colors.grey.shade600;
-    final bgColor = isSelected ? Colors.pink.shade50 : Colors.transparent;
-
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset("assets/baby.svg", width: 36, height: 36),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItemPng({
+  Widget _navItem(
+    BuildContext context, {
     required String imagePath,
     required String label,
     required int index,
+    required bool isSelected,
   }) {
-    final isSelected = _currentIndex == index;
     final color = isSelected ? Colors.pink : Colors.grey.shade600;
     final bgColor = isSelected ? Colors.pink.shade50 : Colors.transparent;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        navigationShell.goBranch(
+          index,
+          // aynı tab’a tekrar basınca root’a dönmek istersen:
+          initialLocation: index == navigationShell.currentIndex,
+        );
+      },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
@@ -134,7 +93,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(imagePath, width: 36, height: 36,color: color),
+            Image.asset(imagePath, width: 28, height: 28, color: color),
             const SizedBox(height: 4),
             Text(
               label,
@@ -148,11 +107,5 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> checkAppVersion() async {
-    if (authenticationService.getUser() != null) {
-      await databaseService.getBasicAppInfo();
-    }
   }
 }

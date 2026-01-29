@@ -1,5 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
@@ -263,10 +266,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           const SizedBox(height: 16),
                           TextButton(
                             onPressed: () {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                AppRoutes.loginPage,
-                              );
+                              context.go(AppRoutes.loginPage);
                             },
                             child: const Text(
                               "Already have an account? Sign In",
@@ -339,11 +339,7 @@ class _RegisterPageState extends State<RegisterPage> {
             await databaseService.updateBaby(currentMeowUser);
           }
 
-          await Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.navigationBarPage,
-            (route) => false,
-          );
+          context.go(AppRoutes.askMeow);
         });
       }
     }

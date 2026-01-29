@@ -1,89 +1,99 @@
 // ignore_for_file: file_names
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_globals.dart';
 
 class CustomSnackBar {
   factory CustomSnackBar() => _singleton;
   CustomSnackBar._internal();
   static final CustomSnackBar _singleton = CustomSnackBar._internal();
 
-  // Snackbar Görünüm Sabitleri
+  // Snackbar sabitleri
   final Duration _duration = const Duration(seconds: 4, milliseconds: 500);
   final double _borderRadius = 8.0;
   final EdgeInsets _margin = const EdgeInsets.symmetric(
-    horizontal: 12.0,
-    vertical: 12.0,
+    horizontal: 12,
+    vertical: 12,
   );
   final EdgeInsets _padding = const EdgeInsets.symmetric(
-    horizontal: 16.0,
-    vertical: 12.0,
+    horizontal: 16,
+    vertical: 12,
   );
 
-  // İkon Boyutları ve Stiller
   final TextStyle _titleStyle = const TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: Colors.white,
   );
+
   final TextStyle _messageStyle = const TextStyle(
     fontSize: 13,
     color: Colors.white,
     height: 1.2,
   );
 
-  Future<void> _showSnackbar({
+  void _showSnackbar({
     required String title,
     required String message,
     required Color backgroundColor,
     required Icon icon,
-  }) async {
-    if (Get.context == null) {
-      return;
-    }
-    if (Get.isSnackbarOpen) {
-      await Get.closeCurrentSnackbar();
-    }
+  }) {
+    final messenger = rootScaffoldMessengerKey.currentState;
+    if (messenger == null) return;
 
-    Get.snackbar(
-      title,
-      message,
-      titleText: Row(
-        children: [
-          icon,
-          const SizedBox(width: 8),
-          Text(title, style: _titleStyle),
-        ],
-      ),
-      messageText: Padding(
-        padding: const EdgeInsets.only(left: 32),
-        child: Text(message, style: _messageStyle),
-      ),
-      backgroundColor: backgroundColor,
-      borderRadius: _borderRadius,
-      margin: _margin,
-      padding: _padding,
-      duration: _duration,
-      snackPosition: SnackPosition.TOP,
-      isDismissible: true,
-      dismissDirection: DismissDirection.horizontal,
-      forwardAnimationCurve: Curves.easeOutCubic,
-      reverseAnimationCurve: Curves.easeInCubic,
-      overlayBlur: 0.0,
-      overlayColor: Colors.black12,
-      mainButton: TextButton(
-        onPressed: () => Get.closeCurrentSnackbar(),
-        child: Text(
-          "Ok",
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
+    messenger.hideCurrentSnackBar();
+
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: _duration,
+        margin: _margin,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        content: Container(
+          padding: _padding,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(_borderRadius),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title, style: _titleStyle),
+                    const SizedBox(height: 4),
+                    Text(message, style: _messageStyle),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: messenger.hideCurrentSnackBar,
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Text(
+                    "Ok",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  // === PUBLIC API (AYNI) ===
 
   Future<void> success(String message) async {
     _showSnackbar(
@@ -115,7 +125,6 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Warning",
       message: message,
-
       backgroundColor: Colors.orange.withValues(alpha: 0.75),
       icon: const Icon(
         Icons.warning_amber_rounded,
@@ -129,7 +138,6 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Tips",
       message: message,
-
       backgroundColor: AppColors.pink500.withValues(alpha: 0.75),
       icon: const Icon(Icons.info, color: Colors.white, size: 20),
     );

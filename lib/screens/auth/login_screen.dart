@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
@@ -229,36 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       icon: const Icon(Icons.apple, size: 30),
                                       label: Text("Login with Apple"),
                                       onPressed: () async {
-                                        int isSuccess =
-                                            await authenticationService
-                                                .signInWithApple();
-
-                                        if (isSuccess == 1) {
-                                          await showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (context) =>
-                                                const BabyInfoModal(),
-                                          ).then((v) async {
-                                            if (v == true) {
-                                              await databaseService.updateBaby(
-                                                currentMeowUser,
-                                              );
-                                            }
-
-                                            await Navigator.pushNamedAndRemoveUntil(
-                                              context,
-                                              AppRoutes.navigationBarPage,
-                                              (route) => false,
-                                            );
-                                          });
-                                        } else if (isSuccess == 0) {
-                                          await Navigator.pushNamedAndRemoveUntil(
-                                            context,
-                                            AppRoutes.navigationBarPage,
-                                            (route) => false,
-                                          );
-                                        }
+                                        await handleAppleLogin();
                                       },
                                     ),
                                   ),
@@ -274,42 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     label: Text("Login with Google"),
                                     onPressed: () async {
-                                      setState(() {
-                                        isLoading = true;
-                                      });
-                                      int isSuccess =
-                                          await authenticationService
-                                              .signInWithGoogle();
-                                      setState(() {
-                                        isLoading = false;
-                                      });
-
-                                      if (isSuccess == 1) {
-                                        await showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) =>
-                                              const BabyInfoModal(),
-                                        ).then((v) async {
-                                          if (v == true) {
-                                            await databaseService.updateBaby(
-                                              currentMeowUser,
-                                            );
-                                          }
-
-                                          await Navigator.pushNamedAndRemoveUntil(
-                                            context,
-                                            AppRoutes.navigationBarPage,
-                                            (route) => false,
-                                          );
-                                        });
-                                      } else if (isSuccess == 0) {
-                                        await Navigator.pushNamedAndRemoveUntil(
-                                          context,
-                                          AppRoutes.navigationBarPage,
-                                          (route) => false,
-                                        );
-                                      }
+                                      await handleGoogleLogin();
                                     },
                                   ),
                                 ),
@@ -318,10 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: () {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    AppRoutes.registerPage,
-                                  );
+                                  context.go(AppRoutes.registerPage);
                                 },
                                 child: const Text(
                                   "Don't have an account? Sign Up",
@@ -364,6 +300,52 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> handleAppleLogin() async {
+    int isSuccess = await authenticationService.signInWithApple();
+
+    if (isSuccess == 1) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const BabyInfoModal(),
+      ).then((v) async {
+        if (v == true) {
+          await databaseService.updateBaby(currentMeowUser);
+        }
+
+        context.go(AppRoutes.askMeow);
+      });
+    } else if (isSuccess == 0) {
+      context.go(AppRoutes.askMeow);
+    }
+  }
+
+  Future<void> handleGoogleLogin() async {
+    setState(() {
+      isLoading = true;
+    });
+    int isSuccess = await authenticationService.signInWithGoogle();
+    setState(() {
+      isLoading = false;
+    });
+
+    if (isSuccess == 1) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const BabyInfoModal(),
+      ).then((v) async {
+        if (v == true) {
+          await databaseService.updateBaby(currentMeowUser);
+        }
+
+        context.go(AppRoutes.askMeow);
+      });
+    } else if (isSuccess == 0) {
+      context.go(AppRoutes.askMeow);
+    }
+  }
+
   Future<void> handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -382,11 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
         isLoading = false;
       });
       if (isSuccess == 1) {
-        await Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.navigationBarPage,
-          (route) => false,
-        );
+        context.go(AppRoutes.askMeow);
       } else if (isSuccess == 2) {
         customSnackBar.warning("This account is deleted permanently");
         await authenticationService.logoutFromFirebase();
@@ -395,47 +373,4 @@ class _LoginScreenState extends State<LoginScreen> {
       customSnackBar.warning("Please fill required fields");
     }
   }
-
-  /*
- Future<void> checkAppVersion() async {
-    String newAppVersion = await databaseService.getBasicAppInfo();
-
-    if (applicationVersion != newAppVersion) {
-      await getNewUpdateInfo(newAppVersion.replaceAll(".", "x"));
-    }
-  }
-
-  Future<void> getNewUpdateInfo(String version) async {
-    AppUpdateInfo? appUpdateInfo = await UpdateService.instance.fetchVersion(
-      version,
-    );
-    if (appUpdateInfo != null) {
-      await showUpdateAppModal(appUpdateInfo);
-    }
-  }
-
-  Future<void> showUpdateAppModal(AppUpdateInfo updateInfo) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => UpdateAvailableModal(
-        version: updateInfo.version.replaceAll("x", "."),
-        highlights: updateInfo.highlights,
-        onCancel: () {
-          Navigator.pop(ctx);
-        },
-        onUpdate: () async {
-          Navigator.pop(ctx);
-          String storeUrl = "";
-          if (GetPlatform.isAndroid) {
-            storeUrl = androidUrl;
-          } else if (GetPlatform.isIOS) {
-            storeUrl = iosUrl;
-          }
-          await launchUrl(Uri.parse(storeUrl));
-        },
-      ),
-    );
-  }
- */
 }

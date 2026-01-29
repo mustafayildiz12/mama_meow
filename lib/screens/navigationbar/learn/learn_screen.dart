@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mama_meow/constants/app_routes.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mama_meow/constants/args/display_podcast_args.dart';
 import 'package:mama_meow/models/podcast_model.dart';
-import 'package:mama_meow/screens/navigationbar/learn/display_podcast.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/podcast_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -70,23 +70,6 @@ class _LearnPageState extends State<LearnPage> {
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Scaffold(
-        floatingActionButton: Visibility(
-          visible: false,
-          child: FloatingActionButton(
-            onPressed: () async {
-              await Navigator.pushNamed(
-                context,
-                AppRoutes.uploadPodcastPage,
-              ).then((v) async {
-                if (v != null) {
-                  await getPageData();
-                }
-              });
-            },
-            child: Icon(Icons.add),
-          ),
-        ),
-
         body: Container(
           width: double.infinity,
           height: double.infinity,
@@ -185,14 +168,12 @@ class _LearnPageState extends State<LearnPage> {
                             final p = filtered[i];
                             return GestureDetector(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => DisplayPodcastPage(
-                                      podcast: p,
-                                      podcastList: filtered,
-                                      currentIndex: i,
-                                    ),
+                                context.pushNamed(
+                                  'podcastDetail',
+                                  extra: DisplayPodcastArgs(
+                                    podcast: p,
+                                    podcastList: filtered,
+                                    currentIndex: i,
                                   ),
                                 );
                               },

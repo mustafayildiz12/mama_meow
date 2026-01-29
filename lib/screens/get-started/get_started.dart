@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -84,19 +85,23 @@ class _GetStartedPageState extends State<GetStartedPage>
                     );
                   },
                   child: Container(
-                    width: 128,
-                    height: 128,
-                    decoration: BoxDecoration(
+                    width: 120,
+                    height: 120,
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [AppColors.pink200, AppColors.pink300],
+                        colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
                       ),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 8),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 8),
                       ],
                     ),
-                    child: const Center(
-                      child: Text('😺', style: TextStyle(fontSize: 48)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.asset(
+                        "assets/happy.png",
+                        color: AppColors.pink500,
+                      ),
                     ),
                   ),
                 ),
@@ -140,7 +145,7 @@ class _GetStartedPageState extends State<GetStartedPage>
 
                     if (isTermsAccepted == true) {
                       await infoStorage.write("getStarted", true);
-                      await Navigator.pushNamed(context, AppRoutes.loginPage);
+                      context.go(AppRoutes.loginPage);
                     }
                   },
                   child: const Text(
