@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/custom_solid_model.dart';
@@ -10,7 +11,6 @@ import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/models/solid_food.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
@@ -299,12 +299,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                 IconButton(
                   onPressed: () async {
                     await AlarmPolicy.instance.ensure();
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SolidRemindersManagerPage(),
-                      ),
-                    );
+                    await context.pushNamed('solidReminders');
                   },
                   icon: const Icon(Icons.alarm_add),
                 ),

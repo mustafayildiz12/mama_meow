@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/add_medicine_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/add_nursing_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
@@ -128,12 +123,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.green.shade700,
                 bgColor: Colors.green.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NursingReportPage(),
-                    ),
-                  );
+                  context.pushNamed('nursingReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
@@ -167,10 +157,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.orange.shade700,
                 bgColor: Colors.orange.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SolidReportPage()),
-                  );
+                  context.pushNamed('solidReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
@@ -203,10 +190,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.blue.shade700,
                 bgColor: Colors.blue.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SleepReportPage()),
-                  );
+                  context.pushNamed('sleepReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
@@ -237,10 +221,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.green.shade700,
                 bgColor: Colors.green.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => DiaperReportPage()),
-                  );
+                  context.pushNamed('diaperReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
@@ -273,12 +254,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.pink.shade700,
                 bgColor: Colors.pink.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PumpingReportPage(),
-                    ),
-                  );
+                  context.pushNamed('pumpingReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(
@@ -312,12 +288,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 textColor: Colors.red.shade700,
                 bgColor: Colors.red.shade50,
                 onReportPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MedicineReportPage(),
-                    ),
-                  );
+                  context.pushNamed('medicineReport');
                 },
                 onPlusPressed: () async {
                   await showModalBottomSheet(

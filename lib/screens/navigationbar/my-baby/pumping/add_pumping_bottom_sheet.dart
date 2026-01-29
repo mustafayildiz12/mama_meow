@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminders_manager_page.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
@@ -85,13 +85,7 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
                       IconButton(
                         onPressed: () async {
                           await AlarmPolicy.instance.ensure();
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const PumpingRemindersManagerPage(),
-                            ),
-                          );
+                          await context.pushNamed('pumpingReminders');
                         },
                         icon: const Icon(
                           Icons.alarm,

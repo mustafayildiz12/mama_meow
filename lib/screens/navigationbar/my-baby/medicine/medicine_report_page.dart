@@ -589,23 +589,6 @@ class _AmountKV {
   _AmountKV(this.k, this.v);
 }
 
-class _MedicineDetail {
-  final String name;
-  final String time;
-  final int amount;
-  final String amountType;
-  final String createdAt;
-  _MedicineDetail({
-    required this.name,
-    required this.time,
-    required this.amount,
-    required this.amountType,
-    required this.createdAt,
-  });
-}
-
-// ---- UI parçaları (diğer raporlarla aynı stil) ----
-
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
   @override

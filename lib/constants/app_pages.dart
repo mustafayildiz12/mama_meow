@@ -2,6 +2,18 @@ import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/args/display_podcast_args.dart';
 import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
 import 'package:mama_meow/screens/navigationbar/learn/display_podcast.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_reminder_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_reminders_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/reminder_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_reminders_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -99,7 +111,73 @@ final GoRouter router = GoRouter(
               name: 'myBaby',
               builder: (context, state) => const MyBabyScreen(),
               routes: [
-                // Detay sayfa pattern
+                GoRoute(
+                  path: AppRoutes.nursingReport,
+                  name: 'nursingReport',
+                  builder: (context, state) => const NursingReportPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.solidReport,
+                  name: 'solidReport',
+                  builder: (context, state) => const SolidReportPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.sleepReport,
+                  name: 'sleepReport',
+                  builder: (context, state) => const SleepReportPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.diaperReport,
+                  name: 'diaperReport',
+                  builder: (context, state) => const DiaperReportPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.pumpingReport,
+                  name: 'pumpingReport',
+                  builder: (context, state) => const PumpingReportPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.medicineReport,
+                  name: 'medicineReport',
+                  builder: (context, state) => const MedicineReportPage(),
+                ),
+
+                GoRoute(
+                  path: AppRoutes.diaperReminders,
+                  name: 'diaperReminders',
+                  builder: (context, state) =>
+                      const DiaperRemindersManagerPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.medicineReminders,
+                  name: 'medicineReminders',
+                  builder: (context, state) =>
+                      const MedicineRemindersManagerPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.nursingReminders,
+                  name: 'nursingReminders',
+                  builder: (context, state) =>
+                      const NursingRemindersManagerPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.pumpingReminders,
+                  name: 'pumpingReminders',
+                  builder: (context, state) =>
+                      const PumpingRemindersManagerPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.sleepReminders,
+                  name: 'sleepReminders',
+                  builder: (context, state) =>
+                      const SleepRemindersManagerPage(),
+                ),
+                GoRoute(
+                  path: AppRoutes.solidReminders,
+                  name: 'solidReminders',
+                  builder: (context, state) =>
+                      const SolidRemindersManagerPage(),
+                ),
               ],
             ),
           ],

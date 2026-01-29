@@ -440,7 +440,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildAboutCard() {
     return InkWell(
       onTap: () {
-        //  Navigator.pushNamed(context, AppRoutes.adminUpdate);
       },
       child: Card(
         color: Colors.white,

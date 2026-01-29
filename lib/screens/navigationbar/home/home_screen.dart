@@ -3,8 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show SystemChrome, SystemUiOverlayStyle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 import 'package:mama_meow/models/ai_models/question_asnwer_ai_model.dart';
 import 'package:mama_meow/service/analytic_service.dart';
@@ -901,9 +901,7 @@ class _AskMeowViewState extends State<AskMeowView> {
 
   Future<void> _ask(String? presetQuestion) async {
     if (!isUserPremium) {
-      await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
-        v,
-      ) async {
+      await context.pushNamed("premiumPaywall").then((v) async {
         if (v != null && v == true) {
           await checkUserPremium();
         }

@@ -1,9 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_reminder_manager_page.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
@@ -301,13 +303,7 @@ class _SleepExtendedMultiSliderBottomSheetState
                         IconButton(
                           onPressed: () async {
                             await AlarmPolicy.instance.ensure();
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const SleepRemindersManagerPage(),
-                              ),
-                            );
+                            await context.pushNamed('sleepReminders');
                           },
                           icon: const Icon(Icons.alarm_add),
                         ),

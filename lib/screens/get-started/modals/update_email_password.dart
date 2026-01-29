@@ -1,6 +1,9 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/authentication_service.dart';
@@ -320,11 +323,7 @@ class _UpdateEmailPasswordInfoModalState
                         if (isSuccess) {
                           //  bool wipeDoone = await databaseService.wipeData();
 
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            AppRoutes.loginPage,
-                            (_) => false,
-                          );
+                          context.go(AppRoutes.loginPage);
                         }
                       } catch (e) {
                         customSnackBar.error(

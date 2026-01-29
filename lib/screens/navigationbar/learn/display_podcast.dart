@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/constants/app_routes.dart';
@@ -78,7 +79,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   ///
   @override
   void initState() {
-     analyticService.screenView('display_podcast_screen');
+    analyticService.screenView('display_podcast_screen');
     super.initState();
     currentPodcast = widget.podcast;
     currentIndex = widget.currentIndex;
@@ -560,9 +561,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
         _player.play();
       }
     } else {
-      await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
-        v,
-      ) async {
+      await context.pushNamed(AppRoutes.premiumPaywall).then((v) async {
         if (v != null && v == true) {
           await checkUserPremium();
         }
