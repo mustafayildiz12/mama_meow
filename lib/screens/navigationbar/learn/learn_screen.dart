@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -167,7 +169,7 @@ class _LearnPageState extends State<LearnPage> {
                           itemBuilder: (context, i) {
                             final p = filtered[i];
                             return GestureDetector(
-                              onTap: () {
+                              onTap: () async {
                                 context.pushNamed(
                                   'podcastDetail',
                                   extra: DisplayPodcastArgs(

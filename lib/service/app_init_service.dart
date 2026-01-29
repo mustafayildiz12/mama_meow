@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -63,13 +65,25 @@ class AppInitService {
   }
 
   static Future<void> requestAndroidNotificationPermission() async {
-    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-        FlutterLocalNotificationsPlugin();
-    flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+    if (!Platform.isAndroid) return;
+
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    // ✅ Sadece Android 13+ (API 33) runtime permission ister
+    if (sdkInt < 33) return;
+
+    try {
+      final fln = FlutterLocalNotificationsPlugin();
+      await fln
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.requestNotificationsPermission();
+    } catch (e) {
+      // burada crash olmasın, logla geç
+      // debugPrint("Notif permission request failed: $e");
+    }
   }
 
   static void _initSetSystemUIOverlayStyle() {
