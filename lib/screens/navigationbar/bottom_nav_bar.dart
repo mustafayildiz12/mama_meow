@@ -1,18 +1,32 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mama_meow/service/app_update_service.dart';
 
-class AppShellScaffold extends StatelessWidget {
+class AppShellScaffold extends StatefulWidget {
   const AppShellScaffold({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<AppShellScaffold> createState() => _AppShellScaffoldState();
+}
+
+class _AppShellScaffoldState extends State<AppShellScaffold> {
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppUpdateService().checkAndShowUpdateIfNeeded(context);
+    });
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentIndex = navigationShell.currentIndex;
+    final currentIndex = widget.navigationShell.currentIndex;
 
     return Scaffold(
-      body: navigationShell, // aktif branch burada render edilir
+      body: widget.navigationShell, // aktif branch burada render edilir
       bottomNavigationBar: SafeArea(
         bottom: Platform.isAndroid ? true : false,
         child: Container(
@@ -78,10 +92,10 @@ class AppShellScaffold extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        navigationShell.goBranch(
+        widget.navigationShell.goBranch(
           index,
           // aynı tab’a tekrar basınca root’a dönmek istersen:
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == widget.navigationShell.currentIndex,
         );
       },
       child: Container(

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -7,6 +8,15 @@ import 'package:rxdart/rxdart.dart';
 class PodcastAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
+
+  StreamSubscription<AudioInterruptionEvent>? intrSub;
+  StreamSubscription<void>? noisySub;
+
+  // Interruption sonrası resume edip etmeyeceğimizi tutalım
+  bool _resumeAfterInterruption = false;
+
+  // Duck yaptıysak geri almak için
+  double? _volumeBeforeDuck;
 
   /// Queue = podcast listesi (MediaItem)
   final _queueSubject = BehaviorSubject<List<MediaItem>>.seeded(const []);
@@ -19,9 +29,10 @@ class PodcastAudioHandler extends BaseAudioHandler
   }
 
   Future<void> _init() async {
-    // Audio session (interruption / ducking)
     final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
+
+    // ✅ Konfigürasyon: müzik/podcast gibi davran
+    await session.configure(const AudioSessionConfiguration.music());
 
     // Playback state -> audio_service
     _player.playbackEventStream.map(_transformEvent).listen(playbackState.add);
@@ -35,6 +46,64 @@ class PodcastAudioHandler extends BaseAudioHandler
 
     // Queue -> audio_service
     _queueSubject.listen(queue.add);
+
+    // ============================
+    // ✅ Interruption (call/siri/alarm) -> pause / resume
+    // ============================
+    intrSub?.cancel();
+    intrSub = session.interruptionEventStream.listen((event) async {
+      if (event.begin) {
+        // interruption başladı
+        _resumeAfterInterruption = _player.playing;
+
+        if (event.type == AudioInterruptionType.pause ||
+            event.type == AudioInterruptionType.unknown) {
+          if (_player.playing) {
+            await _player.pause();
+          }
+        } else if (event.type == AudioInterruptionType.duck) {
+          // Duck -> ses kıs (opsiyonel)
+          // Eğer istemiyorsan komple kaldırabilirsin.
+          if (_player.playing) {
+            _volumeBeforeDuck ??= _player.volume;
+            try {
+              await _player.setVolume(0.3);
+            } catch (_) {}
+          }
+        }
+      } else {
+        // interruption bitti
+        // Duck yaptıysak sesi geri al
+        if (_volumeBeforeDuck != null) {
+          try {
+            await _player.setVolume(_volumeBeforeDuck!);
+          } catch (_) {}
+          _volumeBeforeDuck = null;
+        }
+
+        // Eğer interruption yüzünden durmuşsak otomatik devam et
+        if (_resumeAfterInterruption) {
+          _resumeAfterInterruption = false;
+          try {
+            // hazır değilse play patlayabilir
+            if (_player.processingState == ProcessingState.ready ||
+                _player.processingState == ProcessingState.buffering) {
+              await _player.play();
+            }
+          } catch (_) {}
+        }
+      }
+    });
+
+    // ============================
+    // ✅ Headphone unplug / Bluetooth disconnect -> pause
+    // ============================
+    noisySub?.cancel();
+    noisySub = session.becomingNoisyEventStream.listen((_) async {
+      if (_player.playing) {
+        await _player.pause();
+      }
+    });
   }
 
   PlaybackState _transformEvent(PlaybackEvent event) {
@@ -85,8 +154,7 @@ class PodcastAudioHandler extends BaseAudioHandler
     await _player.setAudioSource(
       source,
       initialIndex: startIndex,
-
-      preload: false,
+      preload: false, // ✅ performans
     );
 
     if (autoPlay) {
@@ -103,6 +171,8 @@ class PodcastAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> stop() async {
+    // ✅ stream cleanup (istersen stop’ta değil dispose’ta da yeter)
+    _resumeAfterInterruption = false;
     await _player.stop();
     return super.stop();
   }
@@ -135,4 +205,16 @@ class PodcastAudioHandler extends BaseAudioHandler
       await _player.setLoopMode(LoopMode.off);
     }
   }
+
+  /*
+  // ✅ audio_service lifecycle
+  @override
+  Future<void> close() async {
+    await intrSub?.cancel();
+    await noisySub?.cancel();
+    await _queueSubject.close();
+    await _player.dispose();
+    return super.close();
+  }
+   */
 }

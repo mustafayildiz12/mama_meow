@@ -106,6 +106,9 @@ class AppInitService {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    debugPrint('projectId: ${Firebase.app().options.projectId}');
+    debugPrint('appId: ${Firebase.app().options.appId}');
+
     // Gerekli servislerin başlatılması
     await Future.wait([GetStorage.init("local"), GetStorage.init("info")]);
 

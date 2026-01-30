@@ -43,19 +43,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   final List<double> speedOptions = [1.0, 1.25, 1.5, 2.0];
 
   // streams
-  Stream<Duration> get _positionStream => AudioService.position;
   Stream<MediaItem?> get _mediaItemStream => audioHandler.mediaItem;
 
-  Stream<PlaybackState> get _playbackStateStream =>
-      audioHandler.playbackState.distinct();
-
   StreamSubscription<PlaybackState>? _prepSub;
-
-  Stream<bool> get _playingStream =>
-      audioHandler.playbackState.map((s) => s.playing).distinct();
-
-  Stream<Duration?> get _durationStream =>
-      audioHandler.mediaItem.map((m) => m?.duration).distinct();
 
   Stream<double> get _speedStream =>
       audioHandler.playbackState.map((s) => s.speed).distinct();
@@ -589,12 +579,5 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     } else {
       await audioHandler.play();
     }
-  }
-
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final h = d.inHours;
-    return h > 0 ? "$h:$m:$s" : "$m:$s";
   }
 }
