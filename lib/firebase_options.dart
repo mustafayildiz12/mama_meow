@@ -52,8 +52,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
     authDomain: 'mamameow-ca942.firebaseapp.com',
-    databaseURL:
-        'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
     measurementId: 'G-8C6Z88T112',
   );
@@ -63,8 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:387317917599:android:5872ffcacb69379e70ffaa',
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
-    databaseURL:
-        'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
   );
 
@@ -73,9 +71,11 @@ class DefaultFirebaseOptions {
     appId: '1:387317917599:ios:44899605e3299ae170ffaa',
     messagingSenderId: '387317917599',
     projectId: 'mamameow-ca942',
-    databaseURL:
-        'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL: 'https://mamameow-ca942-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'mamameow-ca942.firebasestorage.app',
+    androidClientId: '387317917599-b8kbcob4f17niat4fq1v6ovhd3b9fho9.apps.googleusercontent.com',
+    iosClientId: '387317917599-i80tddg3qq67ut54ogctqe4777td519p.apps.googleusercontent.com',
     iosBundleId: 'com.yildiz.mamameow',
   );
+
 }
