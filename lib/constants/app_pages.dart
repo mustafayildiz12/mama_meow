@@ -15,7 +15,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_reminder_manager_page.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_page.dart';
 
-import 'package:mama_meow/service/authentication_service.dart';
+
 import 'package:mama_meow/constants/app_routes.dart';
 
 // Screens
@@ -32,31 +32,9 @@ import 'package:mama_meow/screens/navigationbar/learn/learn_screen.dart';
 import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: AppRoutes.initialRoute,
-  redirect: (context, state) {
-    final user = authenticationService.getUser();
-    final loggedIn = user != null;
-
-    final loc = state.matchedLocation;
-
-    final isAuthFree =
-        loc == AppRoutes.initialRoute ||
-        loc == AppRoutes.loginPage ||
-        loc == AppRoutes.registerPage;
-
-    // Giriş yoksa ve auth-free değilse -> getStarted
-    if (!loggedIn && !isAuthFree) {
-      return AppRoutes.getStartedPage;
-    }
-
-    // Giriş varsa ve auth-free sayfalardaysa -> default tab
-    if (loggedIn && isAuthFree) {
-      return AppRoutes.askMeow;
-    }
-
-    return null;
-  },
-
+  initialLocation: AppRoutes.myBaby,
+  // Redirect logic removed to allow guest access
+  
   routes: [
     /// AUTH ÖNCESİ (public)
     GoRoute(
@@ -81,7 +59,10 @@ final GoRouter router = GoRouter(
         return AppShellScaffold(navigationShell: navigationShell);
       },
       branches: [
-        // 0) Ask Meow
+        // 0) My Baby (Moved to first position)
+        
+
+        // 1) Ask Meow
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -103,7 +84,6 @@ final GoRouter router = GoRouter(
           ],
         ),
 
-        // 1) My Baby
         StatefulShellBranch(
           routes: [
             GoRoute(

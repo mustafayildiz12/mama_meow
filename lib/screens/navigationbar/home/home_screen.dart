@@ -17,6 +17,8 @@ import 'package:mama_meow/service/gpt_service/gpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 
 class AskMeowView extends StatefulWidget {
   const AskMeowView({super.key});
@@ -94,6 +96,13 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> getUserPastQuestions() async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      setState(() {
+        questionAnswerAiList = [];
+      });
+      return;
+    }
     List<QuestionAnswerAiModel> aa = await questionAIService
         .getAIQuestionList();
     setState(() {
@@ -892,6 +901,13 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> checkUserPremium() async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      setState(() {
+        isUserPremium = false;
+      });
+      return;
+    }
     InAppPurchaseService iap = InAppPurchaseService();
     bool isP = await iap.isPremium();
     setState(() {
@@ -900,6 +916,12 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _ask(String? presetQuestion) async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      context.pushNamed("login");
+      return;
+    }
+
     if (!isUserPremium) {
       await context.pushNamed("premiumPaywall").then((v) async {
         if (v != null && v == true) {

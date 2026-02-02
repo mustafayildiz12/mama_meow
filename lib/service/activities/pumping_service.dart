@@ -8,7 +8,8 @@ class PumpingService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
   Future<void> addPumping(PumpingModel pumping) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
         .ref('pumpings')
@@ -20,7 +21,8 @@ class PumpingService {
   /// Tüm liste (aralıksız)
   Future<List<PumpingModel>> getPumpingList() async {
     final List<PumpingModel> list = [];
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return list;
     final ref = _realtimeDatabase.ref('pumpings').child(user.uid);
     final snapshot = await ref.get();
 
@@ -48,7 +50,8 @@ class PumpingService {
     DateTime start,
     DateTime end,
   ) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return [];
     final ref = _realtimeDatabase.ref('pumpings').child(user.uid);
 
     final startMs = start.toLocal().millisecondsSinceEpoch.toString();
@@ -87,7 +90,8 @@ class PumpingService {
   }
 
   Stream<int> todayPumpingCountStream() {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return Stream.value(0);
     final ref = FirebaseDatabase.instance.ref('pumpings').child(user.uid);
     final now = DateTime.now().toLocal();
     final startMs = now.startOfDay.millisecondsSinceEpoch.toString();

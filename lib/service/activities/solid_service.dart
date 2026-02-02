@@ -6,7 +6,8 @@ class SolidService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
   Future<void> addSolid(SolidModel solid) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
         .ref('solids')
@@ -17,7 +18,8 @@ class SolidService {
 
   Future<List<SolidModel>> getUserSolidList() async {
     final List<SolidModel> sleeps = [];
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return sleeps;
     final DatabaseReference ref = _realtimeDatabase
         .ref('solids')
         .child(user.uid);
@@ -61,7 +63,8 @@ class SolidService {
     DateTime start,
     DateTime end,
   ) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return [];
     final ref = _realtimeDatabase.ref('solids').child(user.uid);
 
     final startMs = start.toLocal().millisecondsSinceEpoch.toString();
@@ -89,7 +92,8 @@ class SolidService {
   }
 
   Stream<int> todaySolidCountStream() {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return Stream.value(0);
     final ref = FirebaseDatabase.instance.ref('solids').child(user.uid);
 
     final now = DateTime.now().toLocal();

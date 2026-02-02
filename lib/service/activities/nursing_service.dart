@@ -9,7 +9,8 @@ class NursingService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
   Future<void> addNursing(NursingModel nursing) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
         .ref('nursing')
@@ -21,7 +22,8 @@ class NursingService {
   /// Tüm liste (aralıksız okuma)
   Future<List<NursingModel>> getNursingList() async {
     final List<NursingModel> nursings = [];
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return nursings;
     final ref = _realtimeDatabase.ref('nursing').child(user.uid);
     final snapshot = await ref.get();
 
@@ -54,7 +56,8 @@ class NursingService {
     DateTime start,
     DateTime end,
   ) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return [];
     final ref = _realtimeDatabase.ref('nursing').child(user.uid);
 
     final startMs = start.toLocal().millisecondsSinceEpoch.toString();
@@ -101,7 +104,8 @@ class NursingService {
 
   /// Bugünkü emzirme sayısı (stream)
   Stream<int> todayNursingCountStream() {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return Stream.value(0);
     final ref = FirebaseDatabase.instance.ref('nursing').child(user.uid);
 
     final now = DateTime.now().toLocal();

@@ -18,6 +18,8 @@ import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
+import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/constants/app_routes.dart';
 
 class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
@@ -83,6 +85,15 @@ class _MyBabyScreenState extends State<MyBabyScreen>
     });
   }
 
+  Future<void> _checkAuthAndProceed(VoidCallback action) async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      context.pushNamed(AppRoutes.loginPage);
+    } else {
+      action();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -125,18 +136,20 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('nursingReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (context) => const AddNursingBottomSheet(),
-                  );
+                      builder: (context) => const AddNursingBottomSheet(),
+                    );
+                  });
                 },
               );
             },
@@ -159,18 +172,20 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('solidReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (context) => const AddSolidBottomSheet(),
-                  );
+                      builder: (context) => const AddSolidBottomSheet(),
+                    );
+                  });
                 },
               );
             },
@@ -192,16 +207,19 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('sleepReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => SleepExtendedMultiSliderBottomSheet(
-                      initialStartEnds: [12 * 60, 15 * 60],
-                      sleepDate: DateTime.now(),
-                    ),
-                  );
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder:
+                          (_) => SleepExtendedMultiSliderBottomSheet(
+                            initialStartEnds: [12 * 60, 15 * 60],
+                            sleepDate: DateTime.now(),
+                          ),
+                    );
+                  });
                 },
               );
             },
@@ -223,18 +241,20 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('diaperReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (context) => const AddDiaperBottomSheet(),
-                  );
+                      builder: (context) => const AddDiaperBottomSheet(),
+                    );
+                  });
                 },
               );
             },
@@ -256,18 +276,20 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('pumpingReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (context) => const AddPumpingBottomSheet(),
-                  );
+                      builder: (context) => const AddPumpingBottomSheet(),
+                    );
+                  });
                 },
               );
             },
@@ -290,19 +312,23 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 onReportPressed: () {
                   context.pushNamed('medicineReport');
                 },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                onPlusPressed: () {
+                  _checkAuthAndProceed(() async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (context) =>
-                        AddMedicineBottomSheet(selectedDate: DateTime.now()),
-                  );
+                      builder:
+                          (context) => AddMedicineBottomSheet(
+                            selectedDate: DateTime.now(),
+                          ),
+                    );
+                  });
                 },
               );
             },
@@ -320,15 +346,17 @@ class _MyBabyScreenState extends State<MyBabyScreen>
             textColor: Colors.purple.shade600,
             bgColor: Colors.purple.shade50,
             onReportPressed: () async {
-              await showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                builder: (context) => const JournalDiaryPage(),
-              );
+              _checkAuthAndProceed(() async {
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  builder: (context) => const JournalDiaryPage(),
+                );
+              });
             },
           ),
 

@@ -8,7 +8,8 @@ class SleepService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
   Future<void> addSleep(SleepModel sleepModel) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return;
     final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
     await _realtimeDatabase
         .ref('sleeps')
@@ -20,7 +21,8 @@ class SleepService {
   /// Tüm kayıtlar (anahtar aralığı olmadan okuma)
   Future<List<SleepModel>> getSleepList() async {
     final List<SleepModel> sleeps = [];
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return sleeps;
     final DatabaseReference ref =
         _realtimeDatabase.ref('sleeps').child(user.uid);
 
@@ -50,7 +52,8 @@ class SleepService {
     DateTime start,
     DateTime end,
   ) async {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return [];
     final ref = _realtimeDatabase.ref('sleeps').child(user.uid);
 
     final startMs = start.toLocal().millisecondsSinceEpoch.toString();
@@ -97,7 +100,8 @@ class SleepService {
 
   /// Bugünkü kayıt sayısı (stream)
   Stream<int> todaySleepCountStream() {
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+    if (user == null) return Stream.value(0);
     final ref = FirebaseDatabase.instance.ref('sleeps').child(user.uid);
 
     final now = DateTime.now().toLocal();

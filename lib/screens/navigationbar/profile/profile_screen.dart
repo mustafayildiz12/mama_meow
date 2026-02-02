@@ -97,6 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Card settingsCard() {
+    final isGuest = authenticationService.getUser() == null;
     return Card(
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -110,18 +111,21 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    bool isSuccess = await authenticationService
-                        .logoutFromFirebase();
+                if (!isGuest)
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      bool isSuccess = await authenticationService
+                          .logoutFromFirebase();
 
-                    if (isSuccess) {
-                      context.go(AppRoutes.loginPage);
-                    }
-                  },
-                  icon: Icon(Icons.logout_outlined),
-                  label: Text("Logout"),
-                ),
+                      if (isSuccess) {
+                        context.go(AppRoutes.loginPage);
+                      }
+                    },
+                    icon: Icon(Icons.logout_outlined),
+                    label: Text("Logout"),
+                  )
+                else
+                  loginSignUpButton(),
               ],
             ),
           ],
@@ -130,12 +134,36 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  ElevatedButton loginSignUpButton() {
+    return ElevatedButton.icon(
+      onPressed: () {
+        context.go(AppRoutes.loginPage);
+      },
+      icon: Icon(Icons.login),
+      label: Text("Login / Sign Up"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.pink500,
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
+
   Widget _buildMiaHead(BuildContext context) {
     final pic = (currentMeowUser?.babyPicture ?? "").trim();
 
+    final isGuest = authenticationService.getUser() == null;
+
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: _uploadingBabyPic ? null : _showPickBabyPictureSheet,
+      onTap: _uploadingBabyPic
+          ? null
+          : () {
+              if (isGuest) {
+                context.pushNamed(AppRoutes.loginPage);
+              } else {
+                _showPickBabyPictureSheet();
+              }
+            },
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -202,8 +230,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildUserInfoCard() {
+    final user = authenticationService.getUser();
+    final isGuest = user == null;
+
     return InkWell(
       onTap: () async {
+        if (isGuest) {
+          context.pushNamed(AppRoutes.loginPage);
+          return;
+        }
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -241,14 +276,18 @@ class _ProfilePageState extends State<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          currentMeowUser?.userName ?? "Guest",
+                          isGuest
+                              ? "Guest User"
+                              : (currentMeowUser?.userName ?? "User"),
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1F2937),
                           ),
                         ),
                         Text(
-                          currentMeowUser?.userEmail ?? "",
+                          isGuest
+                              ? "Tap to login and save your progress"
+                              : (currentMeowUser?.userEmail ?? ""),
                           style: TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -274,6 +313,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildBabyCard() {
     return InkWell(
       onTap: () async {
+        final user = authenticationService.getUser();
+        if (user == null) {
+          context.pushNamed(AppRoutes.loginPage);
+          return;
+        }
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -357,90 +401,93 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPremiumCard() {
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: isUserPremium
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.card_giftcard,
-                        size: 20,
-                        color: Color(0xFF16A34A),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        "Premium Features",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  _FeatureBullet("Complete Baby Tracking"),
-                  _FeatureBullet("Expert Podcast Library"),
-                  _FeatureBullet("AI-Powered Asistant"),
-                  _FeatureBullet("Priority support"),
-                ],
-              )
-            : Center(
-                child: InkWell(
-                  onTap: () async {
-                    await bePremium();
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(seconds: 1),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.pink,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.pink.withValues(alpha: 0.6),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+    return currentMeowUser != null
+        ? Card(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: isUserPremium
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Icon(Icons.star, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          "Be Premium",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.card_giftcard,
+                              size: 20,
+                              color: Color(0xFF16A34A),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              "Premium Features",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        _FeatureBullet("Complete Baby Tracking"),
+                        _FeatureBullet("Expert Podcast Library"),
+                        _FeatureBullet("AI-Powered Asistant"),
+                        _FeatureBullet("Priority support"),
+                      ],
+                    )
+                  : Center(
+                      child: InkWell(
+                        onTap: () async {
+                          await bePremium();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(seconds: 1),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.pink,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.pink.withValues(alpha: 0.6),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.star, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text(
+                                "Be Premium",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-      ),
-    );
+            ),
+          )
+        : SizedBox();
   }
 
   Widget _buildAboutCard() {
     return InkWell(
-      onTap: () {
-      },
+      onTap: () {},
       child: Card(
         color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -632,6 +679,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> checkUserPremium() async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      if (mounted) setState(() => isUserPremium = false);
+      return;
+    }
     InAppPurchaseService iap = InAppPurchaseService();
     bool isP = await iap.isPremium();
     setState(() {
@@ -640,9 +692,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> bePremium() async {
-    await Navigator.pushNamed(context, AppRoutes.premiumPaywall).then((
-      v,
-    ) async {
+    await context.pushNamed("premiumPaywall").then((v) async {
       if (v != null && v == true) {
         await checkUserPremium();
       }

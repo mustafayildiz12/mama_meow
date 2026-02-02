@@ -14,6 +14,7 @@ import 'package:mama_meow/service/audio/background_handler.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/extensions/post_media_item_extension.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 
 class DisplayPodcastPage extends StatefulWidget {
   final Podcast podcast;
@@ -70,7 +71,6 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     final busy = _isBusy(s);
     if (busy) return false;
     if (!_isReady(s)) return false;
-    if (!isUserPremium) return false; // ✅ premium gate
     return _prepareError == null;
   }
 
@@ -91,16 +91,12 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   Future<void> _initFlow() async {
     // 1) premium kontrol
     await _checkUserPremiumSafe();
-
     if (isUserPremium) {
       await _prepareAndStart();
     } else {
       await context.pushNamed("premiumPaywall").then((v) async {
-        if (v == true) {
-          await _checkUserPremiumSafe();
-          if (isUserPremium) {
-            await _prepareAndStart();
-          }
+        if (v != null && v == true) {
+          await _initFlow();
         }
       });
     }
@@ -108,6 +104,11 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
 
   Future<void> _checkUserPremiumSafe() async {
     try {
+      final user = authenticationService.getUser();
+      if (user == null) {
+        if (mounted) setState(() => isUserPremium = false);
+        return;
+      }
       final iap = InAppPurchaseService();
       final isP = await iap.isPremium();
       if (!mounted) return;
@@ -147,11 +148,11 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     final items = widget.podcastList.map((e) => e.toMediaItem()).toList();
 
     // ❌ await YOK → UI bloklanmaz
-    handler.setQueueAndPlay(
-      items,
-      widget.currentIndex,
-      autoPlay: isUserPremium,
-    );
+    handler.setQueueAndPlay(items, widget.currentIndex, autoPlay: true);
+
+    if (!isUserPremium) {
+      await audioHandler.pause();
+    }
 
     // safety timeout (network bozulursa)
     Future.delayed(const Duration(seconds: 6), () {
@@ -269,7 +270,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                                 ? Colors.pink.shade500
                                 : Colors.grey.shade400,
                           ),
-                          onPressed: controlsEnabled ? togglePlay : null,
+                          onPressed: () {
+                            togglePlay(controlsEnabled);
+                          },
                         ),
                         IconButton(
                           icon: Icon(
@@ -560,7 +563,13 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   Future<void> _changePlaybackSpeed(double speed) =>
       audioHandler.setSpeed(speed);
 
-  Future<void> togglePlay() async {
+  Future<void> togglePlay(bool controlsEnabled) async {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      context.pushNamed("login");
+      return;
+    }
+
     if (!isUserPremium) {
       await context.pushNamed("premiumPaywall").then((v) async {
         if (v == true) {
@@ -573,11 +582,13 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
       return;
     }
 
-    final playing = audioHandler.playbackState.value.playing;
-    if (playing) {
-      await audioHandler.pause();
-    } else {
-      await audioHandler.play();
+    if (controlsEnabled) {
+      final playing = audioHandler.playbackState.value.playing;
+      if (playing) {
+        await audioHandler.pause();
+      } else {
+        await audioHandler.play();
+      }
     }
   }
 }
