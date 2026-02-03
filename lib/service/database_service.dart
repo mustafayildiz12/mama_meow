@@ -33,6 +33,8 @@ class DatabaseService {
         currentMeowUser = userModel;
 
         await InAppPurchaseService().loginSubscription();
+
+        await getBasicAppInfo();
       }
     } catch (e) {
       debugPrint(e.toString());

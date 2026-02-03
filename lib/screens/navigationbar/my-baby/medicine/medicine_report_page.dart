@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_compute.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/medicine_ai_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -119,6 +120,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = authenticationService.getUser();
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Container(
@@ -134,6 +136,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.transparent,
+            centerTitle: true,
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: GestureDetector(
@@ -149,57 +152,59 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.picture_as_pdf,
-                  color: Color(0xFFA8E6CF),
-                ),
-                onPressed: () async {
-                  setState(() => isLoading = true);
-                  try {
-                    final medicines = _cachedMedicines ?? await _future;
-                    if (medicines.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No medicine data to export.'),
-                        ),
+              if (user != null) ...[
+                IconButton(
+                  icon: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Color(0xFFA8E6CF),
+                  ),
+                  onPressed: () async {
+                    setState(() => isLoading = true);
+                    try {
+                      final medicines = _cachedMedicines ?? await _future;
+                      if (medicines.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No medicine data to export.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final computed =
+                          (_cachedComputed != null && _cachedMode == _mode)
+                          ? _cachedComputed!
+                          : _computeMedicineReport(medicines);
+
+                      final ai = await MedicineAIService().analyze(
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        c: computed,
                       );
-                      return;
+
+                      final bytes = await MedicineReportPdfBuilder.build(
+                        format: PdfPageFormat.a4,
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        medicines: medicines,
+                        computed: computed,
+                        ai: ai,
+                      );
+
+                      final filename = _buildPdfFileName(_mode);
+                      final filepath = await globalFunctions.downloadBytes(
+                        bytes,
+                        filename,
+                      );
+                      await OpenFilex.open(filepath);
+                    } catch (e) {
+                      customSnackBar.warning('PDF error: $e');
+                    } finally {
+                      setState(() => isLoading = false);
                     }
-
-                    final computed =
-                        (_cachedComputed != null && _cachedMode == _mode)
-                        ? _cachedComputed!
-                        : _computeMedicineReport(medicines);
-
-                    final ai = await MedicineAIService().analyze(
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      c: computed,
-                    );
-
-                    final bytes = await MedicineReportPdfBuilder.build(
-                      format: PdfPageFormat.a4,
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      medicines: medicines,
-                      computed: computed,
-                      ai: ai,
-                    );
-
-                    final filename = _buildPdfFileName(_mode);
-                    final filepath = await globalFunctions.downloadBytes(
-                      bytes,
-                      filename,
-                    );
-                    await OpenFilex.open(filepath);
-                  } catch (e) {
-                    customSnackBar.warning('PDF error: $e');
-                  } finally {
-                    setState(() => isLoading = false);
-                  }
-                },
-              ),
+                  },
+                ),
+              ],
             ],
           ),
           body: RefreshIndicator(

@@ -27,7 +27,11 @@ class AddCustomSolidService {
 
   Future<List<CustomSolidModel>> getCustomSolids() async {
     final List<CustomSolidModel> customSolids = [];
-    final user = authenticationService.getUser()!;
+    final user = authenticationService.getUser();
+
+    if (user == null) {
+      return [];
+    }
 
     final DatabaseReference ref = _realtimeDatabase
         .ref('customSolids')

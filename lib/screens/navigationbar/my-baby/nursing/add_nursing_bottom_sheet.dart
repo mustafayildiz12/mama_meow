@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 import 'package:mama_meow/service/prefs/nursing_prefs.dart';
 
@@ -114,38 +115,44 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
   }
 
   Future<void> _saveNursing() async {
-    if (!_isFormValid()) return;
+    final user = authenticationService.getUser();
 
-    final nursing = NursingModel(
-      side: _selectedSide ?? "",
-      startTime: _formatTime(_selectedTime),
-      duration: int.tryParse(_durationController.text) ?? 0,
-      feedingType: _selectedFeedingType!.toLowerCase(),
-      milkType: _selectedFeedingType == 'Bottle' ? _selectedMilkType : null,
-      amountType: _selectedAmountType,
-      amount: _amount,
-      createdAt: DateTime.now().toIso8601String(),
-    );
+    if (user == null) {
+      context.pushNamed("login");
+    } else {
+      if (!_isFormValid()) return;
 
-    try {
-      await nursingService.addNursing(nursing);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nursing record saved successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving nursing: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      final nursing = NursingModel(
+        side: _selectedSide ?? "",
+        startTime: _formatTime(_selectedTime),
+        duration: int.tryParse(_durationController.text) ?? 0,
+        feedingType: _selectedFeedingType!.toLowerCase(),
+        milkType: _selectedFeedingType == 'Bottle' ? _selectedMilkType : null,
+        amountType: _selectedAmountType,
+        amount: _amount,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      try {
+        await nursingService.addNursing(nursing);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nursing record saved successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving nursing: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

@@ -14,6 +14,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_custom_solid.d
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
@@ -188,25 +189,31 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
   }
 
   Future<void> _save() async {
-    if (_picked.isEmpty) return;
+    final user = authenticationService.getUser();
 
-    // Her seçilen ürün için ayrı SolidModel kaydediyoruz
-    for (final entry in _picked.entries) {
-      final item = entry.key;
-      final amount = entry.value;
+    if (user == null) {
+      context.pushNamed("login");
+    } else {
+      if (_picked.isEmpty) return;
 
-      final model = SolidModel(
-        solidName: item.name,
-        solidAmount: amount.toString(),
-        createdAt: DateTime.now().toIso8601String(),
-        eatTime: _eatTimeStr,
-        reactions: _reaction,
-      );
+      // Her seçilen ürün için ayrı SolidModel kaydediyoruz
+      for (final entry in _picked.entries) {
+        final item = entry.key;
+        final amount = entry.value;
 
-      await solidService.addSolid(model);
+        final model = SolidModel(
+          solidName: item.name,
+          solidAmount: amount.toString(),
+          createdAt: DateTime.now().toIso8601String(),
+          eatTime: _eatTimeStr,
+          reactions: _reaction,
+        );
+
+        await solidService.addSolid(model);
+      }
+
+      if (mounted) Navigator.pop(context, true);
     }
-
-    if (mounted) Navigator.pop(context, true);
   }
 
   @override

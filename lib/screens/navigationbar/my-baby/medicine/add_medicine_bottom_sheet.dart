@@ -9,6 +9,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 /// Medicine amount types
@@ -101,41 +102,47 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
   }
 
   Future<void> _saveMedicine() async {
-    if (!_isFormValid()) return;
+    final user = authenticationService.getUser();
 
-    final medicineName = _isCustomMedicine
-        ? _customMedicineController.text.trim()
-        : _selectedMedicineName!;
+    if (user == null) {
+      context.pushNamed("login");
+    } else {
+      if (!_isFormValid()) return;
 
-    final amount = int.parse(_amountController.text.trim());
+      final medicineName = _isCustomMedicine
+          ? _customMedicineController.text.trim()
+          : _selectedMedicineName!;
 
-    final medicine = MedicineModel(
-      startTime: _formatTime(_selectedTime),
-      medicineName: medicineName,
-      amountType: _selectedAmountType,
-      amount: amount,
-      createdAt: _formatDateTime(widget.selectedDate, _selectedTime),
-    );
+      final amount = int.parse(_amountController.text.trim());
 
-    try {
-      await medicineService.addMedicine(medicine);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Medicine record saved successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving medicine: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      final medicine = MedicineModel(
+        startTime: _formatTime(_selectedTime),
+        medicineName: medicineName,
+        amountType: _selectedAmountType,
+        amount: amount,
+        createdAt: _formatDateTime(widget.selectedDate, _selectedTime),
+      );
+
+      try {
+        await medicineService.addMedicine(medicine);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Medicine record saved successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving medicine: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

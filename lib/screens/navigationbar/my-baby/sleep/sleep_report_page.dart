@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_pdf_builder.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/sleep_ai_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -108,6 +108,8 @@ class _SleepReportPageState extends State<SleepReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = authenticationService.getUser();
+
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Container(
@@ -122,6 +124,7 @@ class _SleepReportPageState extends State<SleepReportPage> {
           backgroundColor: Colors.transparent,
           appBar: AppBar(
             elevation: 0,
+            centerTitle: true,
             backgroundColor: Colors.transparent,
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
@@ -138,58 +141,60 @@ class _SleepReportPageState extends State<SleepReportPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
-                onPressed: () async {
-                  setState(() {
-                    isLoading = true;
-                  });
-                  try {
-                    // ✅ mümkünse cache’li veriyi kullan
-                    final sleeps = _cachedSleeps ?? await _future;
-                    if (sleeps.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No sleep data to export.'),
-                        ),
+              if (user != null) ...[
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+                  onPressed: () async {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    try {
+                      // ✅ mümkünse cache’li veriyi kullan
+                      final sleeps = _cachedSleeps ?? await _future;
+                      if (sleeps.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No sleep data to export.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final computed =
+                          (_cachedComputed != null && _cachedMode == _mode)
+                          ? _cachedComputed!
+                          : _computeReport(sleeps);
+
+                      final ai = await SleepAIService().analyzeSleepReport(
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        sleeps: sleeps,
                       );
-                      return;
+
+                      final bytes = await SleepReportPdfBuilder.build(
+                        format: PdfPageFormat.a4,
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        sleeps: sleeps,
+                        ai: ai, // ✅ PDF’e AI bas
+                      );
+
+                      final filename = _buildPdfFileName(_mode);
+
+                      final filepath = await globalFunctions.downloadBytes(
+                        bytes,
+                        filename,
+                      );
+                      await OpenFilex.open(filepath);
+                    } catch (e) {
+                      customSnackBar.warning('PDF error: $e');
                     }
-
-                    final computed =
-                        (_cachedComputed != null && _cachedMode == _mode)
-                        ? _cachedComputed!
-                        : _computeReport(sleeps);
-
-                    final ai = await SleepAIService().analyzeSleepReport(
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      sleeps: sleeps,
-                    );
-
-                    final bytes = await SleepReportPdfBuilder.build(
-                      format: PdfPageFormat.a4,
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      sleeps: sleeps,
-                      ai: ai, // ✅ PDF’e AI bas
-                    );
-
-                    final filename = _buildPdfFileName(_mode);
-
-                    final filepath = await globalFunctions.downloadBytes(
-                      bytes,
-                      filename,
-                    );
-                    await OpenFilex.open(filepath);
-                  } catch (e) {
-                    customSnackBar.warning('PDF error: $e');
-                  }
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-              ),
+                    setState(() {
+                      isLoading = false;
+                    });
+                  },
+                ),
+              ],
             ],
           ),
           body: SafeArea(

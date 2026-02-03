@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_computed.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_pdf_builder.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/nursing_ai_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -100,6 +100,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = authenticationService.getUser();
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Container(
@@ -115,6 +116,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.transparent,
+            centerTitle: true,
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: GestureDetector(
@@ -130,61 +132,63 @@ class _NursingReportPageState extends State<NursingReportPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.picture_as_pdf,
-                  color: Color(0xFFff9aa2),
-                ),
-                onPressed: () async {
-                  setState(() {
-                    isLoading = true;
-                  });
-                  try {
-                    // ✅ mümkünse cache’li veriyi kullan
-                    final sleeps = _cachedNursings ?? await _future;
-                    if (sleeps.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No sleep data to export.'),
-                        ),
+              if (user != null) ...[
+                IconButton(
+                  icon: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Color(0xFFff9aa2),
+                  ),
+                  onPressed: () async {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    try {
+                      // ✅ mümkünse cache’li veriyi kullan
+                      final sleeps = _cachedNursings ?? await _future;
+                      if (sleeps.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No sleep data to export.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final computed =
+                          (_cachedComputed != null && _cachedMode == _mode)
+                          ? _cachedComputed!
+                          : _computeNursingReport(sleeps);
+
+                      final ai = await NursingAIService().analyze(
+                        mode: _mode,
+                        c: computed,
+                        rangeLabel: _rangeLabel(_mode),
                       );
-                      return;
+
+                      final bytes = await NursingReportPdfBuilder.build(
+                        format: PdfPageFormat.a4,
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        nursings: sleeps,
+                        ai: ai,
+                      );
+
+                      final filename = _buildPdfFileName(_mode);
+
+                      final filepath = await globalFunctions.downloadBytes(
+                        bytes,
+                        filename,
+                      );
+                      await OpenFilex.open(filepath);
+                    } catch (e) {
+                      customSnackBar.warning('PDF error: $e');
                     }
-
-                    final computed =
-                        (_cachedComputed != null && _cachedMode == _mode)
-                        ? _cachedComputed!
-                        : _computeNursingReport(sleeps);
-
-                    final ai = await NursingAIService().analyze(
-                      mode: _mode,
-                      c: computed,
-                      rangeLabel: _rangeLabel(_mode),
-                    );
-
-                    final bytes = await NursingReportPdfBuilder.build(
-                      format: PdfPageFormat.a4,
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      nursings: sleeps,
-                      ai: ai,
-                    );
-
-                    final filename = _buildPdfFileName(_mode);
-
-                    final filepath = await globalFunctions.downloadBytes(
-                      bytes,
-                      filename,
-                    );
-                    await OpenFilex.open(filepath);
-                  } catch (e) {
-                    customSnackBar.warning('PDF error: $e');
-                  }
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-              ),
+                    setState(() {
+                      isLoading = false;
+                    });
+                  },
+                ),
+              ],
             ],
           ),
           body: SafeArea(

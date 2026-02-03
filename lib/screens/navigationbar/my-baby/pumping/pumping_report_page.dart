@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_pdf_builder.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_computed.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/pumping_ai_service.dart'
     hide PumpingAiCompute;
@@ -105,6 +108,7 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = authenticationService.getUser();
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Container(
@@ -120,6 +124,7 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.transparent,
+            centerTitle: true,
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: GestureDetector(
@@ -135,71 +140,76 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-                onPressed: () async {
-                  if (isLoading) return; // ✅ double tap guard
-                  if (!mounted) return;
+              if (user != null) ...[
+                IconButton(
+                  icon: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.redAccent,
+                  ),
+                  onPressed: () async {
+                    if (isLoading) return; // ✅ double tap guard
+                    if (!mounted) return;
 
-                  setState(() => isLoading = true);
+                    setState(() => isLoading = true);
 
-                  try {
-                    // ✅ 1) Data
-                    final pumpings = _cachedPumpings ?? await _future;
+                    try {
+                      // ✅ 1) Data
+                      final pumpings = _cachedPumpings ?? await _future;
 
-                    if (pumpings.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No pumping data to export.'),
-                        ),
+                      if (pumpings.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No pumping data to export.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // ✅ 2) Compute (cache-safe) -> PumpingAiCompute
+                      final computed =
+                          (_cachedComputed != null && _cachedMode == _mode)
+                          ? _cachedComputed!
+                          : PumpingAiCompute.compute(
+                              pumpings: pumpings,
+                              mode: _mode,
+                            );
+
+                      // ✅ 3) AI (computed üzerinden payload kur)
+                      final ai = await PumpingAIService().analyzePumpingReport(
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        pumpings:
+                            pumpings, // (istersen serviste hiç kullanma; sadece payload için computed kullan)
+                        computed: computed, // ✅ esas
+                        userLanguage: "en",
+                        notes: const [],
                       );
-                      return;
+
+                      // ✅ 4) PDF bytes
+                      final bytes = await PumpingReportPdfBuilder.build(
+                        format: PdfPageFormat.a4,
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        pumpings: pumpings,
+                        computed: computed, // ✅ PDF'de header vb için de kullan
+                        ai: ai,
+                      );
+
+                      // ✅ 5) Save & open
+                      final filename = _buildPdfFileName(_mode);
+                      final filepath = await globalFunctions.downloadBytes(
+                        bytes,
+                        filename,
+                      );
+                      await OpenFilex.open(filepath);
+                    } catch (e) {
+                      customSnackBar.warning('PDF error: $e');
+                    } finally {
+                      if (mounted) setState(() => isLoading = false);
                     }
-
-                    // ✅ 2) Compute (cache-safe) -> PumpingAiCompute
-                    final computed =
-                        (_cachedComputed != null && _cachedMode == _mode)
-                        ? _cachedComputed!
-                        : PumpingAiCompute.compute(
-                            pumpings: pumpings,
-                            mode: _mode,
-                          );
-
-                    // ✅ 3) AI (computed üzerinden payload kur)
-                    final ai = await PumpingAIService().analyzePumpingReport(
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      pumpings:
-                          pumpings, // (istersen serviste hiç kullanma; sadece payload için computed kullan)
-                      computed: computed, // ✅ esas
-                      userLanguage: "en",
-                      notes: const [],
-                    );
-
-                    // ✅ 4) PDF bytes
-                    final bytes = await PumpingReportPdfBuilder.build(
-                      format: PdfPageFormat.a4,
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      pumpings: pumpings,
-                      computed: computed, // ✅ PDF'de header vb için de kullan
-                      ai: ai,
-                    );
-
-                    // ✅ 5) Save & open
-                    final filename = _buildPdfFileName(_mode);
-                    final filepath = await globalFunctions.downloadBytes(
-                      bytes,
-                      filename,
-                    );
-                    await OpenFilex.open(filepath);
-                  } catch (e) {
-                    customSnackBar.warning('PDF error: $e');
-                  } finally {
-                    if (mounted) setState(() => isLoading = false);
-                  }
-                },
-              ),
+                  },
+                ),
+              ],
             ],
           ),
           body: RefreshIndicator(

@@ -8,6 +8,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 /// ---- Sabitler ----
@@ -515,29 +516,35 @@ class _SleepExtendedMultiSliderBottomSheetState
                     onPressed: (_ranges.isEmpty || hasOverlap)
                         ? null
                         : () async {
-                            final meta = SleepMeta(
-                              startOfSleep: _startOfSleep,
-                              endOfSleep: _endOfSleep,
-                              howItHappened: _howItHappened,
-                              note: _noteCtrl.text.isEmpty
-                                  ? null
-                                  : _noteCtrl.text,
-                            );
+                            final user = authenticationService.getUser();
 
-                            // 1) SleepModel listesi oluştur
-                            final models = buildSleepModels(
-                              day: widget.sleepDate,
-                              ranges: _ranges,
-                              meta: meta,
-                              splitWrapAcrossMidnight:
-                                  true, // wrap'ı iki modele böl
-                            );
+                            if (user == null) {
+                              context.pushNamed("login");
+                            } else {
+                              final meta = SleepMeta(
+                                startOfSleep: _startOfSleep,
+                                endOfSleep: _endOfSleep,
+                                howItHappened: _howItHappened,
+                                note: _noteCtrl.text.isEmpty
+                                    ? null
+                                    : _noteCtrl.text,
+                              );
 
-                            for (SleepModel sleepModel in models) {
-                              await sleepService.addSleep(sleepModel);
+                              // 1) SleepModel listesi oluştur
+                              final models = buildSleepModels(
+                                day: widget.sleepDate,
+                                ranges: _ranges,
+                                meta: meta,
+                                splitWrapAcrossMidnight:
+                                    true, // wrap'ı iki modele böl
+                              );
+
+                              for (SleepModel sleepModel in models) {
+                                await sleepService.addSleep(sleepModel);
+                              }
+
+                              Navigator.pop(context);
                             }
-
-                            Navigator.pop(context);
                           },
                     child: const Text("Save"),
                   ),

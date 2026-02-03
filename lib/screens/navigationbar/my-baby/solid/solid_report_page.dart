@@ -7,6 +7,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_compu
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_pdf_builder.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/solid_ai_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
@@ -63,6 +64,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = authenticationService.getUser();
     return CustomLoader(
       inAsyncCall: isLoading,
       child: Container(
@@ -81,6 +83,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.transparent,
+            centerTitle: true,
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: GestureDetector(
@@ -98,67 +101,69 @@ class _SolidReportPageState extends State<SolidReportPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.teal),
-                onPressed: () async {
-                  setState(
-                    () => isLoading = true,
-                  ); // senin CustomLoader mantığın varsa
+              if (user != null) ...[
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf, color: Colors.teal),
+                  onPressed: () async {
+                    setState(
+                      () => isLoading = true,
+                    ); // senin CustomLoader mantığın varsa
 
-                  try {
-                    // 1) aktif mode’a göre data al
-                    final solids = await switch (_mode) {
-                      SolidReportMode.today => _futureToday,
-                      SolidReportMode.week => _futureWeek,
-                      SolidReportMode.month => _futureMonth,
-                    };
+                    try {
+                      // 1) aktif mode’a göre data al
+                      final solids = await switch (_mode) {
+                        SolidReportMode.today => _futureToday,
+                        SolidReportMode.week => _futureWeek,
+                        SolidReportMode.month => _futureMonth,
+                      };
 
-                    if (solids.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No food data to export.'),
-                        ),
+                      if (solids.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No food data to export.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // 2) compute (cache varsa onu kullan)
+                      final computed =
+                          (_cachedComputed != null && _cachedMode == _mode)
+                          ? _cachedComputed!
+                          : _computeSolidReport(solids);
+
+                      // 3) AI analyze
+                      final ai = await SolidAIService().analyzeSolidReport(
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        solids: solids,
                       );
-                      return;
+
+                      // 4) PDF build
+                      final bytes = await SolidReportPdfBuilder.build(
+                        format: PdfPageFormat.a4,
+                        mode: _mode,
+                        rangeLabel: _rangeLabel(_mode),
+                        solids: solids,
+                        computed:
+                            computed, // PDF’de hem tablo hem header için iyi
+                        ai: ai,
+                      );
+
+                      final filename = _buildSolidPdfFileName(_mode);
+                      final path = await globalFunctions.downloadBytes(
+                        bytes,
+                        filename,
+                      );
+                      await OpenFilex.open(path);
+                    } catch (e) {
+                      customSnackBar.warning('PDF error: $e');
+                    } finally {
+                      setState(() => isLoading = false);
                     }
-
-                    // 2) compute (cache varsa onu kullan)
-                    final computed =
-                        (_cachedComputed != null && _cachedMode == _mode)
-                        ? _cachedComputed!
-                        : _computeSolidReport(solids);
-
-                    // 3) AI analyze
-                    final ai = await SolidAIService().analyzeSolidReport(
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      solids: solids,
-                    );
-
-                    // 4) PDF build
-                    final bytes = await SolidReportPdfBuilder.build(
-                      format: PdfPageFormat.a4,
-                      mode: _mode,
-                      rangeLabel: _rangeLabel(_mode),
-                      solids: solids,
-                      computed:
-                          computed, // PDF’de hem tablo hem header için iyi
-                      ai: ai,
-                    );
-
-                    final filename = _buildSolidPdfFileName(_mode);
-                    final path = await globalFunctions.downloadBytes(
-                      bytes,
-                      filename,
-                    );
-                    await OpenFilex.open(path);
-                  } catch (e) {
-                    customSnackBar.warning('PDF error: $e');
-                  } finally {
-                    setState(() => isLoading = false);
-                  }
-                },
-              ),
+                  },
+                ),
+              ],
             ],
           ),
           body: SafeArea(

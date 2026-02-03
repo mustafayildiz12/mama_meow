@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +9,7 @@ import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
 class AddDiaperBottomSheet extends StatefulWidget {
@@ -179,18 +179,24 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
   }
 
   Future<void> _save() async {
-    if (_selectedDiaper == null) return;
+    final user = authenticationService.getUser();
 
-    final model = DiaperModel(
-      diaperName: _selectedDiaper!,
-      createdAt: DateTime.now().toIso8601String(),
-      diaperTime: _diaperTimeStr,
-    );
+    if (user == null) {
+      context.pushNamed("login");
+    } else {
+      if (_selectedDiaper == null) return;
 
-    await diaperService.addDiaper(model);
+      final model = DiaperModel(
+        diaperName: _selectedDiaper!,
+        createdAt: DateTime.now().toIso8601String(),
+        diaperTime: _diaperTimeStr,
+      );
 
-    Navigator.pop(context, true);
-    //  Navigator.of(context).pop(model);
+      await diaperService.addDiaper(model);
+
+      Navigator.pop(context, true);
+      //  Navigator.of(context).pop(model);
+    }
   }
 }
 
