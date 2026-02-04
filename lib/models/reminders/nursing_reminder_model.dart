@@ -55,7 +55,7 @@ class NursingRemindersStore {
   /// Tümünü yükle
   static Future<List<NursingReminderItem>> loadAll() async {
    
-    final raw = localStorage.read(_key);
+    final raw = infoStorage.read(_key);
     if (raw == null) return [];
     final list = (jsonDecode(raw) as List)
         .map((e) => NursingReminderItem.fromJson(e))
@@ -66,14 +66,14 @@ class NursingRemindersStore {
   /// Tümünü kaydet
   static Future<void> saveAll(List<NursingReminderItem> items) async {
     
-    await localStorage.write(_key, jsonEncode(items.map((e) => e.toJson()).toList()));
+    await infoStorage.write(_key, jsonEncode(items.map((e) => e.toJson()).toList()));
   }
 
   /// Yeni id üret
   static Future<int> nextId() async {
  
-    final id = localStorage.read(_idKey) ?? 1;
-    await localStorage.write(_idKey, id + 1);
+    final id = infoStorage.read(_idKey) ?? 1;
+    await infoStorage.write(_idKey, id + 1);
     return id;
   }
 }

@@ -5,29 +5,43 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import io.flutter.embedding.android.FlutterActivity
+import android.util.Log
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity: FlutterActivity() {
+class MainActivity: AudioServiceActivity() {  // ← DEĞİŞİKLİK BURASI
   private val CHANNEL = "exact_alarm_permission"
 
   override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
     super.configureFlutterEngine(flutterEngine)
-
+    
+    Log.d("MainActivity", "🔥 configureFlutterEngine ÇALIŞTI!")
+    Log.d("MainActivity", "🔥 MethodChannel kuruluyor: $CHANNEL")
+    
     MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
       .setMethodCallHandler { call, result ->
+        Log.d("MainActivity", "🔥 Method çağrıldı: ${call.method}")
+        
         when (call.method) {
           "canScheduleExactAlarms" -> {
-            result.success(canScheduleExactAlarms())
+            val canSchedule = canScheduleExactAlarms()
+            Log.d("MainActivity", "🔥 canScheduleExactAlarms sonuç: $canSchedule")
+            result.success(canSchedule)
           }
           "requestExactAlarmPermission" -> {
+            Log.d("MainActivity", "🔥 requestExactAlarmPermission çağrıldı")
             requestExactAlarmPermission()
             result.success(true)
           }
-          else -> result.notImplemented()
+          else -> {
+            Log.w("MainActivity", "⚠️ Bilinmeyen method: ${call.method}")
+            result.notImplemented()
+          }
         }
       }
+    
+    Log.d("MainActivity", "✅ MethodChannel kurulumu tamamlandı")
   }
 
   private fun canScheduleExactAlarms(): Boolean {

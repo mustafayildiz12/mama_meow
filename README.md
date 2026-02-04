@@ -1,237 +1,134 @@
-# 🐱 MamaMeow - Baby Care Companion
+# 🐱 MamaMeow - Akıllı Bebek Bakım Asistanı
 
-A comprehensive Flutter application designed to help parents track and manage their baby's daily activities, health, and development milestones.
+MamaMeow, ebeveynlerin bebeklerinin günlük aktivitelerini takip etmelerine, gelişimlerini izlemelerine ve yapay zeka destekli asistan ile sorularına cevap bulmalarına yardımcı olan kapsamlı bir Flutter uygulamasıdır.
 
-## 📱 Features
+## 📱 Özellikler
 
-### 🔐 Authentication & User Management
-- **User Registration & Login**: Secure Firebase authentication
-- **Baby Profile Setup**: Create and manage baby information
-- **User Profile Management**: Personalized user experience
+### 🤖 Ask Meow (Yapay Zeka Asistanı)
+- **AI Sohbet**: Bebek bakımı ve annelik hakkında sorular sorabileceğiniz akıllı asistan.
+- **Sesli ve Görsel Giriş**: Sorularınızı yazarak, sesli mesajla veya fotoğraf yükleyerek sorabilirsiniz.
+- **Hızlı Sorular**: Sık sorulan sorulara hızlı erişim.
+- **Geçmiş**: Sorulan soruları ve alınan cevapları kaydeder.
 
-### 👶 Baby Activity Tracking
-- **Diaper Changes**: Track diaper changes with timestamps
-- **Feeding Sessions**: Monitor nursing/bottle feeding with detailed metrics
-  - Side tracking (left/right for nursing)
-  - Duration and amount tracking
-  - Milk type selection for bottle feeding
-- **Sleep Monitoring**: Comprehensive sleep tracking
-  - Start/end times with detailed sleep patterns
-  - Sleep quality indicators
-  - Sleep environment tracking
-- **Medicine Administration**: Track medication schedules and dosages
-- **Solid Food Introduction**: Monitor baby's solid food journey
-- **Growth Tracking**: Record and visualize baby's development
-- **Journal Notes**: Keep detailed notes about baby's daily activities
+### 👶 Bebeğim (Aktivite Takibi)
+Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
+- **Bez Değişimi**: Kakalı, çişli bez takibi ve zamanlaması.
+- **Beslenme**: Emzirme (sağ/sol), Biberon (süt tipi/miktar) ve Katı Gıda takibi.
+- **Uyku**: Uyku süreleri ve düzeni.
+- **Diğer**: İlaç takibi, büyüme verileri, aşı takvimi ve günlük notlar.
+- **Hatırlatıcılar**: Bez değişimi, ilaç vb. için özelleştirilebilir alarmlar.
 
-### 🎧 Educational Content
-- **Podcast Player**: Built-in audio player with advanced features
-  - Playback speed control (1x, 1.25x, 1.5x, 2x)
-  - 10-second skip forward/backward
-  - Playlist navigation between episodes
-  - Category-based filtering
-  - Search functionality
-- **Expert Parenting Guidance**: Access to professional advice in audio format
+### 🎧 Öğren (Podcast & Eğitim)
+- **Podcast Oynatıcı**: Ebeveynlik üzerine podcastleri dinleyin.
+- **Gelişmiş Oynatıcı**: Hız kontrolü, atlama, arka planda çalma desteği.
 
-### 🍽️ Meal Planning
-- **Meal Plan Management**: Organize baby's feeding schedule
-- **Food Asset Library**: Visual food selection with SVG icons
-- **Nutritional Tracking**: Monitor baby's dietary intake
+### 📊 Raporlar ve Analizler
+- Aktiviteler için detaylı grafikler ve özetler.
+- Bebeğin gelişim takibi.
 
-### 📊 Analytics & Reports
-- **Activity Reports**: Visual charts and analytics for all tracked activities
-- **Growth Charts**: Monitor baby's development over time
-- **Export Capabilities**: Share reports with healthcare providers
+### 💎 Premium Özellikler
+- Reklamsız deneyim.
+- Sınırsız AI kullanımı.
+- Özel içeriklere erişim.
 
-## 🛠️ Technical Stack
+---
+
+## 🛠️ Teknik Altyapı
 
 ### Frontend
-- **Flutter**: Cross-platform mobile development
-- **GetX**: State management and navigation
-- **Material Design**: Modern UI/UX components
+- **Framework**: Flutter & Dart (SDK ^3.9.0)
+- **Navigasyon**: `go_router`
+- **State Management**: Service Pattern + `setState` / Native
+- **Yerel Depolama**: `get_storage`
 
-### Backend & Services
-- **Firebase Authentication**: Secure user management
-- **Firebase Realtime Database**: Real-time data synchronization
-- **Firebase Storage**: Media file storage
+### Backend & Servisler
+- **Firebase**:
+  - **Authentication**: Kullanıcı kimlik doğrulama.
+  - **Realtime Database**: Veri senkronizasyonu.
+  - **Storage**: Medya dosyaları (fotoğraf, ses).
+  - **Analytics & Crashlytics**: Uygulama analizi ve hata takibi.
+  - **Remote Config**: Uzaktan yapılandırma.
+- **Yapay Zeka**: OpenAI GPT entegrasyonu (Özel servis katmanı).
+- **Ödeme**: RevenueCat (`purchases_flutter`).
 
-### Key Dependencies
+### 📦 Temel Paketler
 ```yaml
-# Core Framework
+# Core
 flutter: sdk
-get: ^4.6.6                    # State management
-get_storage: ^2.1.1            # Local storage
-
-# UI & Media
-cached_network_image: ^3.4.1   # Image caching
-flutter_svg: ^2.2.1            # SVG support
-syncfusion_flutter_charts: ^31.1.17  # Charts & analytics
-
-# Audio & Media
-just_audio: ^0.10.5            # Audio playback
-image_picker: ^1.2.0           # Image selection
-file_picker: ^8.0.6            # File selection
-record: ^6.1.1                 # Audio recording
+go_router: ^17.0.1          # Sayfa yönlendirmesi
+get_storage: ^2.1.1         # Basit veri saklama
 
 # Firebase
 firebase_core: ^4.0.0
 firebase_auth: ^6.0.2
 firebase_database: ^12.0.0
-firebase_storage: ^13.0.1
+firebase_storage: ^13.0.6
 
-# Utilities
-intl: ^0.20.2                  # Internationalization
-path_provider: ^2.1.5         # File system paths
-http: ^1.5.0                   # HTTP requests
+# Medya
+just_audio: ^0.10.5         # Ses oynatma
+audio_service: ^0.18.18     # Arka plan ses servisi
+record: ^6.1.1              # Ses kaydı
+image_picker: ^1.2.0        # Resim seçimi
+
+# UI & Yardımcılar
+flutter_svg: ^2.2.1
+cached_network_image: ^3.4.1
+intl: ^0.20.2               # Tarih/Saat formatlama
+syncfusion_flutter_charts: ^31.1.17 # Grafikler
 ```
 
-## 🏗️ Project Structure
+---
+
+## 📂 Proje Yapısı
 
 ```
 lib/
-├── constants/           # App-wide constants
-│   ├── app_colors.dart
-│   ├── app_localization.dart
-│   ├── app_pages.dart
-│   └── app_routes.dart
-├── models/             # Data models
-│   ├── activities/     # Baby activity models
-│   │   ├── diaper_model.dart
-│   │   ├── nursing_model.dart
-│   │   ├── sleep_model.dart
-│   │   ├── medicine_model.dart
-│   │   └── journal_model.dart
-│   ├── meow_user_model.dart
-│   ├── podcast_model.dart
-│   └── solid_food.dart
-├── screens/            # UI screens
-│   ├── auth/          # Authentication screens
-│   ├── navigationbar/ # Main app navigation
-│   │   ├── home/      # Dashboard
-│   │   ├── learn/     # Podcast & education
-│   │   ├── meal-plan/ # Meal planning
-│   │   ├── my-baby/   # Activity tracking
-│   │   └── profile/   # User profile
-│   └── get-started/   # Onboarding
-├── service/           # Business logic & API calls
-│   ├── activities/    # Activity-specific services
+├── constants/           # Uygulama geneli sabitler (Renkler, route'lar, vb.)
+├── models/             # Veri modelleri
+│   ├── ai_models/      # AI cevap ve soru modelleri
+│   └── ...             # Aktivite ve kullanıcı modelleri
+├── screens/            # Kullanıcı arayüzü (UI)
+│   ├── auth/           # Giriş/Kayıt ekranları
+│   ├── navigationbar/  # Ana uygulama iskeleti
+│   │   ├── home/       # Ask Meow (Ana sayfa)
+│   │   ├── learn/      # Podcast ekranları
+│   │   ├── my-baby/    # Aktivite takip ekranları
+│   │   └── profile/    # Profil ayarları
+│   └── premium/        # Ödeme duvarı (Paywall)
+├── service/            # İş mantığı ve servis katmanı
+│   ├── audio/          # Ses işleyici servisi
+│   ├── gpt_service/    # AI servisleri
 │   ├── authentication_service.dart
 │   ├── database_service.dart
-│   ├── podcast_service.dart
-│   └── app_init_service.dart
-└── utils/             # Utility widgets & helpers
-    └── custom_widgets/
+│   └── ...
+├── utils/              # Yardımcı araçlar ve widget'lar
+└── main.dart           # Uygulama giriş noktası
 ```
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-- Flutter SDK (>=3.9.0)
-- Dart SDK
-- Android Studio / VS Code
-- Firebase project setup
+## 🚀 Kurulum
 
-### Installation
-
-1. **Clone the repository**
+1. **Repoyu Klonlayın**
    ```bash
-   git clone https://github.com/yourusername/mama_meow.git
+   git clone [repo-url]
    cd mama_meow
    ```
 
-2. **Install dependencies**
+2. **Bağımlılıkları Yükleyin**
    ```bash
    flutter pub get
    ```
 
-3. **Firebase Setup**
-   - Create a Firebase project
-   - Add your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
-   - Configure Firebase Authentication, Realtime Database, and Storage
+3. **Firebase Yapılandırması**
+   - Firebase projenizi oluşturun.
+   - `google-services.json` (Android) ve `GoogleService-Info.plist` (iOS) dosyalarını ilgili klasörlere ekleyin.
 
-4. **Environment Configuration**
-   - Create a `.env` file in the root directory
-   - Add your configuration variables
-
-5. **Run the application**
+4. **Uygulamayı Çalıştırın**
    ```bash
    flutter run
    ```
 
-## 🎯 Key Features Breakdown
+## 🔐 Lisans
 
-### Baby Activity Tracking System
-The app provides comprehensive tracking for all major baby activities:
-
-- **Real-time Data Sync**: All activities sync instantly across devices
-- **Detailed Metrics**: Track duration, amounts, times, and additional notes
-- **Visual Reports**: Charts and graphs show patterns and trends
-- **Export Functionality**: Share data with healthcare providers
-
-### Advanced Podcast Player
-- **Multi-speed Playback**: Adjust listening speed for convenience
-- **Smart Navigation**: Skip between episodes seamlessly
-- **Offline Support**: Download episodes for offline listening
-- **Category Filtering**: Find content by topic (sleep, feeding, growth, etc.)
-
-### Comprehensive Data Models
-Each activity type has a dedicated data model ensuring:
-- **Type Safety**: Strongly typed data structures
-- **Validation**: Input validation and error handling
-- **Serialization**: Easy JSON conversion for API communication
-- **Extensibility**: Models designed for future feature additions
-
-## 🔧 Development
-
-### Code Architecture
-- **MVVM Pattern**: Clear separation of concerns
-- **GetX State Management**: Reactive programming approach
-- **Service Layer**: Centralized business logic
-- **Repository Pattern**: Data access abstraction
-
-### Testing
-```bash
-# Run unit tests
-flutter test
-
-# Run integration tests
-flutter test integration_test/
-```
-
-### Building for Production
-```bash
-# Android
-flutter build apk --release
-flutter build appbundle --release
-
-# iOS
-flutter build ios --release
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📞 Support
-
-For support and questions:
-- Create an issue in this repository
-- Contact the development team
-
-## 🙏 Acknowledgments
-
-- Flutter team for the amazing framework
-- Firebase for backend services
-- All the parents who provided feedback during development
-
----
-
-**MamaMeow** - Making parenting a little easier, one feature at a time. 🐱👶
+Bu proje gizlidir ve izinsiz kopyalanması veya dağıtılması yasaktır.

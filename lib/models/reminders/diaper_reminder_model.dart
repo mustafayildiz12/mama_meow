@@ -53,7 +53,7 @@ class DiaperRemindersStore {
   static const _idKey = 'diaper_reminders_next_id_v1';
 
   static Future<List<DiaperReminderItem>> loadAll() async {
-    final raw = localStorage.read(_key);
+    final raw = infoStorage.read(_key);
     if (raw == null) return [];
     return (jsonDecode(raw) as List)
         .map((e) => DiaperReminderItem.fromJson(e))
@@ -61,15 +61,15 @@ class DiaperRemindersStore {
   }
 
   static Future<void> saveAll(List<DiaperReminderItem> items) async {
-    await localStorage.write(
+    await infoStorage.write(
       _key,
       jsonEncode(items.map((e) => e.toJson()).toList()),
     );
   }
 
   static Future<int> nextId() async {
-    final id = localStorage.read(_idKey) ?? 1;
-    await localStorage.write(_idKey, id + 1);
+    final id = infoStorage.read(_idKey) ?? 1;
+    await infoStorage.write(_idKey, id + 1);
     return id;
   }
 }
