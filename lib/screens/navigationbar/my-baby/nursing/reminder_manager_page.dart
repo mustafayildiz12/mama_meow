@@ -58,7 +58,7 @@ class _NursingRemindersManagerPageState
     await NursingReminderNotificationService.instance.scheduleItem(item);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Hatırlatıcı eklendi')));
+    ).showSnackBar(const SnackBar(content: Text('Reminder Added')));
   }
 
   Future<void> _edit(NursingReminderItem it) async {
@@ -88,7 +88,7 @@ class _NursingRemindersManagerPageState
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Hatırlatıcı güncellendi')));
+    ).showSnackBar(const SnackBar(content: Text('Reminder Added')));
   }
 
   Future<void> _toggle(NursingReminderItem it, bool v) async {
@@ -113,7 +113,7 @@ class _NursingRemindersManagerPageState
     await NursingReminderNotificationService.instance.cancelItem(it);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Hatırlatıcı silindi')));
+    ).showSnackBar(const SnackBar(content: Text('Reminder deleted')));
   }
 
   @override
