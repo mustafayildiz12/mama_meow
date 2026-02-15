@@ -8,8 +8,6 @@ import 'package:mama_meow/constants/app_pages.dart';
 import 'package:mama_meow/service/app_init_service.dart';
 import 'package:mama_meow/service/audio/background_handler.dart';
 
-// Alperen kod gönderdi
-
 late final PodcastAudioHandler audioHandler;
 
 Future<void> main() async {
