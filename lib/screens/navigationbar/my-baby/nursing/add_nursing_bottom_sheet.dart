@@ -144,11 +144,11 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
             ),
           );
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving nursing: $e'),
+            const SnackBar(
+              content: Text("Couldn't save. Please try again."),
               backgroundColor: Colors.red,
             ),
           );

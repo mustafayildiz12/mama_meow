@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 
 class BabyInfoModal extends StatefulWidget {
   final VoidCallback? onContinue;
@@ -237,15 +238,19 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed:
-                          widget.onContinue ??
-                          () {
-                            currentMeowUser = currentMeowUser?.copyWith(
-                              babyName: _nameController.text,
-                              ageRange: selectedAge,
-                            );
-                            Navigator.pop(context, true);
-                          },
+                      onPressed: () {
+                        analyticService.onboardingComplete();
+                        final onContinue = widget.onContinue;
+                        if (onContinue != null) {
+                          onContinue();
+                        } else {
+                          currentMeowUser = currentMeowUser?.copyWith(
+                            babyName: _nameController.text,
+                            ageRange: selectedAge,
+                          );
+                          Navigator.pop(context, true);
+                        }
+                      },
                       child: const Text('Continue'),
                     ),
                   ),

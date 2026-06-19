@@ -7,6 +7,13 @@ import 'package:flutter/services.dart';
 import 'package:get/get_utils/src/platform/platform.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
+
+/// Mağaza linkleri (paylaşım/davet metinleri için).
+const String kPlayStoreUrl =
+    'https://play.google.com/store/apps/details?id=com.yildiz.mama_meow';
+// TODO: iOS yayına girince App Store linkini gir (ör. https://apps.apple.com/app/idXXXXXXXXX)
+const String kAppStoreUrl = '';
 
 class GlobalFunction {
   factory GlobalFunction() {
@@ -180,7 +187,35 @@ class GlobalFunction {
     return deviceVersion;
   }
 
-    Future<String> downloadBytes(Uint8List bytes, String filename) async {
+  /// Uygulamayı önermek için davet metni (mağaza linkiyle).
+  String appInviteText() {
+    final link = kAppStoreUrl.isNotEmpty ? kAppStoreUrl : kPlayStoreUrl;
+    return "I'm using MamaMeow to track my baby and get instant AI parenting "
+        "answers 🐾 Try it: $link";
+  }
+
+  /// Düz metin paylaşımı (AI cevabı, davet vb.).
+  Future<void> shareText(String text, {String? subject}) async {
+    try {
+      await Share.share(text, subject: subject);
+    } catch (_) {
+      // Paylaşım kritik bir akış değil; sessizce geç.
+    }
+  }
+
+  /// Uygulamayı arkadaşa öner (mağaza linki + davet metni).
+  Future<void> shareAppInvite() => shareText(appInviteText());
+
+  /// Bir PDF dosyasını paylaş (rapor paylaşımı).
+  Future<void> sharePdf(String path, {String? text}) async {
+    try {
+      await Share.shareXFiles([XFile(path)], text: text ?? appInviteText());
+    } catch (_) {
+      // Sessizce geç.
+    }
+  }
+
+  Future<String> downloadBytes(Uint8List bytes, String filename) async {
     final safeName = filename.trim().isEmpty ? 'report.pdf' : filename.trim();
     final name = safeName.toLowerCase().endsWith('.pdf')
         ? safeName

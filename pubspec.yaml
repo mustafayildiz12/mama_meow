@@ -93,6 +93,10 @@ dependencies:
 
   go_router: ^17.0.1
 
+  # Büyüme: mağaza içi puan isteme + paylaşım
+  in_app_review: ^2.0.10
+  share_plus: ^10.1.4
+
 
 flutter_launcher_icons:
   #  image_path: "assets/images/icon-128x128.png"

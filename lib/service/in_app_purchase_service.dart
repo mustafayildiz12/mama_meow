@@ -287,6 +287,11 @@ class InAppPurchaseService {
           package.identifier,
           package.storeProduct.price,
         );
+        // Pakette ücretsiz deneme varsa trial dönüşümünü ayrıca işaretle.
+        final trialDays = getTrialDays(package);
+        if (trialDays != null && trialDays != "0") {
+          await analyticService.trialStarted(package.identifier);
+        }
         customSnackBar.success("Purchase success");
         isPurchaseSuccess = true;
       }

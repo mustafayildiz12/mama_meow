@@ -185,6 +185,65 @@ class AnalyticService {
     );
   }
 
+  // ---- Büyüme / funnel olayları ----
+
+  /// Kullanıcı onboarding'i (bebek bilgisi) tamamladığında.
+  Future<void> onboardingComplete() async {
+    await analytics.logEvent(
+      name: 'onboarding_complete',
+      parameters: {...timeAndDeviceInfo, ...userInfo},
+    );
+  }
+
+  /// Çekirdek engagement metriği: bir aktivite kaydedildiğinde.
+  /// [type] -> sleep | nursing | diaper | solid | pumping | medicine | journal
+  Future<void> activityLogged(String type) async {
+    await analytics.logEvent(
+      name: 'activity_logged',
+      parameters: {'activity_type': type, ...timeAndDeviceInfo, ...userInfo},
+    );
+  }
+
+  /// Paywall kullanıcıya gösterildiğinde. [source] -> ask_meow | learn | profile ...
+  Future<void> paywallShown({String? source}) async {
+    await analytics.logEvent(
+      name: 'paywall_shown',
+      parameters: {
+        if (source != null) 'source': source,
+        ...timeAndDeviceInfo,
+        ...userInfo,
+      },
+    );
+  }
+
+  /// Ücretsiz deneme başlatıldığında.
+  Future<void> trialStarted(String productId) async {
+    await analytics.logEvent(
+      name: 'trial_started',
+      parameters: {'product_id': productId, ...timeAndDeviceInfo, ...userInfo},
+    );
+  }
+
+  /// AI cevabı başarıyla alındığında.
+  Future<void> aiAnswerSuccess() async {
+    await analytics.logEvent(
+      name: 'ai_answer_success',
+      parameters: {...timeAndDeviceInfo, ...userInfo},
+    );
+  }
+
+  /// AI cevabı alınamadığında.
+  Future<void> aiAnswerFailed(String errorMessage) async {
+    await analytics.logEvent(
+      name: 'ai_answer_failed',
+      parameters: {
+        'error_message': errorMessage,
+        ...timeAndDeviceInfo,
+        ...userInfo,
+      },
+    );
+  }
+
   static Map<String, dynamic> get timeAndDeviceInfo => {
     "timeStamp": DateTime.now().toIso8601String(),
     "deviceInfo": deviceInfo,

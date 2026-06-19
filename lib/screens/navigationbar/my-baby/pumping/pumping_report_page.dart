@@ -13,7 +13,7 @@ import 'package:mama_meow/service/gpt_service/pumping_ai_service.dart'
     hide PumpingAiCompute;
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:mama_meow/service/review_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -201,7 +201,12 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
                         bytes,
                         filename,
                       );
-                      await OpenFilex.open(filepath);
+                      await globalFunctions.sharePdf(
+                        filepath,
+                        text:
+                            "My baby's pumping report from MamaMeow 🐾 ${globalFunctions.appInviteText()}",
+                      );
+                      await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {
                       customSnackBar.warning('PDF error: $e');
                     } finally {
@@ -239,16 +244,19 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
                         return _CenteredMessage(
                           emoji: '⚠️',
                           title: 'Something went wrong',
-                          subtitle: snapshot.error.toString(),
+                          subtitle:
+                              "We couldn't load this report. Pull to refresh and try again.",
                         );
                       }
                       final pumpings = snapshot.data ?? [];
                       if (pumpings.isEmpty) {
-                        return const _CenteredMessage(
+                        return _CenteredMessage(
                           emoji: '🍼',
                           title: 'No record found',
                           subtitle:
                               "You'll see it here when you add pumping for this interval.",
+                          actionLabel: 'Add pumping',
+                          onAction: () => Navigator.pop(context),
                         );
                       }
                       return _buildReportBody(context, pumpings);
@@ -564,10 +572,14 @@ class _CenteredMessage extends StatelessWidget {
   final String emoji;
   final String title;
   final String? subtitle;
+  final String? actionLabel;
+  final VoidCallback? onAction;
   const _CenteredMessage({
     required this.emoji,
     required this.title,
     this.subtitle,
+    this.actionLabel,
+    this.onAction,
   });
   @override
   Widget build(BuildContext context) {
@@ -594,6 +606,14 @@ class _CenteredMessage extends StatelessWidget {
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
                 textAlign: TextAlign.center,
+              ),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.add),
+                label: Text(actionLabel!),
               ),
             ],
           ],

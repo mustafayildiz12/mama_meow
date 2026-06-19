@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 /// Emzirme kayıtları servisi (Realtime DB)
@@ -17,6 +18,7 @@ class NursingService {
         .child(user.uid)
         .child(createdAt)
         .set(nursing.toMap());
+    analyticService.activityLogged('nursing');
   }
 
   /// Tüm liste (aralıksız okuma)

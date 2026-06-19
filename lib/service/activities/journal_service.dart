@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/journal_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class JournalService {
@@ -14,6 +15,7 @@ class JournalService {
 
   Future<void> addJournalNote(JournalModel journalModel) async {
     await _userRef().child(journalModel.noteId).set(journalModel.toJson());
+    analyticService.activityLogged('journal');
   }
 
   // ---- NEW: tek seferlik "bugün" notları

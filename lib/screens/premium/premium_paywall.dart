@@ -66,6 +66,9 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
   @override
   void initState() {
     analyticService.screenView('paywall_screen');
+    analyticService.paywallShown(
+      source: widget.showTrialFirst ? 'trial_first' : 'feature_gate',
+    );
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Color(0xFFfbe7f3),

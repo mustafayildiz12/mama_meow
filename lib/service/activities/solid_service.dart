@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class SolidService {
@@ -14,6 +15,7 @@ class SolidService {
         .child(user.uid)
         .child(createdAt)
         .set(solid.toMap());
+    analyticService.activityLogged('solid');
   }
 
   Future<List<SolidModel>> getUserSolidList() async {

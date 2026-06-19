@@ -9,7 +9,9 @@ import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 import 'package:mama_meow/models/ai_models/question_asnwer_ai_model.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/gpt_service/question_ai_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/service/review_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,6 +21,7 @@ import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class AskMeowView extends StatefulWidget {
   const AskMeowView({super.key});
@@ -183,11 +186,13 @@ class _AskMeowViewState extends State<AskMeowView> {
                             ],
                           ),
                           IconButton(
+                            tooltip: 'Shuffle questions',
                             icon: const Icon(
                               Icons.shuffle,
                               color: Color(0xFFEC4899),
                             ),
-                            onPressed: () {},
+                            onPressed: () =>
+                                setState(() => quickQuestionList.shuffle()),
                           ),
                         ],
                       ),
@@ -491,10 +496,25 @@ class _AskMeowViewState extends State<AskMeowView> {
     );
   }
 
+  void _shareAnswer() {
+    final a = _miaAnswer;
+    if (a == null) return;
+    final buffer = StringBuffer()..writeln(a.quick);
+    if (a.detailed.trim().isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln(a.detailed.replaceAll(r'\n', '\n'));
+    }
+    buffer
+      ..writeln()
+      ..writeln(globalFunctions.appInviteText());
+    globalFunctions.shareText(buffer.toString());
+  }
+
   Widget _answerCard() {
-    // Hiçbir cevap yok ve yükleme de yoksa gizle
-    if (_miaAnswer == null && _isLoading) {
-      return CircularProgressIndicator();
+    // Cevap yok ve yükleme de yoksa hiçbir şey gösterme.
+    if (_miaAnswer == null && !_isLoading) {
+      return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
@@ -509,7 +529,20 @@ class _AskMeowViewState extends State<AskMeowView> {
           children: [
             if (_isLoading) ...[
               const SizedBox(height: 8),
-              const Center(child: CircularProgressIndicator()),
+              Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 12),
+                    Text(
+                      isTR ? "Mia düşünüyor…" : "Mia is thinking…",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 8),
             ] else if (_miaAnswer != null) ...[
               // ------ PART 1: Quick Answer ------
@@ -517,7 +550,17 @@ class _AskMeowViewState extends State<AskMeowView> {
                 _miaAnswer!.quick,
                 style: theme.textTheme.titleMedium?.copyWith(height: 1.35),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
+              // Cevabı paylaş (büyüme kancası: ebeveynler tavsiyeyi yayar).
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _shareAnswer,
+                  icon: const Icon(Icons.ios_share, size: 18),
+                  label: Text(isTR ? "Paylaş" : "Share"),
+                ),
+              ),
+              const SizedBox(height: 6),
 
               // ------ PART 2: Detailed Info ------
               if (_miaAnswer!.detailed.trim().isNotEmpty) ...[
@@ -962,8 +1005,20 @@ class _AskMeowViewState extends State<AskMeowView> {
 
         await questionAIService.addAIQuestion(qa);
         await getUserPastQuestions();
+        await analyticService.aiAnswerSuccess();
+        // Mutlu an: birkaç başarılı cevaptan sonra mağaza puanı iste.
+        await reviewService.recordPositiveMomentAndMaybeAsk();
       } catch (e) {
+        await analyticService.aiAnswerFailed(e.toString());
         setState(() => _miaAnswer = null);
+        // Sessiz hata yerine kullanıcıyı bilgilendir; soruyu geri koy ki
+        // tek dokunuşla yeniden gönderebilsin.
+        if (mounted) {
+          _controller.text = q;
+          customSnackBar.error(
+            "Mia couldn't answer right now. Please check your connection and try again.",
+          );
+        }
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }

@@ -18,7 +18,9 @@ import 'package:mama_meow/screens/get-started/modals/update_email_password.dart'
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
+import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/service/review_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -85,6 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 16),
                 _buildUserInfoCard(),
                 _buildBabyCard(),
+                _buildShareCard(),
                 _buildAboutCard(),
                 _buildPremiumCard(),
                 settingsCard(),
@@ -483,6 +486,50 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           )
         : SizedBox();
+  }
+
+  Widget _buildShareCard() {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            leading: const Icon(
+              Icons.favorite_border,
+              color: AppColors.pink500,
+            ),
+            title: const Text(
+              "Tell a friend",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            subtitle: const Text("Share MamaMeow with other parents 🐾"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => globalFunctions.shareAppInvite(),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.star_border, color: Color(0xFFF59E0B)),
+            title: const Text(
+              "Rate MamaMeow",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            subtitle: const Text("Love the app? Leave a quick review"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => reviewService.openStoreListing(),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildAboutCard() {

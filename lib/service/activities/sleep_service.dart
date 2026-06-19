@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class SleepService {
@@ -16,6 +17,7 @@ class SleepService {
         .child(user.uid)
         .child(createdAt)
         .set(sleepModel.toJson());
+    analyticService.activityLogged('sleep');
   }
 
   /// Tüm kayıtlar (anahtar aralığı olmadan okuma)

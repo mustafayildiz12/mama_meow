@@ -13,11 +13,13 @@ import 'package:get_storage/get_storage.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/firebase_options.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/service/motification_service.dart';
+import 'package:mama_meow/service/re_engagement_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -38,6 +40,8 @@ class AppInitService {
     await initRoute();
     await initNotification();
     _initSetSystemUIOverlayStyle();
+    // Her uygulama açılışında funnel'ın en üst metriği.
+    await analyticService.appOpen();
   }
 
   static Future<void> initNotification() async {
@@ -62,6 +66,11 @@ class AppInitService {
 
     // Notifications
     await NotificationService.instance.init();
+
+    // Geri kazanım (re-engagement) dürtüleri: her açılışta hareketsizlik
+    // sayacını sıfırla ve haftalık özeti garanti et.
+    await reEngagementService.init();
+    await reEngagementService.scheduleAll();
   }
 
   static Future<void> requestAndroidNotificationPermission() async {

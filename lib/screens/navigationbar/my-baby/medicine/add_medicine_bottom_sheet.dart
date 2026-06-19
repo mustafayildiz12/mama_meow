@@ -134,11 +134,11 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
             ),
           );
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving medicine: $e'),
+            const SnackBar(
+              content: Text("Couldn't save. Please try again."),
               backgroundColor: Colors.red,
             ),
           );

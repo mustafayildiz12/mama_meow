@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/medicine_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class MedicineService {
@@ -16,6 +17,7 @@ class MedicineService {
         .child(user.uid)
         .child(createdAt)
         .set(medicine.toMap());
+    analyticService.activityLogged('medicine');
   }
 
   Future<List<MedicineModel>> getMedicineList() async {

@@ -2,6 +2,7 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
+import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
 class PumpingService {
@@ -16,6 +17,7 @@ class PumpingService {
         .child(user.uid)
         .child(createdAt)
         .set(pumping.toMap());
+    analyticService.activityLogged('pumping');
   }
 
   /// Tüm liste (aralıksız)
