@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/add_medicine_bottom_sheet.dart';
@@ -356,7 +355,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                 Row(
                   children: [
                     const Icon(
-                      LucideIcons.sparkles,
+                      Icons.auto_awesome,
                       color: Colors.amber,
                       size: 20,
                     ),
@@ -451,7 +450,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                       onPressed: () {
                         onReportPressed!();
                       },
-                      icon: Icon(LucideIcons.barChart3, color: textColor),
+                      icon: Icon(Icons.bar_chart, color: textColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -465,7 +464,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
                       onPressed: () {
                         onPlusPressed();
                       },
-                      icon: Icon(LucideIcons.plus, color: textColor, size: 28),
+                      icon: Icon(Icons.add, color: textColor, size: 28),
                     ),
                   ),
                 ],

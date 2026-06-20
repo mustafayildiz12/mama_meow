@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
@@ -60,7 +61,13 @@ class ReEngagementService {
       : AndroidScheduleMode.inexactAllowWhileIdle;
 
   /// Açılışta çağır: hareketsizlik sayacını sıfırla + haftalık özeti garanti et.
+  ///
+  /// Bildirim kurulumu kritik değildir: herhangi bir adım başarısız olursa
+  /// (örn. exact alarm izni yok) sessizce yutulur ki uygulama açılışı (splash)
+  /// asla bloke olmasın.
   Future<void> scheduleAll() async {
+    // Gerçek exact-alarm iznini öğren ki _mode doğru modu seçsin.
+    await AlarmPolicy.instance.refresh();
     await bumpInactivityReminders();
     await scheduleWeeklySummary();
   }
@@ -73,39 +80,70 @@ class ReEngagementService {
 
     final now = tz.TZDateTime.now(tz.local);
 
-    await _plugin.zonedSchedule(
+    await _safeSchedule(
       _idInactivity3,
       'We miss you & your little one 🐾',
       "Log today's feeds, sleep & diapers in seconds — and ask Mia anything.",
       _atHourAfterDays(now, days: 3, hour: 11),
-      _details,
-      androidScheduleMode: _mode,
-      payload: AppRoutes.myBaby,
     );
 
-    await _plugin.zonedSchedule(
+    await _safeSchedule(
       _idInactivity7,
       "Your baby's tracker is waiting 😺",
       'A quick tap keeps your logs and weekly reports up to date.',
       _atHourAfterDays(now, days: 7, hour: 11),
-      _details,
-      androidScheduleMode: _mode,
-      payload: AppRoutes.myBaby,
     );
   }
 
   /// Haftalık özet dürtüsü (Pazar 19:00, her hafta tekrar).
   Future<void> scheduleWeeklySummary() async {
-    await _plugin.zonedSchedule(
+    await _safeSchedule(
       _idWeekly,
       'Your weekly baby summary is ready 📊',
       "See this week's sleep, feeding & diaper trends.",
       _nextWeekly(DateTime.sunday, 19, 0),
-      _details,
-      androidScheduleMode: _mode,
       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: AppRoutes.myBaby,
     );
+  }
+
+  /// [zonedSchedule]'ı güvenli şekilde sarar:
+  /// - exact alarm izni yoksa otomatik olarak inexact moda düşer,
+  /// - başka herhangi bir hata da yutulur (bildirim opsiyoneldir, açılışı
+  ///   engellememeli).
+  Future<void> _safeSchedule(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime when, {
+    DateTimeComponents? matchDateTimeComponents,
+  }) async {
+    Future<void> schedule(AndroidScheduleMode mode) {
+      return _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        when,
+        _details,
+        androidScheduleMode: mode,
+        matchDateTimeComponents: matchDateTimeComponents,
+        payload: AppRoutes.myBaby,
+      );
+    }
+
+    try {
+      await schedule(_mode);
+    } on PlatformException catch (e) {
+      // Exact alarm izni anlık olarak reddedilmişse inexact ile yeniden dene.
+      if (e.code == 'exact_alarms_not_permitted') {
+        try {
+          await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+        } catch (_) {
+          // yine olmadıysa sessizce geç
+        }
+      }
+    } catch (_) {
+      // bildirim kurulamadı; açılışı bloke etme
+    }
   }
 
   Future<void> cancelAll() async {

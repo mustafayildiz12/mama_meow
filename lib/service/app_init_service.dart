@@ -69,8 +69,13 @@ class AppInitService {
 
     // Geri kazanım (re-engagement) dürtüleri: her açılışta hareketsizlik
     // sayacını sıfırla ve haftalık özeti garanti et.
-    await reEngagementService.init();
-    await reEngagementService.scheduleAll();
+    // Bildirim kurulumu opsiyoneldir; hata olursa açılışı (splash) bloke etmesin.
+    try {
+      await reEngagementService.init();
+      await reEngagementService.scheduleAll();
+    } catch (e) {
+      debugPrint("⚠️ Re-engagement scheduling failed (non-fatal): $e");
+    }
   }
 
   static Future<void> requestAndroidNotificationPermission() async {
