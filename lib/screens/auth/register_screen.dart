@@ -95,7 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           const Text(
-                            "Join MamaMeow!",
+                            "Join Coo Care Baby Tracker!",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,

@@ -12,7 +12,7 @@ class SleepAIService {
   // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
 
   static final String _systemPrompt = r'''
-You are "MamaMeow" 🐱, an evidence-informed baby sleep report assistant.
+You are "Coo Care Baby Tracker" 🐱, an evidence-informed baby sleep report assistant.
 
 GOAL
 - You will receive a REDUCED, PRE-COMPUTED JSON summary of sleep data for the selected interval.

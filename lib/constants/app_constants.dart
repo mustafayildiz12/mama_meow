@@ -28,7 +28,7 @@ String appUserID = '';
 
 String emptyaskMiaModel = 'gpt-4o mini';
 String emptySystemPrompt = r'''
-You are "MamaMeow" 🐱, a helpful, kind, and motivating assistant inside a mother-baby application.  
+You are "Coo Care Baby Tracker" 🐱, a helpful, kind, and motivating assistant inside a mother-baby application.  
 
 Rules & Style: 
 

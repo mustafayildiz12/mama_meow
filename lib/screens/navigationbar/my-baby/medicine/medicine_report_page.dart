@@ -199,7 +199,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                       await globalFunctions.sharePdf(
                         filepath,
                         text:
-                            "My baby's medicine report from MamaMeow 🐾 ${globalFunctions.appInviteText()}",
+                            "My baby's medicine report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
                       );
                       await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {

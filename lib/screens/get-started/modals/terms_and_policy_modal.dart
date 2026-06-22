@@ -31,7 +31,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   child: Column(
                     children: [
                       Text(
-                        'Welcome to MamaMeow! 😸',
+                        'Welcome to Coo Care Baby Tracker! 😸',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -73,12 +73,12 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'MamaMeow: Your Cattiest Mom\'s AI Companion',
+                          'Coo Care Baby Tracker: Your Cattiest Mom\'s AI Companion',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'By downloading or using MamaMeow, you agree to these Terms of Use. This app is designed for parents or legal guardians aged 18 or older.',
+                          'By downloading or using Coo Care Baby Tracker, you agree to these Terms of Use. This app is designed for parents or legal guardians aged 18 or older.',
                           style: TextStyle(fontSize: 13),
                         ),
                         SizedBox(height: 8),
@@ -123,7 +123,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'MamaMeow: Your Cattiest Mom\'s AI Companion',
+                          'Coo Care Baby Tracker: Your Cattiest Mom\'s AI Companion',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),

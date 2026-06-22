@@ -36,7 +36,7 @@ Future<void> main() async {
 void runMyApp() {
   return runApp(
     MaterialApp.router(
-      title: 'MamaMeow',
+      title: 'Coo Care Baby Tracker',
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

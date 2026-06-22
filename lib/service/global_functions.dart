@@ -190,7 +190,7 @@ class GlobalFunction {
   /// Uygulamayı önermek için davet metni (mağaza linkiyle).
   String appInviteText() {
     final link = kAppStoreUrl.isNotEmpty ? kAppStoreUrl : kPlayStoreUrl;
-    return "I'm using MamaMeow to track my baby and get instant AI parenting "
+    return "I'm using Coo Care Baby Tracker to track my baby and get instant AI parenting "
         "answers 🐾 Try it: $link";
   }
 

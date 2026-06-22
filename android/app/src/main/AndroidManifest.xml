@@ -23,7 +23,7 @@ package="com.yildiz.mama_meow"
         tools:node="remove" />
 
     <application
-        android:label="MamaMeow"
+        android:label="Coo Care"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         

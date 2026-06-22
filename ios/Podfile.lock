@@ -16,6 +16,10 @@ PODS:
     - FlutterMacOS
   - audio_session (0.0.1):
     - Flutter
+  - cloud_functions (6.3.3):
+    - Firebase/Functions (= 12.15.0)
+    - firebase_core
+    - Flutter
   - device_info_plus (0.0.1):
     - Flutter
   - Firebase/Auth (12.15.0):
@@ -29,6 +33,9 @@ PODS:
   - Firebase/Database (12.15.0):
     - Firebase/CoreOnly
     - FirebaseDatabase (~> 12.15.0)
+  - Firebase/Functions (12.15.0):
+    - Firebase/CoreOnly
+    - FirebaseFunctions (~> 12.15.0)
   - Firebase/RemoteConfig (12.15.0):
     - Firebase/CoreOnly
     - FirebaseRemoteConfig (~> 12.15.0)
@@ -116,11 +123,20 @@ PODS:
     - FirebaseSharedSwift (~> 12.15.0)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - leveldb-library (~> 1.22)
+  - FirebaseFunctions (12.15.0):
+    - FirebaseAppCheckInterop (~> 12.15.0)
+    - FirebaseAuthInterop (~> 12.15.0)
+    - FirebaseCore (~> 12.15.0)
+    - FirebaseCoreExtension (~> 12.15.0)
+    - FirebaseMessagingInterop (~> 12.15.0)
+    - FirebaseSharedSwift (~> 12.15.0)
+    - GTMSessionFetcher/Core (< 6.0, >= 3.4)
   - FirebaseInstallations (12.15.0):
     - FirebaseCore (~> 12.15.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - PromisesObjC (~> 2.4)
+  - FirebaseMessagingInterop (12.15.0)
   - FirebaseRemoteConfig (12.15.0):
     - FirebaseABTesting (~> 12.15.0)
     - FirebaseCore (~> 12.15.0)
@@ -296,6 +312,7 @@ PODS:
 DEPENDENCIES:
   - audio_service (from `.symlinks/plugins/audio_service/darwin`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
+  - cloud_functions (from `.symlinks/plugins/cloud_functions/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - firebase_analytics (from `.symlinks/plugins/firebase_analytics/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
@@ -336,7 +353,9 @@ SPEC REPOS:
     - FirebaseCoreInternal
     - FirebaseCrashlytics
     - FirebaseDatabase
+    - FirebaseFunctions
     - FirebaseInstallations
+    - FirebaseMessagingInterop
     - FirebaseRemoteConfig
     - FirebaseRemoteConfigInterop
     - FirebaseSessions
@@ -366,6 +385,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/audio_service/darwin"
   audio_session:
     :path: ".symlinks/plugins/audio_session/ios"
+  cloud_functions:
+    :path: ".symlinks/plugins/cloud_functions/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   firebase_analytics:
@@ -420,6 +441,7 @@ SPEC CHECKSUMS:
   AppCheckCore: 214137f5c378d1dec88a68425c467fe65aaff637
   audio_service: cab6c1a0eaf01b5a35b567e11fa67d3cc1956910
   audio_session: 19e9480dbdd4e5f6c4543826b2e8b0e4ab6145fe
+  cloud_functions: 78db792881457b5a6c4e13e930e2e50c76fe5a45
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
   Firebase: a8539b633d474fbeb654c7043f9c1649e274045b
   firebase_analytics: 444603cf97c21326b60115cd18d28f4a56bd78f6
@@ -439,7 +461,9 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: 6ab6a02c94446c026d2cf35cf5383842ebaa4992
   FirebaseCrashlytics: 87e76cc33259b076dd1f96cd829db76849338e08
   FirebaseDatabase: ecce2d5cfe0fae2534e84a8498645a13cbfc7af5
+  FirebaseFunctions: 207bd3636bf538a5852a1ae34737fa15581e6f7a
   FirebaseInstallations: eb29ccbf64eaedf86fd5b2ccc7fabde567660b52
+  FirebaseMessagingInterop: 23d50835a19ee3ffae1e5058b9dfea8b651ff298
   FirebaseRemoteConfig: d8b57e994277aabef7cca708e671ce676eefed7a
   FirebaseRemoteConfigInterop: 7e3d57ce4b1e958bb1d15403faa7178f46bbb5b7
   FirebaseSessions: acfe7eadca47cda94ac86592737204581bb1abf6

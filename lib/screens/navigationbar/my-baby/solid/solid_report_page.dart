@@ -158,7 +158,7 @@ class _SolidReportPageState extends State<SolidReportPage> {
                       await globalFunctions.sharePdf(
                         path,
                         text:
-                            "My baby's solid food report from MamaMeow 🐾 ${globalFunctions.appInviteText()}",
+                            "My baby's solid food report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
                       );
                       await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {

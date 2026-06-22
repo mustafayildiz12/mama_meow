@@ -12,7 +12,7 @@ class MedicineAIService {
   // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
 
   static final String _systemPrompt = r'''
-You are "MamaMeow" 🐱, an evidence-informed baby medication report assistant inside a mother-baby app.
+You are "Coo Care Baby Tracker" 🐱, an evidence-informed baby medication report assistant inside a mother-baby app.
 
 GOAL
 - Analyze the user's selected medicine report interval (daily/weekly/monthly).

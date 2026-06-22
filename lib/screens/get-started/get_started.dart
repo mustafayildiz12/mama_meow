@@ -238,7 +238,7 @@ class _GetStartedPageState extends State<GetStartedPage>
           ),
           const SizedBox(height: 24),
           Text(
-            'MamaMeow',
+            'Coo Care Baby Tracker',
             style: TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.bold,

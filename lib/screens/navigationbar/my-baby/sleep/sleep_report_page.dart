@@ -190,7 +190,7 @@ class _SleepReportPageState extends State<SleepReportPage> {
                       await globalFunctions.sharePdf(
                         filepath,
                         text:
-                            "My baby's sleep report from MamaMeow 😴🐾 ${globalFunctions.appInviteText()}",
+                            "My baby's sleep report from Coo Care Baby Tracker 😴🐾 ${globalFunctions.appInviteText()}",
                       );
                       await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {

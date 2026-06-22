@@ -204,7 +204,7 @@ class _PumpingReportPageState extends State<PumpingReportPage> {
                       await globalFunctions.sharePdf(
                         filepath,
                         text:
-                            "My baby's pumping report from MamaMeow 🐾 ${globalFunctions.appInviteText()}",
+                            "My baby's pumping report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
                       );
                       await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {

@@ -195,7 +195,7 @@ class _DiaperReportPageState extends State<DiaperReportPage> {
                       await globalFunctions.sharePdf(
                         filepath,
                         text:
-                            "My baby's diaper report from MamaMeow 🐾 ${globalFunctions.appInviteText()}",
+                            "My baby's diaper report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
                       );
                       await reviewService.recordPositiveMomentAndMaybeAsk();
                     } catch (e) {

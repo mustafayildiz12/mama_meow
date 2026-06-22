@@ -91,7 +91,7 @@ class MedicineReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'MamaMeow – Medicine Reminder',
+        'Coo Care Baby Tracker – Medicine Reminder',
         'Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,

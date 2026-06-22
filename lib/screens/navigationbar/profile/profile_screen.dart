@@ -81,7 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 const Text(
-                  "Manage your MamaMeow account",
+                  "Manage your Coo Care Baby Tracker account",
                   style: TextStyle(color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 16),
@@ -509,7 +509,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 color: Color(0xFF1F2937),
               ),
             ),
-            subtitle: const Text("Share MamaMeow with other parents 🐾"),
+            subtitle: const Text("Share Coo Care Baby Tracker with other parents 🐾"),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => globalFunctions.shareAppInvite(),
           ),
@@ -517,7 +517,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ListTile(
             leading: const Icon(Icons.star_border, color: Color(0xFFF59E0B)),
             title: const Text(
-              "Rate MamaMeow",
+              "Rate Coo Care Baby Tracker",
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1F2937),
@@ -550,7 +550,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Icon(Icons.favorite, size: 20, color: Color(0xFFEF4444)),
                   SizedBox(width: 8),
                   Text(
-                    "About MamaMeow",
+                    "About Coo Care Baby Tracker",
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1F2937),
@@ -560,7 +560,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               SizedBox(height: 12),
               Text(
-                "MamaMeow was created by parents, for parents. Our AI assistant Mia provides helpful guidance while you navigate the beautiful journey of parenthood.",
+                "Coo Care Baby Tracker was created by parents, for parents. Our AI assistant Mia provides helpful guidance while you navigate the beautiful journey of parenthood.",
                 style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
               SizedBox(height: 8),
@@ -569,7 +569,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
               ),
               Text(
-                "© 2024 MamaMeow. Made with 💖 for families.",
+                "© 2024 Coo Care Baby Tracker. Made with 💖 for families.",
                 style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
               ),
             ],

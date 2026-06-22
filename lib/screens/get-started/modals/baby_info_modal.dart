@@ -63,7 +63,7 @@ class _BabyInfoModalState extends State<BabyInfoModal> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Let\'s personalize MamaMeow for your family',
+                      'Let\'s personalize Coo Care Baby Tracker for your family',
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),

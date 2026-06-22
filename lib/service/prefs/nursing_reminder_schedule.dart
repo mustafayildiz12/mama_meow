@@ -88,7 +88,7 @@ class NursingReminderNotificationService {
     for (final d in item.weekdays) {
       await _plugin.zonedSchedule(
         scheduleId(item.reminderId, d),
-        'Time for a cozy cuddle & feed! 🤱🐾 MamaMeow’s got your back',
+        'Time for a cozy cuddle & feed! 🤱🐾 Coo Care Baby Tracker’s got your back',
         '👶 Time ${_two(item.timeOfDay.hour)}:${_two(item.timeOfDay.minute)}',
         _nextWeekly(d, item.timeOfDay.hour, item.timeOfDay.minute),
         details,

@@ -13,7 +13,7 @@ class PumpingAIService {
   // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
 
   static const String _systemPrompt = r'''
-You are "MamaMeow" 🐱, a lactation consultant & postpartum support expert.
+You are "Coo Care Baby Tracker" 🐱, a lactation consultant & postpartum support expert.
 
 GOAL
 - You will receive ONE REDUCED, PRE-COMPUTED JSON summary of pumping data for the selected interval.

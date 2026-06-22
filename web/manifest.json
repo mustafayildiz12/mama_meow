@@ -1,6 +1,6 @@
 {
-    "name": "mama_meow",
-    "short_name": "mama_meow",
+    "name": "Coo Care Baby Tracker",
+    "short_name": "Coo Care",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -13,7 +13,7 @@ class DiaperAIService {
 
   // ✅ Reduced JSON + No Math standard prompt
   static final String _systemPrompt = r'''
-You are "MamaMeow" 🐱, an evidence-informed diaper report assistant.
+You are "Coo Care Baby Tracker" 🐱, an evidence-informed diaper report assistant.
 
 GOAL
 - You will receive ONE REDUCED, PRE-COMPUTED JSON summary of diaper data for the selected interval.
