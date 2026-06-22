@@ -30,6 +30,17 @@ Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
 - Reklamsız deneyim.
 - Sınırsız AI kullanımı.
 - Özel içeriklere erişim.
+- Premium erişimi RevenueCat `"premium"` entitlement'ı ile kontrol edilir.
+
+### 📣 Büyüme & Etkileşim
+- **Mağaza Değerlendirmesi**: "Mutlu an"larda (örn. 3 başarılı AI cevabı/rapor) ve frekans
+  kapağıyla native `in_app_review` akışını tetikler.
+- **Paylaşım**: AI cevaplarını, PDF raporlarını ve uygulama davet linkini `share_plus` ile paylaşma.
+- **Geri Kazanım Bildirimleri (Re-engagement)**: Hareketsizlik dürtüleri (3/7 gün uygulamayı
+  açmayan kullanıcıya) ve haftalık özet bildirimi (Pazar 19:00). Uygulama açılışı etkileşim sayılır
+  ve sayaç sıfırlanır.
+- **Analitik & Funnel**: Onboarding, aktivite kaydı, paywall gösterimi, deneme başlatma ve AI
+  cevap başarı/başarısızlık olayları Firebase Analytics'e loglanır.
 
 ---
 
@@ -43,13 +54,20 @@ Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
 
 ### Backend & Servisler
 - **Firebase**:
-  - **Authentication**: Kullanıcı kimlik doğrulama.
-  - **Realtime Database**: Veri senkronizasyonu.
+  - **Authentication**: E-posta/şifre, Google ve Apple ile giriş.
+  - **Realtime Database**: Aktivite ve kullanıcı verisi senkronizasyonu (disk persistansı açık).
   - **Storage**: Medya dosyaları (fotoğraf, ses).
-  - **Analytics & Crashlytics**: Uygulama analizi ve hata takibi.
-  - **Remote Config**: Uzaktan yapılandırma.
-- **Yapay Zeka**: OpenAI GPT entegrasyonu (Özel servis katmanı).
-- **Ödeme**: RevenueCat (`purchases_flutter`).
+  - **Analytics & Crashlytics**: Funnel/etkileşim olayları ve hata takibi.
+  - **Remote Config / `appInfo` node**: OpenAI anahtarı, model, sistem promptları ve sürüm
+    bilgileri uzaktan çekilir (uygulamaya gömülü değildir).
+  - **Cloud Functions** (`functions/`, TypeScript, Node 22): `wipeUser` callable fonksiyonu,
+    kullanıcının tüm Realtime Database verisini siler.
+- **Yapay Zeka**: OpenAI GPT entegrasyonu — doğrudan HTTP üzerinden (backend proxy yok). Sohbet,
+  öneriler, Whisper ses transkripsiyonu ve aktivite raporu analizleri için özel servis katmanı.
+- **Ödeme**: RevenueCat (`purchases_flutter`), `"premium"` entitlement'ı.
+- **Bildirimler**: `flutter_local_notifications` + `timezone` ile hatırlatıcılar ve geri kazanım
+  bildirimleri.
+- **Büyüme**: `in_app_review` (mağaza puanı) ve `share_plus` (paylaşım/davet).
 
 ### 📦 Temel Paketler
 ```yaml
@@ -57,24 +75,53 @@ Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
 flutter: sdk
 go_router: ^17.0.1          # Sayfa yönlendirmesi
 get_storage: ^2.1.1         # Basit veri saklama
+http: ^1.5.0                # OpenAI API çağrıları
+crypto: ^3.0.6
 
 # Firebase
 firebase_core: ^4.0.0
 firebase_auth: ^6.0.2
 firebase_database: ^12.0.0
 firebase_storage: ^13.0.6
+firebase_analytics: ^12.1.1
+firebase_crashlytics: ^5.0.7
+firebase_remote_config: ^6.1.4
+
+# Kimlik Doğrulama
+google_sign_in: ^6.3.0
+sign_in_with_apple: ^7.0.1
 
 # Medya
 just_audio: ^0.10.5         # Ses oynatma
 audio_service: ^0.18.18     # Arka plan ses servisi
+audio_session: ^0.2.2
 record: ^6.1.1              # Ses kaydı
 image_picker: ^1.2.0        # Resim seçimi
+flutter_image_compress: ^2.4.0
+
+# Bildirimler
+flutter_local_notifications: ^19.4.2
+timezone: ^0.10.1
+flutter_timezone: ^5.0.0
+
+# Ödeme & Büyüme
+purchases_flutter: ^9.6.1   # RevenueCat (premium)
+in_app_review: ^2.0.10      # Mağaza puanı isteme
+share_plus: ^10.1.4         # Paylaşım / davet
+
+# Raporlar
+pdf: ^3.11.3                # PDF rapor üretimi
+open_filex: ^4.7.0          # Dosya açma
+syncfusion_flutter_charts: ^31.1.17 # Grafikler
 
 # UI & Yardımcılar
 flutter_svg: ^2.2.1
+flutter_markdown: ^0.7.7+1
 cached_network_image: ^3.4.1
 intl: ^0.20.2               # Tarih/Saat formatlama
-syncfusion_flutter_charts: ^31.1.17 # Grafikler
+url_launcher: ^6.3.2
+package_info_plus: ^9.0.0
+device_info_plus: ^12.3.0
 ```
 
 ---
@@ -94,12 +141,20 @@ lib/
 │   │   ├── learn/      # Podcast ekranları
 │   │   ├── my-baby/    # Aktivite takip ekranları
 │   │   └── profile/    # Profil ayarları
+│   ├── get-started/    # Onboarding (bebek bilgisi)
 │   └── premium/        # Ödeme duvarı (Paywall)
-├── service/            # İş mantığı ve servis katmanı
-│   ├── audio/          # Ses işleyici servisi
-│   ├── gpt_service/    # AI servisleri
+├── service/            # İş mantığı ve servis katmanı (global singleton'lar)
+│   ├── activities/     # Aktivite servisleri (uyku, emzirme, bez, katı gıda...)
+│   ├── audio/          # Arka plan ses işleyici (audio_service)
+│   ├── gpt_service/    # AI servisleri (sohbet, öneri, rapor analizi)
+│   ├── permissions/    # Android exact-alarm izin/politikası
 │   ├── authentication_service.dart
 │   ├── database_service.dart
+│   ├── in_app_purchase_service.dart  # RevenueCat
+│   ├── analytic_service.dart         # Firebase Analytics olayları
+│   ├── re_engagement_service.dart    # Geri kazanım bildirimleri
+│   ├── review_service.dart           # Mağaza puanı isteme
+│   ├── motification_service.dart     # Yerel bildirimler (dosya adı kasıtlı yazım)
 │   └── ...
 ├── utils/              # Yardımcı araçlar ve widget'lar
 └── main.dart           # Uygulama giriş noktası
