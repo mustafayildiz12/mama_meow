@@ -58,12 +58,15 @@ Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
   - **Realtime Database**: Aktivite ve kullanıcı verisi senkronizasyonu (disk persistansı açık).
   - **Storage**: Medya dosyaları (fotoğraf, ses).
   - **Analytics & Crashlytics**: Funnel/etkileşim olayları ve hata takibi.
-  - **Remote Config / `appInfo` node**: OpenAI anahtarı, model, sistem promptları ve sürüm
-    bilgileri uzaktan çekilir (uygulamaya gömülü değildir).
-  - **Cloud Functions** (`functions/`, TypeScript, Node 22): `wipeUser` callable fonksiyonu,
-    kullanıcının tüm Realtime Database verisini siler.
-- **Yapay Zeka**: OpenAI GPT entegrasyonu — doğrudan HTTP üzerinden (backend proxy yok). Sohbet,
-  öneriler, Whisper ses transkripsiyonu ve aktivite raporu analizleri için özel servis katmanı.
+  - **Remote Config / `appInfo` node**: model, sistem promptları ve sürüm bilgileri uzaktan çekilir.
+    OpenAI anahtarı burada **tutulmaz** — sunucu tarafında bir Cloud Functions secret'ıdır (`OPENAI_API_KEY`).
+  - **Cloud Functions** (`functions/`, TypeScript, Node 22): `wipeUser` (kullanıcı verisini siler) ve
+    OpenAI proxy fonksiyonları `openaiChat` + `openaiTranscribe` (sunucu tarafı anahtar, kimlik
+    doğrulama zorunluluğu, model allowlist ve kullanıcı başına günlük kota).
+- **Yapay Zeka**: OpenAI GPT entegrasyonu — **Firebase Cloud Functions proxy üzerinden** (sunucu
+  tarafında OpenAI anahtarı, kimlik doğrulama ve kullanıcı başına günlük kota). İstemci yalnızca
+  prompt/payload üretip yanıtı parse eder; anahtar uygulamaya hiç inmez. Sohbet, öneriler, Whisper
+  ses transkripsiyonu ve aktivite raporu analizleri için özel servis katmanı.
 - **Ödeme**: RevenueCat (`purchases_flutter`), `"premium"` entitlement'ı.
 - **Bildirimler**: `flutter_local_notifications` + `timezone` ile hatırlatıcılar ve geri kazanım
   bildirimleri.
@@ -75,7 +78,7 @@ Bebekle ilgili tüm önemli aktivitelerin kaydı ve takibi:
 flutter: sdk
 go_router: ^17.0.1          # Sayfa yönlendirmesi
 get_storage: ^2.1.1         # Basit veri saklama
-http: ^1.5.0                # OpenAI API çağrıları
+http: ^1.5.0                # Genel HTTP / görsel yardımcıları
 crypto: ^3.0.6
 
 # Firebase
@@ -86,6 +89,7 @@ firebase_storage: ^13.0.6
 firebase_analytics: ^12.1.1
 firebase_crashlytics: ^5.0.7
 firebase_remote_config: ^6.1.4
+cloud_functions: ^6.0.0     # OpenAI proxy (callable) transport'u
 
 # Kimlik Doğrulama
 google_sign_in: ^6.3.0
@@ -158,6 +162,10 @@ lib/
 │   └── ...
 ├── utils/              # Yardımcı araçlar ve widget'lar
 └── main.dart           # Uygulama giriş noktası
+
+functions/              # Firebase Cloud Functions (TypeScript, Node 22)
+└── src/
+    └── index.ts        # wipeUser + openaiChat + openaiTranscribe (OpenAI proxy)
 ```
 
 ---
@@ -178,11 +186,36 @@ lib/
 3. **Firebase Yapılandırması**
    - Firebase projenizi oluşturun.
    - `google-services.json` (Android) ve `GoogleService-Info.plist` (iOS) dosyalarını ilgili klasörlere ekleyin.
+   - Realtime Database `appInfo` düğümüne uygulama yapılandırmasını girin:
+     `askMiaModel`, `systemPrompt`, `suggestionPrompt`, `androidVersion`/`iosVersion`,
+     `androidUrl`/`iosUrl`. (OpenAI anahtarı **buraya girilmez** — aşağıdaki secret kullanılır.)
 
-4. **Uygulamayı Çalıştırın**
+4. **AI Backend (Cloud Functions)**
+   > Ask Meow ve rapor analizleri OpenAI proxy fonksiyonlarına bağlıdır; bu fonksiyonlar
+   > dağıtılmadan ve secret ayarlanmadan AI özellikleri çalışmaz.
+   ```bash
+   cd functions
+   npm install
+   # OpenAI anahtarını sunucu tarafı secret olarak ayarla (yalnızca bir kez):
+   firebase functions:secrets:set OPENAI_API_KEY
+   # openaiChat + openaiTranscribe + wipeUser fonksiyonlarını dağıt:
+   firebase deploy --only functions
+   ```
+
+5. **Uygulamayı Çalıştırın**
    ```bash
    flutter run
    ```
+
+## 🔐 Güvenlik Notları
+
+- **OpenAI anahtarı istemciye inmez.** Tüm AI çağrıları `openaiChat` / `openaiTranscribe`
+  Cloud Functions callable'ları üzerinden gider; anahtar yalnızca sunucudaki `OPENAI_API_KEY`
+  secret'ındadır.
+- **Kötüye kullanım koruması sunucuda:** kimlik doğrulama zorunlu, model allowlist, `max_tokens`
+  tavanı ve kullanıcı başına günlük kota (`usage/<uid>/<gün>` altında sayılır).
+- Anahtar bir kez ifşa olduysa (eski sürümlerde `appInfo/aiKey` ile inmişti) **rotate edilmeli**
+  ve eski `appInfo/aiKey` düğümü silinmelidir.
 
 ## 🔐 Lisans
 

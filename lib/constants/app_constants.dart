@@ -8,8 +8,6 @@ String applicationVersion = "";
 
 String deviceInfo = "";
 
-String apiValue = "";
-
 String androidUrl = "";
 String iosUrl = "";
 

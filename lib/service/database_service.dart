@@ -105,7 +105,8 @@ class DatabaseService {
           androidUrl = data["androidUrl"] ?? "";
           appInfoVersion = androidVersion;
         }
-        apiValue = data["aiKey"] ?? "";
+        // OpenAI anahtarı artık istemciye indirilmez; sunucudaki
+        // OPENAI_API_KEY secret'ı kullanılır (bkz. functions/src/index.ts).
         askMiaModel = data["askMiaModel"] ?? emptyaskMiaModel;
         systemPrompt = data["systemPrompt"] ?? emptySystemPrompt;
         suggestionPrompt = data["suggestionPrompt"] ?? emptySuggestionPrompt;

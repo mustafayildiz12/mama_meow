@@ -9,6 +9,9 @@ module.exports = {
     node: true,
   },
   plugins: ["@typescript-eslint"],
+  ignorePatterns: [
+    "/lib/**/*", // Derlenmiş JS çıktısını lint'leme.
+  ],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",

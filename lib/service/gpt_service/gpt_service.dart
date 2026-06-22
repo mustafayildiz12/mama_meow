@@ -2,11 +2,10 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:image/image.dart' as img;
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
+import 'package:mama_meow/service/gpt_service/openai_proxy_service.dart';
 
 class GptService {
   // (Opsiyonel) Kişiselleştirme için tutulacak alanlar
@@ -16,12 +15,8 @@ class GptService {
 
   // ---- PROMPTLAR ----
 
-  // ---- Genel Ayarlar ----
-  static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
-  static const String _transcribeUrl =
-      'https://api.openai.com/v1/audio/transcriptions';
-
-  final Duration _timeout = const Duration(seconds: 60);
+  // Tüm OpenAI çağrıları artık [openAiProxyService] (Cloud Functions proxy)
+  // üzerinden gider; anahtar/timeout sunucu tarafında yönetilir.
 
   // ----- Yardımcı: Kişiselleştirme cümlesi üret -----
   String _buildPersonalization() {
@@ -84,41 +79,21 @@ class GptService {
           },
       ];
 
-      final body = {
-        "model": askMiaModel,
-        "messages": [
+      final raw = await openAiProxyService.chat(
+        messages: [
           {"role": "system", "content": system},
           {"role": "user", "content": userContent},
         ],
-        "max_tokens": maxTokens,
-        "temperature": temperature,
-      };
+        model: askMiaModel,
+        maxTokens: maxTokens,
+        temperature: temperature,
+      );
 
-      final resp = await http
-          .post(
-            Uri.parse(_chatUrl),
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer $apiValue",
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(_timeout);
+      if (raw.isEmpty) return null;
 
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final raw = (data['choices'] as List?)?.isNotEmpty == true
-            ? (data['choices'][0]['message']['content'] as String? ?? '')
-            : '';
-
-        if (raw.isEmpty) return null;
-
-        // İçerik JSON olmak zorunda; parse edelim
-        final map = jsonDecode(raw) as Map<String, dynamic>;
-        return MiaAnswer.fromMap(map);
-      } else {
-        return null;
-      }
+      // İçerik JSON olmak zorunda; parse edelim
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return MiaAnswer.fromMap(map);
     } catch (e) {
       return null;
     }
@@ -135,9 +110,8 @@ class GptService {
     double temperature = 0.8,
   }) async {
     try {
-      final body = {
-        "model": askMiaModel,
-        "messages": [
+      final content = await openAiProxyService.chat(
+        messages: [
           {"role": "system", "content": suggestionPrompt},
           {
             "role": "user",
@@ -145,40 +119,22 @@ class GptService {
                 'User\'s question: "$question"\nLanguage: $language\n\nProvide 3 related suggestions:',
           },
         ],
-        "max_tokens": maxTokens,
-        "temperature": temperature,
-      };
+        model: askMiaModel,
+        maxTokens: maxTokens,
+        temperature: temperature,
+      );
 
-      final resp = await http
-          .post(
-            Uri.parse(_chatUrl),
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer $apiValue",
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(_timeout);
+      if (content.isEmpty) return [];
 
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final content = (data['choices'] as List?)?.isNotEmpty == true
-            ? (data['choices'][0]['message']['content'] as String? ?? '')
-            : '';
-        if (content.isEmpty) return [];
+      // Satırlara böl ve filtrele
+      final lines = content
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .take(3)
+          .toList();
 
-        // Satırlara böl ve filtrele
-        final lines = content
-            .split('\n')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .take(3)
-            .toList();
-
-        return lines;
-      } else {
-        return [];
-      }
+      return lines;
     } catch (_) {
       return [];
     }
@@ -208,56 +164,17 @@ class GptService {
     double? temperature, // 0.0 - 1.0, varsayılan genelde 0
     Duration timeout = const Duration(seconds: 60),
   }) async {
-    final uri = Uri.parse(_transcribeUrl);
-
     try {
-      final req = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer $apiValue'
-        ..fields['model'] = model;
-
-      // Opsiyonel parametreler (dökümantasyona uygun isimlerle)
-      if (prompt != null && prompt.isNotEmpty) {
-        req.fields['prompt'] = prompt;
-      }
-      if (language != null && language.isNotEmpty) {
-        req.fields['language'] = language; // örn: "tr"
-      }
-      if (temperature != null) {
-        req.fields['temperature'] = temperature.toString();
-      }
-
-      // Daha detaylı çıktı (segmentler vs.) istersen:
-      // req.fields['response_format'] = 'verbose_json';
-
-      // NOT: filename & mimeType gerçek formata yakın olsun
-      req.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          audioBytes,
-          filename: filename,
-          contentType: MediaType.parse(mimeType),
-        ),
+      // Ses baytları proxy'ye base64 olarak gider; multipart sunucuda kurulur.
+      return await openAiProxyService.transcribe(
+        audioBytes: audioBytes,
+        filename: filename,
+        mimeType: mimeType,
+        model: model,
+        language: language,
+        prompt: prompt,
+        temperature: temperature,
       );
-
-      final streamed = await req.send().timeout(timeout);
-      final resp = await http.Response.fromStream(streamed);
-
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        // response_format=verbose_json gönderdiysen 'text' + 'segments' olabilir
-        return (data['text'] as String?) ?? '';
-      } else {
-        // Hata mesajını görsel olarak döndür (debug için)
-        try {
-          final err = jsonDecode(resp.body) as Map<String, dynamic>;
-          final msg = (err['error'] is Map && err['error']['message'] is String)
-              ? err['error']['message'] as String
-              : resp.body;
-          return 'Transcribe error (${resp.statusCode}): $msg';
-        } catch (_) {
-          return 'Transcribe error (${resp.statusCode})';
-        }
-      }
     } catch (e) {
       return 'Transcribe exception: $e';
     }

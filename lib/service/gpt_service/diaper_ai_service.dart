@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:mama_meow/service/gpt_service/openai_proxy_service.dart';
 
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_page.dart';
 
 class DiaperAIService {
-  static const String _chatUrl = 'https://api.openai.com/v1/chat/completions';
-  final Duration _timeout = const Duration(seconds: 60);
+  // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
 
   final String? _babyName = currentMeowUser?.babyName;
   final String? _babyAgeKey = currentMeowUser?.ageRange;
@@ -113,33 +112,15 @@ OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
       // ✅ Send as pure JSON (not long text)
       final userJson = jsonEncode(payload.toMap());
 
-      final body = {
-        "model": askMiaModel,
-        "messages": [
+      final raw = await openAiProxyService.chat(
+        messages: [
           {"role": "system", "content": system},
           {"role": "user", "content": userJson},
         ],
-        "max_tokens": maxTokens,
-        "temperature": temperature,
-      };
-
-      final resp = await http
-          .post(
-            Uri.parse(_chatUrl),
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer $apiValue",
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(_timeout);
-
-      if (resp.statusCode < 200 || resp.statusCode >= 300) return null;
-
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      final raw = (data['choices'] as List?)?.isNotEmpty == true
-          ? (data['choices'][0]['message']['content'] as String? ?? '')
-          : '';
+        model: askMiaModel,
+        maxTokens: maxTokens,
+        temperature: temperature,
+      );
       if (raw.trim().isEmpty) return null;
 
       final cleaned = _stripJsonFences(raw);
