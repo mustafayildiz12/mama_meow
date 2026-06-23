@@ -511,7 +511,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             subtitle: const Text("Share Coo Care Baby Tracker with other parents 🐾"),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => globalFunctions.shareAppInvite(),
+            onTap: () => globalFunctions.shareAppInvite(context: context),
           ),
           const Divider(height: 1),
           ListTile(

@@ -12,8 +12,10 @@ import 'package:share_plus/share_plus.dart';
 /// Mağaza linkleri (paylaşım/davet metinleri için).
 const String kPlayStoreUrl =
     'https://play.google.com/store/apps/details?id=com.yildiz.mama_meow';
-// TODO: iOS yayına girince App Store linkini gir (ör. https://apps.apple.com/app/idXXXXXXXXX)
-const String kAppStoreUrl = '';
+/// App Store numeric ID (App Store Connect).
+const String kAppStoreId = '6752356932';
+/// Locale-bağımsız App Store linki (paylaşım için).
+const String kAppStoreUrl = 'https://apps.apple.com/app/id$kAppStoreId';
 
 class GlobalFunction {
   factory GlobalFunction() {
@@ -189,29 +191,56 @@ class GlobalFunction {
 
   /// Uygulamayı önermek için davet metni (mağaza linkiyle).
   String appInviteText() {
-    final link = kAppStoreUrl.isNotEmpty ? kAppStoreUrl : kPlayStoreUrl;
+    final link = GetPlatform.isIOS && kAppStoreUrl.isNotEmpty
+        ? kAppStoreUrl
+        : kPlayStoreUrl;
     return "I'm using Coo Care Baby Tracker to track my baby and get instant AI parenting "
         "answers 🐾 Try it: $link";
   }
 
+  /// iPad/Mac'te paylaşım sayfasının (popover) nereden açılacağını belirten
+  /// kaynak dikdörtgen. iOS'ta bu verilmezse paylaşım sayfası açılamaz/çöker.
+  /// iPhone'da etkisizdir.
+  Rect? _shareOrigin(BuildContext? context) {
+    if (context == null) return null;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
   /// Düz metin paylaşımı (AI cevabı, davet vb.).
-  Future<void> shareText(String text, {String? subject}) async {
+  ///
+  /// [context] verilirse iPad/Mac'te paylaşım popover'ı doğru konumdan açılır.
+  Future<void> shareText(
+    String text, {
+    String? subject,
+    BuildContext? context,
+  }) async {
     try {
-      await Share.share(text, subject: subject);
-    } catch (_) {
-      // Paylaşım kritik bir akış değil; sessizce geç.
+      await Share.share(
+        text,
+        subject: subject,
+        sharePositionOrigin: _shareOrigin(context),
+      );
+    } catch (e) {
+      debugPrint("shareText error: $e");
     }
   }
 
   /// Uygulamayı arkadaşa öner (mağaza linki + davet metni).
-  Future<void> shareAppInvite() => shareText(appInviteText());
+  Future<void> shareAppInvite({BuildContext? context}) =>
+      shareText(appInviteText(), context: context);
 
   /// Bir PDF dosyasını paylaş (rapor paylaşımı).
-  Future<void> sharePdf(String path, {String? text}) async {
+  Future<void> sharePdf(String path, {String? text, BuildContext? context}) async {
     try {
-      await Share.shareXFiles([XFile(path)], text: text ?? appInviteText());
-    } catch (_) {
-      // Sessizce geç.
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: text ?? appInviteText(),
+        sharePositionOrigin: _shareOrigin(context),
+      );
+    } catch (e) {
+      debugPrint("sharePdf error: $e");
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:in_app_review/in_app_review.dart';
 import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/service/global_functions.dart';
 
 /// Mağaza puanı/yorumu isteme servisi.
 ///
@@ -56,18 +57,19 @@ class ReviewService {
   /// "Bizi değerlendir" gibi açık bir butondan mağaza sayfasını açar.
   ///
   /// iOS'ta App Store sayfasını açmak için [appStoreId] gerekir.
-  /// TODO: App Store Connect'teki sayısal App Store ID'sini buraya gir.
   Future<void> openStoreListing() async {
     try {
       await _inAppReview.openStoreListing(
-        appStoreId: '', // TODO: iOS App Store numeric ID (ör. '123456789')
+        appStoreId: kAppStoreId, // iOS App Store numeric ID
       );
-    } catch (_) {
+    } catch (e) {
+      print("Hata: $e");
       // iOS'ta App Store ID girilmemişse mağaza sayfası açılamaz; native
       // değerlendirme akışına düş.
       try {
         await _inAppReview.requestReview();
-      } catch (_) {
+      } catch (e) {
+        print("Hata 2: $e");
         // Sessizce geç.
       }
     }
