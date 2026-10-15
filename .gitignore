@@ -50,3 +50,7 @@ app.*.map.json
 
 
 
+
+# Gerçek test hesabı kimlik bilgileri içerir — commit etmeyin
+.env
+.env.*
