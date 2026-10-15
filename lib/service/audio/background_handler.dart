@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:rxdart/rxdart.dart';
@@ -34,8 +35,22 @@ class PodcastAudioHandler extends BaseAudioHandler
     // ✅ Konfigürasyon: müzik/podcast gibi davran
     await session.configure(const AudioSessionConfiguration.music());
 
-    // Playback state -> audio_service
-    _player.playbackEventStream.map(_transformEvent).listen(playbackState.add);
+    // Playback state -> audio_service. just_audio yükleme hatalarını bu
+    // stream'e hata olarak verir; dinlenmezse yakalanmamış hata olur.
+    _player.playbackEventStream
+        .map(_transformEvent)
+        .listen(
+          playbackState.add,
+          onError: (Object e, StackTrace st) {
+            debugPrint('Podcast playback error: $e');
+            playbackState.add(
+              playbackState.value.copyWith(
+                processingState: AudioProcessingState.error,
+                playing: false,
+              ),
+            );
+          },
+        );
 
     // current MediaItem -> audio_service
     _indexStream.listen((index) {
@@ -147,14 +162,10 @@ class PodcastAudioHandler extends BaseAudioHandler
   }) async {
     _queueSubject.add(items);
 
-    final source = ConcatenatingAudioSource(
-      children: items.map((m) => AudioSource.uri(Uri.parse(m.id))).toList(),
-    );
-
-    await _player.setAudioSource(
-      source,
+    await _player.setAudioSources(
+      items.map((m) => AudioSource.uri(Uri.parse(m.id))).toList(),
       initialIndex: startIndex,
-      preload: false, // ✅ performans
+      preload: false, // performans: parça çalınınca yüklenir
     );
 
     if (autoPlay) {
@@ -191,8 +202,10 @@ class PodcastAudioHandler extends BaseAudioHandler
       _player.seek(_player.position + const Duration(seconds: 10));
 
   @override
-  Future<void> rewind() =>
-      _player.seek(_player.position - const Duration(seconds: 10));
+  Future<void> rewind() {
+    final target = _player.position - const Duration(seconds: 10);
+    return _player.seek(target.isNegative ? Duration.zero : target);
+  }
 
   @override
   Future<void> setSpeed(double speed) => _player.setSpeed(speed);
@@ -205,16 +218,4 @@ class PodcastAudioHandler extends BaseAudioHandler
       await _player.setLoopMode(LoopMode.off);
     }
   }
-
-  /*
-  // ✅ audio_service lifecycle
-  @override
-  Future<void> close() async {
-    await intrSub?.cancel();
-    await noisySub?.cancel();
-    await _queueSubject.close();
-    await _player.dispose();
-    return super.close();
-  }
-   */
 }

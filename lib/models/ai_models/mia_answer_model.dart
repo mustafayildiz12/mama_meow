@@ -1,3 +1,5 @@
+import 'package:mama_meow/models/ai_models/lenient_json.dart';
+
 class MiaAnswer {
   final String quick;
   final String detailed;
@@ -17,19 +19,23 @@ class MiaAnswer {
     required this.lastUpdated,
   });
 
-  factory MiaAnswer.fromMap(Map<String, dynamic> m) {
+  /// Model çıktısı / RTDB kaydı hoşgörülü okunur: dizi gelen metin alanları
+  /// birleştirilir, kaynaklar Map ya da düz metin olabilir, eksikler boş kalır.
+  factory MiaAnswer.fromMap(Map<dynamic, dynamic> raw) {
+    final m = jsonMap(raw) ?? const <String, dynamic>{};
     return MiaAnswer(
-      quick: (m['quick_answer'] ?? '') as String,
-      detailed: (m['detailed_info'] ?? '') as String,
-      actions: ((m['actions'] ?? []) as List).map((e) => '$e').toList(),
-      followUp: (m['follow_up_question'] ?? '') as String,
-      disclaimer: (m['disclaimer'] ?? '') as String,
-      sources: ((m['sources'] ?? []) as List)
-          .map((e) => MiaSource.fromMap(e as Map<String, dynamic>))
-          .toList(),
-      lastUpdated: (m['last_updated'] ?? '') as String,
+      quick: jsonString(m['quick_answer']),
+      detailed: jsonString(m['detailed_info']),
+      actions: jsonStringList(m['actions']),
+      followUp: jsonString(m['follow_up_question']),
+      disclaimer: jsonString(m['disclaimer']),
+      sources: jsonList(
+        m['sources'],
+      ).map(MiaSource.tryFrom).whereType<MiaSource>().toList(),
+      lastUpdated: jsonString(m['last_updated']),
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       'quick_answer': quick,
@@ -56,12 +62,35 @@ class MiaSource {
     this.year,
   });
 
-  factory MiaSource.fromMap(Map<String, dynamic> m) => MiaSource(
-    title: (m['title'] ?? '') as String,
-    publisher: (m['publisher'] ?? '') as String,
-    url: (m['url'] ?? '') as String,
-    year: m['year'] is int ? m['year'] as int : null,
-  );
+  factory MiaSource.fromMap(Map<dynamic, dynamic> raw) {
+    final m = jsonMap(raw) ?? const <String, dynamic>{};
+    return MiaSource(
+      title: jsonString(m['title']),
+      publisher: jsonString(m['publisher']),
+      url: jsonString(m['url']),
+      year: jsonInt(m['year']),
+    );
+  }
+
+  /// Map ya da düz metin (başlık veya URL) kabul eder; boşsa null.
+  static MiaSource? tryFrom(Object? v) {
+    if (v is Map) {
+      final s = MiaSource.fromMap(v);
+      final empty =
+          s.title.trim().isEmpty &&
+          s.publisher.trim().isEmpty &&
+          s.url.trim().isEmpty;
+      return empty ? null : s;
+    }
+    final text = jsonString(v).trim();
+    if (text.isEmpty) return null;
+    final isUrl = text.startsWith('http://') || text.startsWith('https://');
+    return MiaSource(
+      title: isUrl ? '' : text,
+      publisher: '',
+      url: isUrl ? text : '',
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {'title': title, 'publisher': publisher, 'url': url, 'year': year};

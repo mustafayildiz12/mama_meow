@@ -1,52 +1,36 @@
-// ignore_for_file: depend_on_referenced_packages
-
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
+
 import 'package:image/image.dart' as img;
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
+import 'package:mama_meow/service/gpt_service/common/ai_common.dart';
 import 'package:mama_meow/service/gpt_service/openai_proxy_service.dart';
 
+/// Ask Meow sohbeti, öneriler ve ses transkripsiyonu.
+///
+/// Tüm OpenAI çağrıları [openAiProxyService] (Cloud Functions proxy)
+/// üzerinden gider; anahtar/kota sunucu tarafında yönetilir.
 class GptService {
-  // (Opsiyonel) Kişiselleştirme için tutulacak alanlar
-  final String? _babyName = currentMeowUser?.babyName;
-  final String? _babyAgeKey =
-      currentMeowUser?.ageRange; // 'newborn' | 'infant' | 'toddler' | ...
-
-  // ---- PROMPTLAR ----
-
-  // Tüm OpenAI çağrıları artık [openAiProxyService] (Cloud Functions proxy)
-  // üzerinden gider; anahtar/timeout sunucu tarafında yönetilir.
-
-  // ----- Yardımcı: Kişiselleştirme cümlesi üret -----
-  String _buildPersonalization() {
-    if (_babyName == null && _babyAgeKey == null) return '';
-    final map = <String, String>{
-      'newborn': '0-3 months old',
-      'infant': '3-12 months old',
-      'toddler': '1-3 years old',
-      'preschool': '3-5 years old',
-      'school': '5+ years old',
-      'expecting': 'expecting (not born yet)',
-    };
-    String? ageText = _babyAgeKey != null
-        ? (map[_babyAgeKey] ?? _babyAgeKey)
-        : null;
-
-    if (_babyName != null && ageText != null) {
-      return '\n\nIMPORTANT PERSONALIZATION: The user\'s baby is named $_babyName and is $ageText. Please personalize your response accordingly and use the baby\'s name when appropriate.';
-    } else if (_babyName != null) {
-      return '\n\nIMPORTANT PERSONALIZATION: The user\'s baby is named $_babyName. Please personalize your response accordingly and use the baby\'s name when appropriate.';
-    } else {
-      return '\n\nIMPORTANT PERSONALIZATION: The user\'s baby is $ageText. Please personalize your response accordingly.';
-    }
-  }
+  static const Set<String> _supportedImageMimes = {
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+  };
 
   // =======================
   // 1) askMia
   // =======================
-  /// Soru sorar; opsiyonel görseli (imageBytes + mimeType) ekleyebilirsin.
-  /// Dönen değer: oluşturulan yanıt metni.
+  /// Soru sorar; opsiyonel görsel eklenebilir.
+  ///
+  /// Görsel formatı baytlardan tespit edilir; desteklenmeyen formatlar PNG'ye
+  /// çevrilir. Tespit/çevirme başarısızsa [imageMimeType] (desteklenen bir
+  /// tipse) kullanılır.
+  ///
+  /// Başarısızlıkta null döner; sebep loglanır (proxy hataları proxy
+  /// tarafından Crashlytics'e kaydedilir).
   Future<MiaAnswer?> askMia(
     String question, {
     Uint8List? imageBytes,
@@ -54,69 +38,96 @@ class GptService {
     int maxTokens = 600,
     double temperature = 0.7,
   }) async {
-    try {
-      final system = '$systemPrompt${_buildPersonalization()}';
-
-      // Görseli hazırlama: desteklenmiyorsa PNG'e çevir
-      Uint8List? sendBytes;
-      String? sendMime;
-      if (imageBytes != null) {
-        final prepared = _ensureSupportedImage(imageBytes);
-        sendBytes = prepared['bytes'] as Uint8List;
-        sendMime = (prepared['mime'] as String).toLowerCase();
-        if (sendMime == 'image/jpg') sendMime = 'image/jpeg'; // güvenlik
+    ({Uint8List bytes, String mime})? image;
+    if (imageBytes != null) {
+      try {
+        image = _ensureSupportedImage(imageBytes, hintMime: imageMimeType);
+      } catch (e, st) {
+        reportAiNonFatal(e, st, reason: 'askMia: image preparation failed');
+        return null;
       }
+    }
 
-      // Chat Completions şemasına uygun messages
-      final List<Map<String, dynamic>> userContent = [
-        {"type": "text", "text": question},
-        if (sendBytes != null)
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "data:$sendMime;base64,${base64Encode(sendBytes)}",
-            },
+    // Chat Completions şemasına uygun messages
+    final userContent = <Map<String, dynamic>>[
+      {'type': 'text', 'text': question},
+      if (image != null)
+        {
+          'type': 'image_url',
+          'image_url': {
+            'url': 'data:${image.mime};base64,${base64Encode(image.bytes)}',
           },
-      ];
+        },
+    ];
 
-      final raw = await openAiProxyService.chat(
+    final String raw;
+    try {
+      raw = await openAiProxyService.chat(
         messages: [
-          {"role": "system", "content": system},
-          {"role": "user", "content": userContent},
+          {'role': 'system', 'content': _askMiaSystemPrompt()},
+          {'role': 'user', 'content': userContent},
         ],
         model: askMiaModel,
         maxTokens: maxTokens,
         temperature: temperature,
+        responseFormat: kJsonObjectResponseFormat,
       );
-
-      if (raw.isEmpty) return null;
-
-      // İçerik JSON olmak zorunda; parse edelim
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return MiaAnswer.fromMap(map);
-    } catch (e) {
+    } catch (e, st) {
+      // Proxy callable hatasını zaten Crashlytics'e kaydetti.
+      developer.log(
+        'askMia request failed',
+        name: 'GptService',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
+
+    final map = decodeJsonObject(raw, tag: 'askMia');
+    if (map == null) return null;
+    try {
+      return MiaAnswer.fromMap(map);
+    } catch (e, st) {
+      reportAiNonFatal(e, st, reason: 'askMia: answer parse failed');
+      return null;
+    }
+  }
+
+  /// Uzak (appInfo) prompt boşsa yerel varsayılan kullanılır. JSON modu için
+  /// prompt'ta "JSON" geçmesi zorunlu olduğundan gerekirse eklenir.
+  String _askMiaSystemPrompt() {
+    var base = systemPrompt.trim().isEmpty ? emptySystemPrompt : systemPrompt;
+    if (!base.toLowerCase().contains('json')) {
+      base = '$base\n\nRespond with a single JSON object only.';
+    }
+    return '$base${babyPersonalization(instruction: "Please personalize your response accordingly and use the baby's name when appropriate.")}';
   }
 
   // =======================
   // 2) getSuggestions
   // =======================
-  /// Kullanıcının sorusuna göre 3 öneri döndürür (dilini de geç).
+  /// Kullanıcının sorusuna göre 3 öneri döndürür (satır bazlı düz metin).
+  ///
+  /// [language] artık kullanılmıyor (geriye dönük uyumluluk için duruyor):
+  /// model, sorunun yazıldığı dilde cevap verir.
   Future<List<String>> getSuggestions({
     required String question,
-    required String language,
+    String? language,
     int maxTokens = 200,
     double temperature = 0.8,
   }) async {
     try {
+      final prompt = suggestionPrompt.trim().isEmpty
+          ? emptySuggestionPrompt
+          : suggestionPrompt;
       final content = await openAiProxyService.chat(
         messages: [
-          {"role": "system", "content": suggestionPrompt},
+          {'role': 'system', 'content': prompt},
           {
-            "role": "user",
-            "content":
-                'User\'s question: "$question"\nLanguage: $language\n\nProvide 3 related suggestions:',
+            'role': 'user',
+            'content':
+                'User\'s question: "$question"\n\n'
+                'Provide 3 related suggestions in the same language as the question:',
           },
         ],
         model: askMiaModel,
@@ -126,16 +137,21 @@ class GptService {
 
       if (content.isEmpty) return [];
 
-      // Satırlara böl ve filtrele
-      final lines = content
+      // Satırlara böl; olası madde işareti/numaraları temizle.
+      final bullet = RegExp(r'^\s*(?:[-*•]|\d+[.)])\s*');
+      return content
           .split('\n')
-          .map((e) => e.trim())
+          .map((e) => e.replaceFirst(bullet, '').trim())
           .where((e) => e.isNotEmpty)
           .take(3)
           .toList();
-
-      return lines;
-    } catch (_) {
+    } catch (e, st) {
+      developer.log(
+        'getSuggestions failed',
+        name: 'GptService',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -143,9 +159,9 @@ class GptService {
   // =======================
   // 3) transcribeAudio (Whisper)
   // =======================
-  /// Ses dosyasını (bytes) Whisper ile çözümler.
-  /// filename ve mimeType isteğe göre değiştirilebilir.
-  Future<String> transcribeAudio(
+  /// Ses dosyasını (bytes) çözümler. Başarısızsa veya metin boşsa null döner
+  /// (hata, proxy tarafından Crashlytics'e non-fatal olarak kaydedilir).
+  Future<String?> transcribeAudio(
     Uint8List audioBytes, {
 
     /// Dosya adı ve MIME, mümkünse gerçek içerikle uyumlu olsun:
@@ -166,7 +182,7 @@ class GptService {
   }) async {
     try {
       // Ses baytları proxy'ye base64 olarak gider; multipart sunucuda kurulur.
-      return await openAiProxyService.transcribe(
+      final text = await openAiProxyService.transcribe(
         audioBytes: audioBytes,
         filename: filename,
         mimeType: mimeType,
@@ -174,47 +190,75 @@ class GptService {
         language: language,
         prompt: prompt,
         temperature: temperature,
+        timeout: timeout,
       );
-    } catch (e) {
-      return 'Transcribe exception: $e';
+      final trimmed = text.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    } catch (e, st) {
+      developer.log(
+        'transcribeAudio failed',
+        name: 'GptService',
+        error: e,
+        stackTrace: st,
+      );
+      return null;
     }
   }
 
-  /// Bayttan basit MIME tespiti
-  String _detectMime(Uint8List bytes) {
+  /// Bayttan basit MIME tespiti; tanınmazsa null.
+  String? _detectMime(Uint8List bytes) {
     if (bytes.length > 4 &&
         bytes[0] == 0x89 &&
         bytes[1] == 0x50 &&
         bytes[2] == 0x4E &&
-        bytes[3] == 0x47)
+        bytes[3] == 0x47) {
       return 'image/png';
-    if (bytes.length > 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
+    }
+    if (bytes.length > 2 && bytes[0] == 0xFF && bytes[1] == 0xD8) {
       return 'image/jpeg';
+    }
     if (bytes.length > 4 &&
         bytes[0] == 0x47 &&
         bytes[1] == 0x49 &&
         bytes[2] == 0x46 &&
-        bytes[3] == 0x38)
+        bytes[3] == 0x38) {
       return 'image/gif';
+    }
     if (bytes.length > 12 &&
         String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
-        String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP')
+        String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
       return 'image/webp';
-    if (bytes.length > 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
-      return 'image/bmp'; // BMP (desteklenmiyor)
-    throw Exception('Unsupported image format');
+    }
+    if (bytes.length > 2 && bytes[0] == 0x42 && bytes[1] == 0x4D) {
+      return 'image/bmp'; // BMP (desteklenmiyor → PNG'ye çevrilir)
+    }
+    return null;
   }
 
-  /// Desteklenmeyen formatları (BMP vb.) PNG'e çevirir
-  Map<String, dynamic> _ensureSupportedImage(Uint8List bytes) {
-    final mime = _detectMime(bytes);
-    const allowed = {'image/png', 'image/jpeg', 'image/gif', 'image/webp'};
-    if (allowed.contains(mime)) {
-      return {'bytes': bytes, 'mime': mime};
+  /// Desteklenen formatı olduğu gibi döner; diğerlerini PNG'ye çevirir.
+  /// Çevrilemezse ve [hintMime] desteklenen bir tipse onu kullanır.
+  ({Uint8List bytes, String mime}) _ensureSupportedImage(
+    Uint8List bytes, {
+    String? hintMime,
+  }) {
+    final detected = _detectMime(bytes);
+    if (detected != null && _supportedImageMimes.contains(detected)) {
+      return (bytes: bytes, mime: detected);
     }
+
     final decoded = img.decodeImage(bytes);
-    if (decoded == null) throw Exception('Failed to decode image bytes');
-    final pngBytes = Uint8List.fromList(img.encodePng(decoded));
-    return {'bytes': pngBytes, 'mime': 'image/png'};
+    if (decoded != null) {
+      return (
+        bytes: Uint8List.fromList(img.encodePng(decoded)),
+        mime: 'image/png',
+      );
+    }
+
+    var hint = hintMime?.trim().toLowerCase();
+    if (hint == 'image/jpg') hint = 'image/jpeg';
+    if (hint != null && _supportedImageMimes.contains(hint)) {
+      return (bytes: bytes, mime: hint);
+    }
+    throw FormatException('Unsupported image format (hint: $hintMime)');
   }
 }

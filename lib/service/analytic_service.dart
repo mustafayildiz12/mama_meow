@@ -1,13 +1,13 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
-/// TercihAuthService, kullanıcı kimlik doğrulama işlemlerini yöneten servis sınıfıdır.
-/// Firebase Authentication kullanarak kullanıcı girişi, kayıt, çıkış ve anonim giriş gibi
-/// işlemleri gerçekleştirir.
+/// Firebase Analytics olaylarını (funnel, giriş, satın alma, AI) loglar.
+///
+/// Gizlilik: Google Analytics politikası e-posta gibi kişisel verileri ve
+/// kullanıcının yazdığı (bebek sağlığına dair) soru metinlerini yasaklar;
+/// olaylara yalnızca uid ve anonim metrikler eklenir.
 class AnalyticService {
   factory AnalyticService() {
     return _singleton;
@@ -28,8 +28,8 @@ class AnalyticService {
       name: 'email_login_failed',
       parameters: {
         ...timeAndDeviceInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
       },
     );
   }
@@ -42,8 +42,8 @@ class AnalyticService {
       name: 'google_login_failed',
       parameters: {
         ...timeAndDeviceInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
       },
     );
   }
@@ -56,8 +56,8 @@ class AnalyticService {
       name: 'apple_login_failed',
       parameters: {
         ...timeAndDeviceInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
       },
     );
   }
@@ -69,8 +69,8 @@ class AnalyticService {
       parameters: {
         ...timeAndDeviceInfo,
         ...userInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
       },
     );
   }
@@ -88,8 +88,8 @@ class AnalyticService {
       name: 'register_failed',
       parameters: {
         ...timeAndDeviceInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
       },
     );
   }
@@ -112,9 +112,9 @@ class AnalyticService {
       parameters: {
         ...timeAndDeviceInfo,
         ...userInfo,
-        'error_message': errorMessage,
-        if (errorCode != null) 'error_code': errorCode,
-        if (productId != null) 'product_id': productId,
+        'error_message': _clip(errorMessage),
+        'error_code': ?errorCode,
+        'product_id': ?productId,
       },
     );
   }
@@ -181,7 +181,18 @@ class AnalyticService {
   Future<void> askMia(String question) async {
     await analytics.logEvent(
       name: 'ask_mia',
-      parameters: {'question': question, ...timeAndDeviceInfo, ...userInfo},
+      parameters: {
+        'question_length': question.length,
+        ...timeAndDeviceInfo,
+        ...userInfo,
+      },
+    );
+  }
+
+  Future<void> purchaseCancelled() async {
+    await analytics.logEvent(
+      name: 'purchase_cancelled',
+      parameters: {...timeAndDeviceInfo, ...userInfo},
     );
   }
 
@@ -209,7 +220,7 @@ class AnalyticService {
     await analytics.logEvent(
       name: 'paywall_shown',
       parameters: {
-        if (source != null) 'source': source,
+        'source': ?source,
         ...timeAndDeviceInfo,
         ...userInfo,
       },
@@ -237,12 +248,15 @@ class AnalyticService {
     await analytics.logEvent(
       name: 'ai_answer_failed',
       parameters: {
-        'error_message': errorMessage,
+        'error_message': _clip(errorMessage),
         ...timeAndDeviceInfo,
         ...userInfo,
       },
     );
   }
+
+  /// GA parametre değerleri en fazla 100 karakter olabilir.
+  static String _clip(String v) => v.length <= 100 ? v : v.substring(0, 100);
 
   static Map<String, dynamic> get timeAndDeviceInfo => {
     "timeStamp": DateTime.now().toIso8601String(),
@@ -250,8 +264,8 @@ class AnalyticService {
   };
 
   static Map<String, dynamic> get userInfo {
-    User? currentUser = authenticationService.getUser();
-    return {"email": currentUser?.email ?? "-", "uid": currentUser?.uid ?? "-"};
+    final User? currentUser = authenticationService.getUser();
+    return {"uid": currentUser?.uid ?? "-"};
   }
 }
 

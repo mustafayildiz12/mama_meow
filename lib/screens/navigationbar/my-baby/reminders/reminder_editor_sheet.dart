@@ -1,40 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:mama_meow/models/reminders/medicine_reminder_model.dart';
+import 'package:mama_meow/models/reminders/reminder_item.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/reminders/reminder_config.dart';
 
-class MedicineReminderEditorSheet extends StatefulWidget {
-  final MedicineReminderItem? initial;
-  const MedicineReminderEditorSheet({super.key, this.initial});
+/// 1 = Mon … 7 = Sun
+const Map<int, String> kWeekdayShortLabels = {
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat',
+  7: 'Sun',
+};
+
+/// Hatırlatıcı ekleme/düzenleme sayfası; kaydedince [ReminderDraft] döner.
+class ReminderEditorSheet extends StatefulWidget {
+  const ReminderEditorSheet({super.key, required this.config, this.initial});
+
+  final ReminderConfig config;
+  final ReminderItem? initial;
 
   @override
-  State<MedicineReminderEditorSheet> createState() =>
-      _MedicineReminderEditorSheetState();
+  State<ReminderEditorSheet> createState() => _ReminderEditorSheetState();
 }
 
-class _MedicineReminderEditorSheetState
-    extends State<MedicineReminderEditorSheet> {
+class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
   late TimeOfDay _time;
   late Set<int> _days;
   late bool _enabled;
 
-  // English labels; 1=Mon … 7=Sun
-  static const days = [
-    {'label': 'Mon', 'value': 1},
-    {'label': 'Tue', 'value': 2},
-    {'label': 'Wed', 'value': 3},
-    {'label': 'Thu', 'value': 4},
-    {'label': 'Fri', 'value': 5},
-    {'label': 'Sat', 'value': 6},
-    {'label': 'Sun', 'value': 7},
-  ];
+  ReminderConfig get _config => widget.config;
 
   @override
   void initState() {
     super.initState();
-    analyticService.screenView('medicine_reminder_editor');
+    analyticService.screenView(_config.editorScreenName);
     final it = widget.initial;
-    _time = it?.timeOfDay ?? TimeOfDay.now(); // default 08:00
-    _days = Set<int>.from(it?.weekdays ?? {});
+    _time = it?.timeOfDay ?? TimeOfDay.now();
+    _days = Set<int>.of(it?.weekdays ?? const <int>{});
     _enabled = it?.enabled ?? true;
   }
 
@@ -47,13 +51,25 @@ class _MedicineReminderEditorSheetState
         child: child ?? const SizedBox.shrink(),
       ),
     );
-    if (picked != null) setState(() => _time = picked);
+    if (picked != null && mounted) setState(() => _time = picked);
+  }
+
+  void _save() {
+    Navigator.pop(
+      context,
+      ReminderDraft(
+        time: _time,
+        weekdays: Set<int>.of(_days),
+        enabled: _enabled,
+      ),
+    );
   }
 
   String _two(int n) => n.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
+    final accent = _config.accent;
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.5,
@@ -61,9 +77,7 @@ class _MedicineReminderEditorSheetState
       builder: (context, ctrl) {
         return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
-            ),
+            gradient: LinearGradient(colors: _config.gradient),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16)],
           ),
@@ -86,8 +100,8 @@ class _MedicineReminderEditorSheetState
                     Expanded(
                       child: Text(
                         widget.initial == null
-                            ? 'New Medicine Reminder'
-                            : 'Edit Medicine Reminder',
+                            ? _config.newReminderTitle
+                            : _config.editReminderTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -114,7 +128,7 @@ class _MedicineReminderEditorSheetState
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.medical_services),
+                        Icon(_config.editorIcon),
                         const SizedBox(width: 12),
                         Text(
                           '${_two(_time.hour)}:${_two(_time.minute)}',
@@ -145,19 +159,17 @@ class _MedicineReminderEditorSheetState
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: days.map((d) {
-                    final v = d['value'] as int;
-                    final sel = _days.contains(v);
+                  children: kWeekdayShortLabels.entries.map((d) {
+                    final sel = _days.contains(d.key);
                     return FilterChip(
-                      label: Text(d['label'] as String),
+                      label: Text(d.value),
                       selected: sel,
-                      onSelected: (_) =>
-                          setState(() => sel ? _days.remove(v) : _days.add(v)),
-                      showCheckmark: true,
-                      selectedColor: Colors.lightBlue.shade100,
-                      side: BorderSide(
-                        color: sel ? Colors.lightBlue : Colors.black12,
+                      onSelected: (_) => setState(
+                        () => sel ? _days.remove(d.key) : _days.add(d.key),
                       ),
+                      showCheckmark: true,
+                      selectedColor: accent.shade100,
+                      side: BorderSide(color: sel ? accent : Colors.black12),
                     );
                   }).toList(),
                 ),
@@ -175,17 +187,9 @@ class _MedicineReminderEditorSheetState
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _days.isEmpty
-                            ? null
-                            : () {
-                                Navigator.pop(context, {
-                                  'time': _time,
-                                  'days': _days,
-                                  'enabled': _enabled,
-                                });
-                              },
+                        onPressed: _days.isEmpty ? null : _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue,
+                          backgroundColor: accent,
                         ),
                         child: const Text(
                           'Save',

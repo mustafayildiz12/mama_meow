@@ -1,7 +1,6 @@
 class MeowUserModel {
   MeowUserModel({
     this.userName,
-    this.userPassword,
     this.uid,
     this.userEmail,
     this.status,
@@ -13,32 +12,33 @@ class MeowUserModel {
 
   factory MeowUserModel.fromMap(Map<String, dynamic> map) {
     return MeowUserModel(
-      userName: map['userName'],
-      userPassword: map['userPassword'],
-      uid: map['uid'],
-      userEmail: map["userEmail"],
-      status: map["status"],
-      createDateTimeStamp: map["createDateTimeStamp"] ?? 0,
-      ageRange: map['ageRange'],
-      babyName: map['babyName'],
-      babyPicture: map['babyPicture'],
+      userName: map['userName']?.toString(),
+      uid: map['uid']?.toString(),
+      userEmail: map["userEmail"]?.toString(),
+      status: (map["status"] as num?)?.toInt(),
+      createDateTimeStamp: (map["createDateTimeStamp"] as num?)?.toInt() ?? 0,
+      ageRange: map['ageRange']?.toString(),
+      babyName: map['babyName']?.toString(),
+      babyPicture: map['babyPicture']?.toString(),
     );
   }
 
   final String? userName;
-  final String? userPassword;
   final String? uid;
   final String? userEmail;
+
+  /// 1 = hesap kalıcı olarak silinmiş olarak işaretli.
   final int? status;
   final int? createDateTimeStamp;
   final String? babyName;
   final String? ageRange;
   final String? babyPicture;
 
+  // Not: Şifre hiçbir koşulda veritabanına yazılmaz (eskiden `userPassword`
+  // düz metin olarak saklanıyordu).
   Map<String, dynamic> toMap() {
     return {
       'userName': userName,
-      'userPassword': userPassword,
       'uid': uid,
       'userEmail': userEmail,
       'status': status,
@@ -49,10 +49,8 @@ class MeowUserModel {
     };
   }
 
-  /// copyWith metodu
   MeowUserModel copyWith({
     String? userName,
-    String? userPassword,
     String? uid,
     String? userEmail,
     int? status,
@@ -63,7 +61,6 @@ class MeowUserModel {
   }) {
     return MeowUserModel(
       userName: userName ?? this.userName,
-      userPassword: userPassword ?? this.userPassword,
       uid: uid ?? this.uid,
       userEmail: userEmail ?? this.userEmail,
       status: status ?? this.status,

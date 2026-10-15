@@ -1,191 +1,35 @@
-import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 
+/// Learn sekmesindeki podcast listesini RTDB'den okur. (Yükleme/yönetim
+/// kodu kullanılmadığı için kaldırıldı; içerik Firebase konsolundan eklenir.)
 class PodcastService {
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // --- Yardımcılar ---
-
-  String _extOf(File f) {
-    final name = f.path.split('/').last;
-    final parts = name.split('.');
-    return parts.length > 1 ? parts.last.toLowerCase() : '';
-  }
-
-  String _guessContentType(String ext) {
-    switch (ext) {
-      case 'm4a':
-      case 'aac':
-        return 'audio/mp4';
-      case 'mp3':
-        return 'audio/mpeg';
-      case 'wav':
-        return 'audio/wav';
-      case 'png':
-        return 'image/png';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'webp':
-        return 'image/webp';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  Future<String> _uploadFile({
-    required File file,
-    required String storagePath, // örn: podcasts/{id}/audio.mp3
-    String? contentType,
-  }) async {
-    try {
-      final ref = _storage.ref(storagePath);
-      final metadata = SettableMetadata(contentType: contentType);
-      final snapshot = await ref.putFile(file, metadata);
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      throw Exception('Dosya yüklenirken hata: $e');
-    }
-  }
-
-  // --- Eski metodun genelleştirilmiş hali (audio için) ---
-  Future<String> addPodcastToStorage(File file, String podcastId) async {
-    final ext = _extOf(file).isEmpty ? 'm4a' : _extOf(file);
-    final path = 'podcasts/$podcastId/audio.$ext';
-    final ct = _guessContentType(ext);
-    return _uploadFile(file: file, storagePath: path, contentType: ct);
-  }
-
-  // Realtime Database'e podcast metadata ekler
-  Future<void> addPodcastToRealtime(Podcast podcast) async {
-    await _realtimeDatabase
-        .ref('podcasts')
-        .child(podcast.id)
-        .set(podcast.toJson());
-  }
-
-  /// Tek tek dosya alıp URL'leri dönen, modeli güncelleyen yardımcı.
-  /// Null olan dosyalar yüklenmez, mevcut değerler korunur.
-  Future<Podcast> uploadAssetsAndReturnUpdated({
-    required Podcast base,
-    File? audio,
-    File? icon,
-  }) async {
-    String audioUrl = base.audioUrl;
-
-    String iconUrl = base.icon;
-
-    // Audio
-    if (audio != null) {
-      final ext = _extOf(audio).isEmpty ? 'm4a' : _extOf(audio);
-      final ct = _guessContentType(ext);
-      final path = 'podcasts/${base.id}/audio.$ext';
-      audioUrl = await _uploadFile(
-        file: audio,
-        storagePath: path,
-        contentType: ct,
-      );
-    }
-
-    // Icon
-    if (icon != null) {
-      final ext = _extOf(icon).isEmpty ? 'png' : _extOf(icon);
-      final ct = _guessContentType(ext);
-      final path = 'podcasts/${base.id}/icon.$ext';
-      iconUrl = await _uploadFile(
-        file: icon,
-        storagePath: path,
-        contentType: ct,
-      );
-    }
-
-    // Podcast modelini güncelleyip döndür
-    final updated = Podcast(
-      id: base.id,
-      title: base.title,
-      subtitle: base.subtitle,
-      duration: base.duration,
-      category: base.category,
-      description: base.description,
-      audioUrl: audioUrl,
-      icon: iconUrl,
-      source: base.source,
-      creator: base.creator,
-    );
-    return updated;
-  }
-
-  /// (Opsiyon) Tek adımda: dosyaları yükle + DB'ye yaz
-  Future<void> savePodcastWithFiles({
-    required Podcast base,
-    File? audio,
-    File? thumbnail,
-    File? coverArt,
-    File? icon,
-  }) async {
-    final updated = await uploadAssetsAndReturnUpdated(
-      base: base,
-      audio: audio,
-      icon: icon,
-    );
-    await addPodcastToRealtime(updated);
-  }
-
-  /// (Senin mevcut akışınla uyumlu) Sadece audio verip kaydetmek istersen:
-  Future<void> savePodcast(File file, Podcast podcast) async {
-    final audioUrl = await addPodcastToStorage(file, podcast.id);
-    final updatedPodcast = Podcast(
-      id: podcast.id,
-      title: podcast.title,
-      subtitle: podcast.subtitle,
-      duration: podcast.duration,
-      category: podcast.category,
-      source: podcast.source,
-      creator: podcast.creator,
-      description: podcast.description,
-      audioUrl: audioUrl,
-      icon: podcast.icon,
-    );
-    await addPodcastToRealtime(updatedPodcast);
-  }
-
+  /// `podcasts` düğümündeki yayınları döner. Ses adresi olmayan veya
+  /// okunamayan kayıtlar atlanır.
   Future<List<Podcast>> getPodcastList() async {
-    final List<Podcast> favorites = [];
+    final snapshot = await _realtimeDatabase.ref('podcasts').get();
+    final raw = snapshot.value;
+    // Kaynak veri Map ({id: {...}}) veya List ([null, {...}]) olabilir.
+    final Iterable<Object?> items = switch (raw) {
+      Map() => raw.values,
+      List() => raw,
+      _ => const [],
+    };
 
-    final DatabaseReference ref = _realtimeDatabase.ref('podcasts');
-
-    final DataSnapshot snapshot = await ref.get();
-
-    if (snapshot.exists) {
-      final raw = snapshot.value;
-
-      if (raw is Map) {
-        // Sadece value’lar (yani activity map’leri) ile ilgileniyoruz
-        for (final value in raw.values) {
-          if (value is Map) {
-            final map = Map<String, dynamic>.from(value);
-            final model = Podcast.fromJson(map);
-
-            favorites.add(model);
-          }
-        }
-      } // 2) Kaynak veri LIST ise (örn: [null, {...}, null, {...}])
-      else if (raw is List) {
-        for (final item in raw) {
-          if (item is Map) {
-            final map = Map<String, dynamic>.from(item);
-            final model = Podcast.fromJson(map);
-
-            favorites.add(model);
-          }
-        }
+    final podcasts = <Podcast>[];
+    for (final item in items) {
+      if (item is! Map) continue;
+      try {
+        final podcast = Podcast.fromJson(Map<String, dynamic>.from(item));
+        if (podcast.audioUrl.isNotEmpty) podcasts.add(podcast);
+      } catch (e) {
+        debugPrint("Skipping malformed podcast: $e");
       }
     }
-
-    return favorites;
+    return podcasts;
   }
 }
 

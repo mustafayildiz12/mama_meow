@@ -4,30 +4,26 @@ import 'package:mama_meow/models/meow_user_model.dart';
 final GetStorage localStorage = GetStorage("local");
 final GetStorage infoStorage = GetStorage("info");
 
-String applicationVersion = "";
-
+/// Analitik olaylarına eklenen cihaz/OS bilgisi (ör. "iOS 18.1").
 String deviceInfo = "";
 
+// `appInfo` düğümünden okunan mağaza/sürüm bilgileri.
 String androidUrl = "";
 String iosUrl = "";
-
 String androidVersion = "";
 String iosVersion = "";
 
-String askMiaModel = '';
-
 MeowUserModel? currentMeowUser;
 
-bool isTrial = false;
-String systemPrompt = "";
+// AI yapılandırması: `appInfo` okunana kadar (veya okunamazsa) yerleşik
+// varsayılanlar kullanılır; boş prompt ile istek atılmaz.
+String askMiaModel = emptyaskMiaModel;
+String systemPrompt = emptySystemPrompt;
+String suggestionPrompt = emptySuggestionPrompt;
 
-String suggestionPrompt = "";
-
-bool entitlementIsActive = false;
-String appUserID = '';
-
-String emptyaskMiaModel = 'gpt-4o mini';
-String emptySystemPrompt = r'''
+/// Sunucu (functions/src/index.ts) izin listesindeki geçerli bir model kimliği.
+const String emptyaskMiaModel = 'gpt-4o-mini';
+const String emptySystemPrompt = r'''
 You are "Coo Care Baby Tracker" 🐱, a helpful, kind, and motivating assistant inside a mother-baby application.  
 
 Rules & Style: 
@@ -72,7 +68,7 @@ OUTPUT SHAPE (STRICT JSON ONLY, NO EXTRA TEXT):
 }
 ''';
 
-String emptySuggestionPrompt = r'''
+const String emptySuggestionPrompt = r'''
 You are Mia, a helpful AI cat assistant for mothers. Based on the user's question, suggest 3 related topics that might also be helpful for them to know about.
 
 IMPORTANT LANGUAGE RULES:

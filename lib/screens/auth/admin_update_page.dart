@@ -39,7 +39,8 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
   }
 
   Future<void> _publish() async {
-    final version = _versionCtrl.text.trim().replaceAll(".", "x");
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final version = _versionCtrl.text.trim();
     final highlights = _collectHighlights();
 
     setState(() => _isSubmitting = true);
@@ -218,9 +219,8 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _highlightCtrls.length,
-                      onReorder: (oldIndex, newIndex) {
+                      onReorderItem: (oldIndex, newIndex) {
                         setState(() {
-                          if (newIndex > oldIndex) newIndex -= 1;
                           final item = _highlightCtrls.removeAt(oldIndex);
                           _highlightCtrls.insert(newIndex, item);
                         });

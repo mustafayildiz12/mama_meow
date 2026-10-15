@@ -1,3 +1,5 @@
+import 'package:mama_meow/models/activities/record_parsing.dart';
+
 class CustomSolidModel {
   final String name;
   final String solidLink;
@@ -8,8 +10,8 @@ class CustomSolidModel {
 
   factory CustomSolidModel.fromMap(Map<String, dynamic> map) {
     return CustomSolidModel(
-      name: map['name'] as String,
-      solidLink: map['solidLink'] as String,
+      name: recordString(map['name']),
+      solidLink: recordString(map['solidLink']),
     );
   }
 }

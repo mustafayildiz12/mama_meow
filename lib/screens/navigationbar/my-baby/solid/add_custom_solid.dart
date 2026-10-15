@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 
@@ -26,11 +28,10 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
   XFile? _xfile; // UI önizleme için Web/dosya ayrımı
   bool _loading = false;
 
-
   @override
   void initState() {
-     analyticService.screenView('add_custom_solid');
     super.initState();
+    analyticService.screenView('add_custom_solid');
   }
 
   @override
@@ -39,24 +40,22 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
     super.dispose();
   }
 
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Future<void> _pickImage() async {
     try {
       final picked = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 92,
       );
-      if (picked == null) return;
+      if (picked == null || !mounted) return;
 
       if (kIsWeb) {
-        // Web: Servis şu an File bekliyor. Web’i desteklemek için
-        // AddCustomSolidService’e uploadBytes(...) gibi bir metod eklemelisin.
-        // Şimdilik sadece önizleme yapalım ve kullanıcıyı uyaralım.
+        // Servis yalnızca File yüklüyor; web'de şimdilik sadece önizleme.
         setState(() => _xfile = picked);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Web için yükleme: servise uploadBytes ekleyin.'),
-          ),
-        );
+        _showMessage("Uploading food photos isn't supported on the web yet.");
       } else {
         setState(() {
           _file = File(picked.path);
@@ -64,9 +63,8 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Image could not be selected: $e")),
-      );
+      debugPrint('pickImage failed: $e');
+      if (mounted) _showMessage("The image couldn't be selected.");
     }
   }
 
@@ -82,38 +80,36 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
   }
 
   Future<void> _submit() async {
+    // Misafir kullanıcı: kayıt yerine giriş ekranına yönlendir.
+    if (authenticationService.getUser() == null) {
+      final router = GoRouter.of(context);
+      Navigator.pop(context);
+      router.pushNamed('login');
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
-    if (!kIsWeb && _file == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please pick an image.")));
+    if (kIsWeb) {
+      _showMessage("Uploading food photos isn't supported on the web yet.");
+      return;
+    }
+    if (_file == null) {
+      _showMessage("Please pick an image.");
       return;
     }
 
     setState(() => _loading = true);
 
     try {
-      String downloadUrl;
+      final file = _file!;
+      final ext = p.extension(_xfile?.name ?? file.path).replaceAll('.', '');
+      final fileName = _safeFileName(_nameCtrl.text, ext);
+      final contentType = lookupMimeType(file.path) ?? 'image/jpeg';
 
-      if (kIsWeb) {
-        // Not: Şu an servis sadece File kabul ediyor.
-        // Web desteği için servise şunu ekleyebilirsin:
-        // Future<String> uploadBytes({required Uint8List bytes, required String fileName, String? contentType})
-        // Sonra burada _xfile.readAsBytes() ile bytes alıp onu çağırırsın.
-        throw Exception("Web yükleme için servise uploadBytes(...) eklenmeli.");
-      } else {
-        final ext = p
-            .extension(_xfile?.name ?? _file!.path)
-            .replaceAll('.', '');
-        final fileName = _safeFileName(_nameCtrl.text, ext);
-        final contentType = lookupMimeType(_file!.path) ?? 'image/jpeg';
-
-        downloadUrl = await addCustomSolidService.uploadFile(
-          file: _file!,
-          fileName: fileName,
-          contentType: contentType,
-        );
-      }
+      final downloadUrl = await addCustomSolidService.uploadFile(
+        file: file,
+        fileName: fileName,
+        contentType: contentType,
+      );
 
       final model = CustomSolidModel(
         name: _nameCtrl.text.trim(),
@@ -122,18 +118,13 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
 
       await addCustomSolidService.addCustomSolid(model);
 
-      if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Success")));
-      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context, true);
+      messenger.showSnackBar(const SnackBar(content: Text("Food added")));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-      }
+      debugPrint('addCustomSolid failed: $e');
+      if (mounted) _showMessage("Couldn't save the food. Please try again.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -177,7 +168,7 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
-                    return "input food name";
+                    return "Please enter a food name";
                   }
 
                   return null;

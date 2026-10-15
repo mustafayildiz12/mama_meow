@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/utils/platform_info.dart';
 
 class AppUpdateService {
   static const _defaultPlayUrl =
@@ -23,13 +23,14 @@ class AppUpdateService {
       final snapshot = await _appInfoRef.get();
       if (!snapshot.exists || snapshot.value == null) return;
 
-      final data = snapshot.value! as Map<dynamic, dynamic>;
-      final latestVersion = Platform.isIOS
-          ? (data['iosVersion'] as String?).orEmpty
-          : (data['androidVersion'] as String?).orEmpty;
-      final storeUrl = Platform.isIOS
-          ? (data['iosUrl'] as String?).orEmpty
-          : (data['androidUrl'] as String?).orEmpty;
+      final data = snapshot.value;
+      if (data is! Map) return;
+      final latestVersion = PlatformInfo.isIOS
+          ? data['iosVersion']?.toString() ?? ''
+          : data['androidVersion']?.toString() ?? '';
+      final storeUrl = PlatformInfo.isIOS
+          ? data['iosUrl']?.toString() ?? ''
+          : data['androidUrl']?.toString() ?? '';
 
       if (latestVersion.isEmpty) return;
 
@@ -46,7 +47,7 @@ class AppUpdateService {
             'A new version is available. Update now to get the latest improvements.',
         storeUrl: storeUrl.isNotEmpty
             ? storeUrl
-            : (Platform.isIOS ? _defaultAppStoreUrl : _defaultPlayUrl),
+            : (PlatformInfo.isIOS ? _defaultAppStoreUrl : _defaultPlayUrl),
         latestVersion: latestVersion,
       );
     } catch (e) {
@@ -111,8 +112,12 @@ class AppUpdateService {
     final pb = latest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
     final len = pa.length > pb.length ? pa.length : pb.length;
 
-    while (pa.length < len) pa.add(0);
-    while (pb.length < len) pb.add(0);
+    while (pa.length < len) {
+      pa.add(0);
+    }
+    while (pb.length < len) {
+      pb.add(0);
+    }
 
     for (int i = 0; i < len; i++) {
       if (pa[i] < pb[i]) return true;
@@ -120,8 +125,4 @@ class AppUpdateService {
     }
     return false;
   }
-}
-
-extension _StringOrEmpty on String? {
-  String get orEmpty => this ?? '';
 }

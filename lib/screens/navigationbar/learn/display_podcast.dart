@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
@@ -10,11 +8,11 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/main.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 import 'package:mama_meow/service/analytic_service.dart';
-import 'package:mama_meow/service/audio/background_handler.dart';
-import 'package:mama_meow/service/in_app_purchase_service.dart';
-import 'package:mama_meow/utils/extensions/post_media_item_extension.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:mama_meow/utils/extensions/post_media_item_extension.dart';
+import 'package:mama_meow/utils/url_utils.dart';
 
 class DisplayPodcastPage extends StatefulWidget {
   final Podcast podcast;
@@ -39,6 +37,12 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   bool _isPreparing = true;
   String? _prepareError;
 
+  /// Kuyruk bu sayfa için kuruldu mu (premium akışı tamamlandı mı).
+  bool _started = false;
+
+  /// Giriş/paywall akışı sürerken tekrar tetiklenmesin.
+  bool _gateActive = false;
+
   // speed UI
   double playbackSpeed = 1.0;
   final List<double> speedOptions = [1.0, 1.25, 1.5, 2.0];
@@ -47,11 +51,21 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   Stream<MediaItem?> get _mediaItemStream => audioHandler.mediaItem;
 
   StreamSubscription<PlaybackState>? _prepSub;
+  Timer? _prepTimeout;
 
-  Stream<double> get _speedStream =>
-      audioHandler.playbackState.map((s) => s.speed).distinct();
+  // Stream'ler bir kez oluşturulur; her build'de yeniden abone olunmaz.
+  late final Stream<double> _speedStream = audioHandler.playbackState
+      .map((s) => s.speed)
+      .distinct();
+  late final Stream<Duration?> _durationStream = audioHandler.mediaItem
+      .map((m) => m?.duration)
+      .distinct();
+  late final Stream<Duration> _positionStream = AudioService.position
+      .map((d) => Duration(milliseconds: (d.inMilliseconds ~/ 200) * 200))
+      .distinct();
 
-  bool get _controlsEnabled => !_isPreparing && _prepareError == null;
+  bool get _controlsEnabled =>
+      _started && !_isPreparing && _prepareError == null;
 
   bool _isBusy(PlaybackState s) =>
       s.processingState == AudioProcessingState.loading ||
@@ -60,10 +74,6 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   bool _dragging = false;
   double? _dragValueMs;
 
-  final bool _seeking = false;
-  double? _seekPreviewMs;
-  Timer? _seekDebounce;
-
   bool _isReady(PlaybackState s) =>
       s.processingState == AudioProcessingState.ready;
 
@@ -71,34 +81,52 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     final busy = _isBusy(s);
     if (busy) return false;
     if (!_isReady(s)) return false;
-    return _prepareError == null;
+    return _started && _prepareError == null;
   }
 
   @override
   void initState() {
     super.initState();
     analyticService.screenView('display_podcast_screen');
-    _initFlow();
+    // Giriş/paywall'a yönlendirme build sırasında yapılmasın diye ilk
+    // kareden sonra başlat.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initFlow();
+    });
   }
 
   @override
   void dispose() {
     _prepSub?.cancel();
-    _seekDebounce?.cancel();
+    _prepTimeout?.cancel();
     super.dispose();
   }
 
+  /// Misafir → giriş, premium değil → paywall, sonra oynatmaya başla.
+  /// Kullanıcı vazgeçerse sayfa pasif kontrollerle kalır; oynat düğmesi
+  /// akışı yeniden başlatır.
   Future<void> _initFlow() async {
-    // 1) premium kontrol
-    await _checkUserPremiumSafe();
-    if (isUserPremium) {
+    if (_gateActive) return;
+    _gateActive = true;
+    try {
+      if (authenticationService.getUser() == null) {
+        final signedIn = await context.pushNamed<bool>('login');
+        if (!mounted || signedIn != true) return;
+      }
+
+      await _checkUserPremiumSafe();
+      if (!mounted) return;
+
+      if (!isUserPremium) {
+        final purchased = await context.pushNamed<bool>('premiumPaywall');
+        if (!mounted || purchased != true) return;
+        await _checkUserPremiumSafe();
+        if (!mounted || !isUserPremium) return;
+      }
+
       await _prepareAndStart();
-    } else {
-      await context.pushNamed("premiumPaywall").then((v) async {
-        if (v != null && v == true) {
-          await _initFlow();
-        }
-      });
+    } finally {
+      _gateActive = false;
     }
   }
 
@@ -120,6 +148,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     }
   }
 
+  static const _loadErrorMessage =
+      "Couldn't load this episode. Please check your connection and try again.";
+
   Future<void> _prepareAndStart() async {
     setState(() {
       _isPreparing = true;
@@ -127,40 +158,62 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     });
 
     // Önce varsa eski dinleyiciyi kapat
-    _prepSub?.cancel();
+    await _prepSub?.cancel();
+    _prepTimeout?.cancel();
 
-    // 🎧 Audio hazır mı / çalıyor mu diye dinle
+    // 🎧 Audio hazır mı diye dinle
     _prepSub = audioHandler.playbackState.listen((state) {
-      final ps = state.processingState;
-
-      final isReady = ps == AudioProcessingState.ready;
-
-      if (isReady) {
+      if (state.processingState == AudioProcessingState.ready) {
         if (mounted) setState(() => _isPreparing = false);
-
         _prepSub?.cancel();
         _prepSub = null;
       }
     });
 
-    // ignore: unnecessary_cast
-    final handler = audioHandler as PodcastAudioHandler;
     final items = widget.podcastList.map((e) => e.toMediaItem()).toList();
-
-    // ❌ await YOK → UI bloklanmaz
-    handler.setQueueAndPlay(items, widget.currentIndex, autoPlay: true);
-
-    if (!isUserPremium) {
-      await audioHandler.pause();
+    try {
+      // Kuyruğu kur (yükleme oynatmayla başlar).
+      await audioHandler.setQueueAndPlay(
+        items,
+        widget.currentIndex,
+        autoPlay: false,
+      );
+    } catch (e) {
+      debugPrint('setQueueAndPlay failed: $e');
+      _onPrepareFailed();
+      return;
     }
+    _started = true;
 
-    // safety timeout (network bozulursa)
-    Future.delayed(const Duration(seconds: 6), () {
-      if (mounted && _isPreparing) {
-        setState(() => _isPreparing = false);
-      }
+    // play() oynatma durana kadar tamamlanmaz; beklemeden başlat.
+    unawaited(
+      audioHandler.play().catchError((Object e) {
+        debugPrint('play failed: $e');
+        _onPrepareFailed();
+      }),
+    );
+
+    // Güvenlik zaman aşımı (ağ bozulursa): hâlâ boştaysa hata göster.
+    _prepTimeout = Timer(const Duration(seconds: 6), () {
       _prepSub?.cancel();
       _prepSub = null;
+      if (!mounted || !_isPreparing) return;
+      final ps = audioHandler.playbackState.value.processingState;
+      setState(() {
+        _isPreparing = false;
+        if (ps == AudioProcessingState.idle) _prepareError = _loadErrorMessage;
+      });
+    });
+  }
+
+  void _onPrepareFailed() {
+    _prepSub?.cancel();
+    _prepSub = null;
+    _prepTimeout?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _isPreparing = false;
+      _prepareError = _loadErrorMessage;
     });
   }
 
@@ -236,6 +289,26 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                       ),
                       const SizedBox(height: 6),
                     ],
+
+                    if (_prepareError != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _prepareError!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _retry,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text("Retry"),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -321,9 +394,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                     imageUrl: iconUrl,
                     height: height * 0.3,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) =>
+                    placeholder: (_, _) =>
                         const Center(child: CircularProgressIndicator()),
-                    errorWidget: (_, __, ___) => const Icon(Icons.error),
+                    errorWidget: (_, _, _) => const Icon(Icons.error),
                   ),
                 ),
 
@@ -439,17 +512,14 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   }
 
   Widget _buildSource(String source) {
-    final isUrl = source.contains("http");
-    if (!isUrl) {
+    if (!UrlUtils.isWebUrl(source)) {
       return Text(source, maxLines: 1, overflow: TextOverflow.ellipsis);
     }
 
     return TextButton(
       onPressed: () async {
-        await launchUrl(
-          Uri.parse(source),
-          mode: LaunchMode.externalApplication,
-        );
+        final opened = await UrlUtils.openExternal(source);
+        if (!opened) customSnackBar.warning("Couldn't open this link");
       },
       child: Text(
         source,
@@ -461,20 +531,14 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   }
 
   Widget _progressBar({required bool enabled}) {
-    final duration$ = audioHandler.mediaItem.map((m) => m?.duration).distinct();
-
     return StreamBuilder<Duration?>(
-      stream: duration$,
+      stream: _durationStream,
       builder: (context, durSnap) {
         final duration = durSnap.data ?? Duration.zero;
         final maxMs = duration.inMilliseconds.toDouble();
 
         return StreamBuilder<Duration>(
-          stream: AudioService.position
-              .map(
-                (d) => Duration(milliseconds: (d.inMilliseconds ~/ 200) * 200),
-              )
-              .distinct(),
+          stream: _positionStream,
           initialData: Duration.zero,
           builder: (context, posSnap) {
             final pos = posSnap.data ?? Duration.zero;
@@ -484,9 +548,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
               maxMs <= 0 ? 0 : maxMs,
             );
 
-            final shownMs = _dragging
-                ? (_dragValueMs ?? liveMs)
-                : (_seeking ? (_seekPreviewMs ?? liveMs) : liveMs);
+            final shownMs = _dragging ? (_dragValueMs ?? liveMs) : liveMs;
 
             return Column(
               children: [
@@ -563,22 +625,16 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
   Future<void> _changePlaybackSpeed(double speed) =>
       audioHandler.setSpeed(speed);
 
-  Future<void> togglePlay(bool controlsEnabled) async {
-    final user = authenticationService.getUser();
-    if (user == null) {
-      context.pushNamed("login");
-      return;
-    }
+  /// Hata sonrası yeniden dene.
+  void _retry() => isUserPremium ? _prepareAndStart() : _initFlow();
 
-    if (!isUserPremium) {
-      await context.pushNamed("premiumPaywall").then((v) async {
-        if (v == true) {
-          await _checkUserPremiumSafe();
-          if (isUserPremium) {
-            await audioHandler.play();
-          }
-        }
-      });
+  Future<void> togglePlay(bool controlsEnabled) async {
+    // Henüz başlatılmadıysa (misafir / premium değil / vazgeçti) akışı
+    // baştan çalıştır: giriş → paywall → oynat.
+    if (authenticationService.getUser() == null ||
+        !isUserPremium ||
+        !_started) {
+      await _initFlow();
       return;
     }
 

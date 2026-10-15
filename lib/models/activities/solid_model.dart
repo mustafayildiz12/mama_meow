@@ -1,3 +1,6 @@
+import 'package:mama_meow/models/activities/record_parsing.dart';
+import 'package:mama_meow/utils/date_range.dart';
+
 enum Reaction {
   loveIt, // "love it"
   meh, // "meh"
@@ -64,5 +67,16 @@ class SolidModel {
       eatTime: map['eatTime']?.toString() ?? "",
       reactions: reactionFromText(map['reactions']?.toString()),
     );
+  }
+
+  /// [solidAmount] sayısal değeri ("1.5" ve "1,5" dahil); okunamazsa null.
+  /// `int.tryParse(solidAmount)` yerine bunu kullanın ("1.5" → 0 olmasın).
+  num? get amountValue => parseLooseNum(solidAmount);
+
+  /// Kullanıcının seçtiği yeme saatine göre olayın gerçek zamanı; `createdAt`
+  /// okunamazsa null.
+  DateTime? get eventAt {
+    final saved = parseCreatedAt(createdAt);
+    return saved == null ? null : resolveEventTime(saved, eatTime);
   }
 }

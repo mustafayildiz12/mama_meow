@@ -1,7 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/service/reminders/reminder_config.dart';
+import 'package:mama_meow/service/reminders/reminder_store.dart';
 
+/// Nursing hatırlatıcılarının özet durumu (ör. ikon rengi için).
 class NursingReminderSettings {
   final TimeOfDay timeOfDay; // 24h
   final Set<int> weekdays; // 1=Mon ... 7=Sun
@@ -18,41 +19,21 @@ class NursingReminderSettings {
     weekdays: {},
     enabled: false,
   );
-
-  Map<String, dynamic> toJson() => {
-    'hour': timeOfDay.hour,
-    'minute': timeOfDay.minute,
-    'weekdays': weekdays.toList(),
-    'enabled': enabled,
-  };
-
-  factory NursingReminderSettings.fromJson(Map<String, dynamic> json) {
-    return NursingReminderSettings(
-      timeOfDay: TimeOfDay(
-        hour: json['hour'] as int,
-        minute: json['minute'] as int,
-      ),
-      weekdays: Set<int>.from((json['weekdays'] as List).map((e) => e as int)),
-      enabled: json['enabled'] as bool,
-    );
-  }
 }
 
+/// Eski API. Artık ayrı bir kayıt tutmaz; nursing [ReminderStore]'dan
+/// türetilir: en az bir etkin hatırlatıcı varsa `enabled == true`.
+/// Yeni kod için: `ReminderStore.of(ReminderCategory.nursing).hasActive()`.
 class ReminderPrefs {
-  static const String _key = 'nursing_reminder_settings';
-
   static Future<NursingReminderSettings> load() async {
-    final raw = localStorage.read(_key);
-    if (raw == null) return NursingReminderSettings.disabled();
-    try {
-      return NursingReminderSettings.fromJson(jsonDecode(raw));
-    } catch (_) {
-      return NursingReminderSettings.disabled();
-    }
-  }
-
-  static Future<void> save(NursingReminderSettings s) async {
-   
-    await localStorage.write(_key, jsonEncode(s.toJson()));
+    final active = (await ReminderStore.of(
+      ReminderCategory.nursing,
+    ).loadAll()).where((e) => e.isActive).toList();
+    if (active.isEmpty) return NursingReminderSettings.disabled();
+    return NursingReminderSettings(
+      timeOfDay: active.first.timeOfDay,
+      weekdays: {for (final e in active) ...e.weekdays},
+      enabled: true,
+    );
   }
 }

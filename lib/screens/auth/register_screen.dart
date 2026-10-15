@@ -1,17 +1,16 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/constants/app_routes.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/auth/widgets/auth_text_field.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
-import 'package:mama_meow/service/database_service.dart';
-import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
+import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 
+/// Kayıt ekranı. Giriş ekranından `push` ile açıldıysa başarılı kayıtta
+/// `true` ile kapanır; aksi halde Ask Meow sekmesine gider.
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -20,27 +19,23 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  static const _overlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Colors.white,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+  );
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _obscurePassword = true;
-
-  bool isLoading = false;
-
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   @override
   void initState() {
-    analyticService.screenView('register_screen');
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.white,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
-    );
     super.initState();
+    analyticService.screenView('register_screen');
   }
 
   @override
@@ -53,253 +48,186 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomLoader(
-      inAsyncCall: isLoading,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: formKey,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header icon and text
-                          Container(
-                            width: 80,
-                            height: 80,
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.pets,
-                                size: 40,
-                                color: Color(0xFFEC4899),
-                              ),
-                            ),
-                          ),
-                          const Text(
-                            "Join Coo Care Baby Tracker!",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Create your account to start tracking your baby's journey 💕",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
+    const labelStyle = TextStyle(fontWeight: FontWeight.w500);
 
-                          // Name field
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Your Name",
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _nameController,
-                            textInputAction: TextInputAction.next,
-                            onTapOutside: (event) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                            decoration: InputDecoration(
-                              hintText: "Enter your name",
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _overlayStyle,
+      child: CustomLoader(
+        inAsyncCall: _isLoading,
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        child: AutofillGroup(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.pink200,
+                                      AppColors.pink300,
+                                    ],
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.pets,
+                                    size: 40,
+                                    color: AppColors.pink500,
+                                  ),
+                                ),
+                              ),
+                              const Text(
+                                "Join Coo Care Baby Tracker!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Create your account to start tracking your baby's journey 💕",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
                                   color: Colors.grey,
                                 ),
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFF472B6),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                              const SizedBox(height: 24),
 
-                          // Email field
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Email Address",
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            onTapOutside: (event) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                            decoration: InputDecoration(
-                              hintText: "Enter your email",
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
+                              const _FieldLabel("Your Name", style: labelStyle),
+                              const SizedBox(height: 8),
+                              AuthTextField(
+                                controller: _nameController,
+                                hintText: "Enter your name",
+                                textInputAction: TextInputAction.next,
+                                textCapitalization: TextCapitalization.words,
+                                autofillHints: const [AutofillHints.name],
+                                validator: AuthValidators.name,
+                              ),
+                              const SizedBox(height: 16),
+
+                              const _FieldLabel(
+                                "Email Address",
+                                style: labelStyle,
+                              ),
+                              const SizedBox(height: 8),
+                              AuthTextField(
+                                controller: _emailController,
+                                hintText: "Enter your email",
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                                validator: AuthValidators.email,
+                              ),
+                              const SizedBox(height: 16),
+
+                              const _FieldLabel("Password", style: labelStyle),
+                              const SizedBox(height: 8),
+                              AuthTextField(
+                                controller: _passwordController,
+                                hintText: "Enter your password",
+                                isPassword: true,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [
+                                  AutofillHints.newPassword,
+                                ],
+                                validator: AuthValidators.newPassword,
+                                onFieldSubmitted: (_) => _handleRegister(),
+                              ),
+                              const SizedBox(height: 4),
+                              const _FieldLabel(
+                                "Password must be at least ${AuthValidators.minPasswordLength} characters long",
+                                style: TextStyle(
+                                  fontSize: 11,
                                   color: Colors.grey,
                                 ),
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFF472B6),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
 
-                          // Password field
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Password",
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : _handleRegister,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.pink400,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                      horizontal: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Create Account",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextButton(
+                                onPressed: _isLoading ? null : _openLogin,
+                                child: const Text(
+                                  "Already have an account? Sign In",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: AppColors.pink500,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            onTapOutside: (event) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                            textInputAction: TextInputAction.done,
-                            validator: (value) =>
-                                globalFunctions.nonEmptyRule(value),
-                            onFieldSubmitted: (value) async {
-                              await handleRegister();
-                            },
-                            decoration: InputDecoration(
-                              hintText: "Enter your password",
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFF472B6),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Password must be at least 6 characters long",
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
+                        ),
+                      ),
 
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                await handleRegister();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF472B6),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                              child: const Text(
-                                "Create Account",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: () {
-                              context.go(AppRoutes.loginPage);
-                            },
-                            child: const Text(
-                              "Already have an account? Sign In",
-                              style: TextStyle(
-                                color: Color(0xFFEC4899),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                      // Dekoratif noktalar
+                      const Positioned(
+                        top: -10,
+                        left: -10,
+                        child: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: AppColors.pink200,
+                          foregroundColor: Colors.transparent,
+                        ),
                       ),
-                    ),
-
-                    // Decorative floating dots
-                    const Positioned(
-                      top: -10,
-                      left: -10,
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Color(0xFFFBCFE8),
-                        foregroundColor: Colors.transparent,
+                      const Positioned(
+                        bottom: -10,
+                        right: -10,
+                        child: CircleAvatar(
+                          radius: 10,
+                          backgroundColor: AppColors.purple200,
+                          foregroundColor: Colors.transparent,
+                        ),
                       ),
-                    ),
-                    const Positioned(
-                      bottom: -10,
-                      right: -10,
-                      child: CircleAvatar(
-                        radius: 10,
-                        backgroundColor: Color(0xFFE9D5FF),
-                        foregroundColor: Colors.transparent,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -309,39 +237,65 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Future<void> handleRegister() async {
-    // Register logic here
+  /// Girişe dön: giriş ekranından açıldıysa geri, değilse giriş sayfasına.
+  void _openLogin() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.goNamed('login');
+    }
+  }
+
+  void _finishRegister() {
+    if (context.canPop()) {
+      context.pop(true);
+    } else {
+      context.goNamed('askMeow');
+    }
+  }
+
+  Future<void> _handleRegister() async {
+    if (_isLoading) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (globalFunctions.validateAndSave(formKey)) {
-      setState(() {
-        isLoading = true;
-      });
-      bool isSucees = await authenticationService.registerAndSaveUser(
+    setState(() => _isLoading = true);
+    bool isSuccess = false;
+    try {
+      isSuccess = await authenticationService.registerAndSaveUser(
         email: email,
         password: password,
         name: name,
         context: context,
       );
-      setState(() {
-        isLoading = false;
-      });
-
-      if (isSucees) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const BabyInfoModal(),
-        ).then((v) async {
-          if (v == true) {
-            await databaseService.updateBaby(currentMeowUser);
-          }
-
-          context.go(AppRoutes.askMeow);
-        });
-      }
+    } catch (e) {
+      debugPrint('register failed: $e');
+      customSnackBar.warning("Unable to register. Please try again.");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+    if (!isSuccess || !mounted) return;
+
+    await BabyInfoModal.showAndSave(context);
+    if (mounted) _finishRegister();
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text, {required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: style),
+    );
   }
 }

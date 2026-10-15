@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -22,6 +20,7 @@ import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/activities/journal_service.dart';
 
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 
 class JournalDiaryPage extends StatefulWidget {
@@ -34,47 +33,57 @@ class JournalDiaryPage extends StatefulWidget {
 class _JournalDiaryPageState extends State<JournalDiaryPage> {
   late Future<_TodayBundle> _future;
 
-  // NEW: seçilen gün (sadece gün duyarlı olsun diye 00:00’a sabitliyoruz)
-  DateTime _selectedDay = DateTime.now();
+  // Seçilen gün (gün duyarlı olsun diye 00:00'a sabitlenir)
+  DateTime _selectedDay = DateUtils.dateOnly(DateTime.now());
+
+  bool get _isToday => DateUtils.isSameDay(_selectedDay, DateTime.now());
 
   @override
   void initState() {
-    analyticService.screenView('journal_screen');
-    _selectedDay = DateTime(
-      _selectedDay.year,
-      _selectedDay.month,
-      _selectedDay.day,
-    );
-    _future = _loadFor(_selectedDay);
     super.initState();
+    analyticService.screenView('journal_screen');
+    _future = _loadFor(_selectedDay);
   }
 
   Future<void> _refresh() async {
     setState(() => _future = _loadFor(_selectedDay));
-    await _future;
+    try {
+      await _future;
+    } catch (_) {
+      // Hata FutureBuilder'da gösteriliyor.
+    }
+  }
+
+  void _selectDay(DateTime day) {
+    setState(() {
+      _selectedDay = DateUtils.dateOnly(day);
+      _future = _loadFor(_selectedDay);
+    });
   }
 
   Future<_TodayBundle> _loadFor(DateTime day) async {
-    final now = day.toLocal();
-    final start = DateTime(now.year, now.month, now.day);
-    final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    final start = DateUtils.dateOnly(day.toLocal());
+    final end = DateTime(start.year, start.month, start.day, 23, 59, 59, 999);
 
-    // Solid: hazır aralık metodu var
-    final solids = await solidService.getUserSolidsInRange(start, end);
+    // Tüm aktiviteler seçilen günün aralığıyla, paralel çekilir.
+    final (
+      solids,
+      pumpings,
+      medicines,
+      sleeps,
+      nursings,
+      diapers,
+      notes,
+    ) = await (
+      solidService.getUserSolidsInRange(start, end),
+      pumpingService.getUserPumpingsInRange(start, end),
+      medicineService.getUserMedicinesInRange(start, end),
+      sleepService.getUserSleepsInRange(start, end),
+      nursingService.getUserNursingsInRange(start, end),
+      diaperService.getUserDiapersInRange(start, end),
+      journalService.getNotesInRange(start, end),
+    ).wait;
 
-    // Pumping & Medicine: servislerde today* metotlarını eklemiştik
-    final pumpings = await pumpingService.todayPumpings();
-    final medicines = await medicineService.todayMedicines();
-
-    // Sleep / Nursing / Diaper: listeyi alıp bugüne filtrele
-    final sleeps = await sleepService.getUserSleepsInRange(start, end);
-
-    final nursings = await nursingService.getUserNursingsInRange(start, end);
-
-    final diapers = await diaperService.getUserDiapersInRange(start, end);
-
-    // Notes: bugünün notları (varsa en yenisini gösteririz)
-    final notes = await journalService.getNotesInRange(start, end);
     return _TodayBundle(
       solids: solids,
       sleeps: sleeps,
@@ -82,7 +91,8 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
       diapers: diapers,
       pumpings: pumpings,
       medicines: medicines,
-      note: notes.isNotEmpty ? notes.last : null,
+      // Liste en yeniden eskiye sıralı → en yeni not ilk eleman.
+      note: notes.isNotEmpty ? notes.first : null,
     );
   }
 
@@ -97,20 +107,9 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DraggableScrollableSheet(
+    return ActivitySheetFrame(
       initialChildSize: 0.92,
-      minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Platform.isAndroid
-            ? SafeArea(top: false, child: sheetBody(context, theme))
-            : sheetBody(context, theme);
-      },
-    );
-  }
-
-  Container sheetBody(BuildContext context, ThemeData theme) {
-    return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -122,341 +121,290 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Scaffold(
+      builder: (context, _) => _sheetBody(context, theme),
+    );
+  }
+
+  Widget _sheetBody(BuildContext context, ThemeData theme) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          elevation: 0,
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.arrow_back_ios),
-              ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.arrow_back_ios),
             ),
           ),
-          title: const Text(
-            "📓 Journal",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
         ),
-        body: RefreshIndicator(
-          onRefresh: _refresh,
-          child: FutureBuilder<_TodayBundle>(
-            future: _future,
-            builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
-              if (snap.hasError) {
-                return _errorBox(snap.error.toString());
-              }
-              final data = snap.data!;
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  Row(
-                    children: [
-                      // Geri (önceki gün)
-                      IconButton(
-                        tooltip: 'Previous day',
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: () {
-                          final prev = _selectedDay.subtract(
-                            const Duration(days: 1),
-                          );
-                          setState(() {
-                            _selectedDay = DateTime(
-                              prev.year,
-                              prev.month,
-                              prev.day,
-                            );
-                            _future = _loadFor(_selectedDay);
-                          });
-                        },
-                      ),
-
-                      // Ortada tarih
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            _headerFor(_selectedDay),
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // İleri (sonraki gün)
-                      IconButton(
-                        tooltip: 'Next day',
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: () {
-                          if (_selectedDay.day != DateTime.now().day) {
-                            final next = _selectedDay.add(
-                              const Duration(days: 1),
-                            );
-                            setState(() {
-                              _selectedDay = DateTime(
-                                next.year,
-                                next.month,
-                                next.day,
-                              );
-                              _future = _loadFor(_selectedDay);
-                            });
-                          }
-                        },
-                      ),
-
-                      // Takvim aç
-                      IconButton(
-                        tooltip: 'Pick a date',
-                        icon: const Icon(Icons.calendar_today),
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDay,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              _selectedDay = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                              );
-                              _future = _loadFor(_selectedDay);
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // SOLID
-                  _CategoryCard(
-                    title: "Solid",
-                    icon: Icons.restaurant,
-                    color: Colors.orange.shade200,
-                    emptyText: "No solid record for today.",
-                    children: [
-                      for (int i = 0; i < data.solids.length; i++)
-                        _NumberedEntry(
-                          index: i + 1,
-                          title: data.solids[i].solidName,
-                          bullets: [
-                            "Amount: ${data.solids[i].solidAmount}",
-                            _clockLine(data.solids[i].eatTime),
-                            if (data.solids[i].reactions != null)
-                              "Reaction: ${data.solids[i].reactions!.name}",
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // SLEEP
-                  _CategoryCard(
-                    title: "Sleep",
-                    icon: Icons.nightlight_round,
-                    color: Colors.blue.shade200,
-                    emptyText: "No sleep record for today.",
-                    children: [..._sleepEntries(data.sleeps)],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // NURSING
-                  _CategoryCard(
-                    title: "Nursing",
-                    icon: Icons.child_care,
-                    color: Colors.teal.shade200,
-                    emptyText: "No nursing record for today.",
-                    children: [
-                      for (int i = 0; i < data.nursings.length; i++)
-                        _NumberedEntry(
-                          index: i + 1,
-                          title:
-                              "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
-                          bullets: [
-                            if (data.nursings[i].duration > 0)
-                              "Time: ${_fmtMin(data.nursings[i].duration)}",
-                            if ((data.nursings[i].amountType).isNotEmpty &&
-                                data.nursings[i].amount > 0)
-                              "Amount: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
-                            if ((data.nursings[i].milkType ?? '').isNotEmpty)
-                              "Milk Type: ${data.nursings[i].milkType}",
-                            _clockLine(data.nursings[i].startTime),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // DIAPER
-                  _CategoryCard(
-                    title: "Diaper",
-                    icon: Icons.baby_changing_station,
-                    color: Colors.green.shade200,
-                    emptyText: "No diaper record for today.",
-                    children: [
-                      for (int i = 0; i < data.diapers.length; i++)
-                        _NumberedEntry(
-                          index: i + 1,
-                          title: data.diapers[i].diaperName,
-                          bullets: [
-                            _clockLine(
-                              _bestTimeFromISO(data.diapers[i].createdAt) ??
-                                  data.diapers[i].diaperTime,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // PUMPING
-                  _CategoryCard(
-                    title: "Pumping",
-                    icon: Icons.published_with_changes,
-                    color: Colors.pink.shade200,
-                    emptyText: "No pumping record for today.",
-                    children: [
-                      for (int i = 0; i < data.pumpings.length; i++)
-                        _NumberedEntry(
-                          index: i + 1,
-                          title: data.pumpings[i].isLeft ? "Left" : "Right",
-                          bullets: [
-                            "Time: ${_fmtMin(data.pumpings[i].duration)}",
-                            _clockLine(
-                              _bestTimeFromISO(data.pumpings[i].createdAt) ??
-                                  data.pumpings[i].startTime,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // MEDICINE
-                  _CategoryCard(
-                    title: "Medicine",
-                    icon: Icons.medication,
-                    color: Colors.red.shade200,
-                    emptyText: "No medicine record for today.",
-                    children: [
-                      for (int i = 0; i < data.medicines.length; i++)
-                        _NumberedEntry(
-                          index: i + 1,
-                          title: data.medicines[i].medicineName,
-                          bullets: [
-                            "Amount: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
-                            _clockLine(
-                              _bestTimeFromISO(data.medicines[i].createdAt) ??
-                                  data.medicines[i].startTime,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-                  Divider(color: Colors.grey.shade300),
-                  const SizedBox(height: 12),
-
-                  _selectedDay.day == DateTime.now().day
-                      ? Text(
-                          "Daily Note",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.purple.shade700,
-                          ),
-                        )
-                      : Text(
-                          '${_headerFor(_selectedDay)} Daily Note',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.purple.shade700,
-                          ),
-                        ),
-                  const SizedBox(height: 8),
-                  if (data.note != null)
-                    _NotePreview(note: data.note!)
-                  else
-                    _EmptyNoteHint(),
-
-                  const SizedBox(height: 12),
-                  if (_selectedDay.day == DateTime.now().day)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            builder: (context) =>
-                                const AddJournalNoteBottomSheet(),
-                          ).then((v) {
-                            // not eklenmiş olabilir → yenile
-                            if (v == true) {
-                              _refresh();
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.edit_note),
-                        label: Text(
-                          data.note == null ? "Add Note" : "Edit Note",
+        title: const Text(
+          "📓 Journal",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<_TodayBundle>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            if (snap.hasError) {
+              debugPrint('Journal load failed: ${snap.error}');
+              return _errorBox(
+                "We couldn't load this day. Pull to refresh and try again.",
+              );
+            }
+            final data = snap.data!;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                Row(
+                  children: [
+                    // Geri (önceki gün)
+                    IconButton(
+                      tooltip: 'Previous day',
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: () => _selectDay(
+                        DateTime(
+                          _selectedDay.year,
+                          _selectedDay.month,
+                          _selectedDay.day - 1,
                         ),
                       ),
                     ),
-                ],
-              );
-            },
-          ),
+
+                    // Ortada tarih
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          _headerFor(_selectedDay),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // İleri (sonraki gün)
+                    IconButton(
+                      tooltip: 'Next day',
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: _isToday
+                          ? null
+                          : () => _selectDay(
+                              DateTime(
+                                _selectedDay.year,
+                                _selectedDay.month,
+                                _selectedDay.day + 1,
+                              ),
+                            ),
+                    ),
+
+                    // Takvim aç
+                    IconButton(
+                      tooltip: 'Pick a date',
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDay,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null && mounted) _selectDay(picked);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // SOLID
+                _CategoryCard(
+                  title: "Solid",
+                  icon: Icons.restaurant,
+                  color: Colors.orange.shade200,
+                  emptyText: "No solid record for today.",
+                  children: [
+                    for (int i = 0; i < data.solids.length; i++)
+                      _NumberedEntry(
+                        index: i + 1,
+                        title: data.solids[i].solidName,
+                        bullets: [
+                          "Amount: ${data.solids[i].solidAmount}",
+                          _clockLine(data.solids[i].eatTime),
+                          if (data.solids[i].reactions != null)
+                            "Reaction: ${data.solids[i].reactions!.name}",
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // SLEEP
+                _CategoryCard(
+                  title: "Sleep",
+                  icon: Icons.nightlight_round,
+                  color: Colors.blue.shade200,
+                  emptyText: "No sleep record for today.",
+                  children: [..._sleepEntries(data.sleeps)],
+                ),
+                const SizedBox(height: 12),
+
+                // NURSING
+                _CategoryCard(
+                  title: "Nursing",
+                  icon: Icons.child_care,
+                  color: Colors.teal.shade200,
+                  emptyText: "No nursing record for today.",
+                  children: [
+                    for (int i = 0; i < data.nursings.length; i++)
+                      _NumberedEntry(
+                        index: i + 1,
+                        title:
+                            "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
+                        bullets: [
+                          if (data.nursings[i].duration > 0)
+                            "Time: ${_fmtMin(data.nursings[i].duration)}",
+                          if ((data.nursings[i].amountType).isNotEmpty &&
+                              data.nursings[i].amount > 0)
+                            "Amount: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
+                          if ((data.nursings[i].milkType ?? '').isNotEmpty)
+                            "Milk Type: ${data.nursings[i].milkType}",
+                          _clockLine(data.nursings[i].startTime),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // DIAPER
+                _CategoryCard(
+                  title: "Diaper",
+                  icon: Icons.baby_changing_station,
+                  color: Colors.green.shade200,
+                  emptyText: "No diaper record for today.",
+                  children: [
+                    for (int i = 0; i < data.diapers.length; i++)
+                      _NumberedEntry(
+                        index: i + 1,
+                        title: data.diapers[i].diaperName,
+                        bullets: [_clockLine(data.diapers[i].diaperTime)],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // PUMPING
+                _CategoryCard(
+                  title: "Pumping",
+                  icon: Icons.published_with_changes,
+                  color: Colors.pink.shade200,
+                  emptyText: "No pumping record for today.",
+                  children: [
+                    for (int i = 0; i < data.pumpings.length; i++)
+                      _NumberedEntry(
+                        index: i + 1,
+                        title: data.pumpings[i].isLeft ? "Left" : "Right",
+                        bullets: [
+                          "Time: ${_fmtMin(data.pumpings[i].duration)}",
+                          _clockLine(data.pumpings[i].startTime),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // MEDICINE
+                _CategoryCard(
+                  title: "Medicine",
+                  icon: Icons.medication,
+                  color: Colors.red.shade200,
+                  emptyText: "No medicine record for today.",
+                  children: [
+                    for (int i = 0; i < data.medicines.length; i++)
+                      _NumberedEntry(
+                        index: i + 1,
+                        title: data.medicines[i].medicineName,
+                        bullets: [
+                          "Amount: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
+                          _clockLine(data.medicines[i].startTime),
+                        ],
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+                Divider(color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+
+                _isToday
+                    ? Text(
+                        "Daily Note",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.purple.shade700,
+                        ),
+                      )
+                    : Text(
+                        '${_headerFor(_selectedDay)} Daily Note',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                const SizedBox(height: 8),
+                if (data.note != null)
+                  _NotePreview(note: data.note!)
+                else
+                  _EmptyNoteHint(),
+
+                const SizedBox(height: 12),
+                if (_isToday)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final changed = await showActivitySheet<bool>(
+                          context,
+                          (_) => const AddJournalNoteBottomSheet(),
+                        );
+                        // not eklenmiş/silinmiş olabilir → yenile
+                        if (changed == true && mounted) _refresh();
+                      },
+                      icon: const Icon(Icons.edit_note),
+                      label: Text(data.note == null ? "Add Note" : "Edit Note"),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   // ---- helpers ----
-
-  static DateTime? _tryParseIso(String s) {
-    try {
-      return DateTime.parse(s);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static String? _bestTimeFromISO(String iso) {
-    final dt = _tryParseIso(iso);
-    return dt != null ? DateFormat('HH:mm').format(dt) : null;
-  }
 
   List<Widget> _sleepEntries(List<SleepModel> sleeps) {
     // kronolojik sırala
@@ -524,26 +472,30 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
     return first + s.characters.skip(1).join();
   }
 
+  /// Kaydırılabilir: çekerek yenileme hata durumunda da çalışır.
   Widget _errorBox(String msg) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.shade200),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red.shade600),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(msg, style: TextStyle(color: Colors.red.shade700)),
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade600),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(msg, style: TextStyle(color: Colors.red.shade700)),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }

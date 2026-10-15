@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/args/display_podcast_args.dart';
 import 'package:mama_meow/screens/navigationbar/bottom_nav_bar.dart';
@@ -33,8 +34,10 @@ import 'package:mama_meow/screens/navigationbar/profile/profile_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: AppRoutes.myBaby,
-  // Redirect logic removed to allow guest access
-  
+  // Misafir erişimine izin verildiği için global auth redirect'i yok; giriş
+  // gerektiren eylemler ekran bazında `context.pushNamed('login')` yapar.
+  // Bilinmeyen/bozuk bir konuma gidilirse ana sekmeye dön.
+  onException: (_, _, router) => router.go(AppRoutes.myBaby),
   routes: [
     /// AUTH ÖNCESİ (public)
     GoRoute(
@@ -174,6 +177,9 @@ final GoRouter router = GoRouter(
                 GoRoute(
                   path: 'podcast',
                   name: 'podcastDetail',
+                  // `extra` web yenilemesinde / derin bağlantıda kaybolur.
+                  redirect: (context, state) =>
+                      state.extra is DisplayPodcastArgs ? null : AppRoutes.learn,
                   builder: (context, state) {
                     final args = state.extra! as DisplayPodcastArgs;
                     return DisplayPodcastPage(
@@ -210,10 +216,13 @@ final GoRouter router = GoRouter(
       name: 'premiumPaywall',
       builder: (context, state) => const PremiumPaywall(),
     ),
-    GoRoute(
-      path: AppRoutes.adminUpdate,
-      name: 'adminUpdate',
-      builder: (context, state) => const AdminUpdatePage(),
-    ),
+    // Yönetici aracı: yayın derlemelerinde hiç kayıtlı değil (herkese açık
+    // URL olmasın). Yazma yetkisi ayrıca RTDB kurallarıyla korunmalı.
+    if (kDebugMode)
+      GoRoute(
+        path: AppRoutes.adminUpdate,
+        name: 'adminUpdate',
+        builder: (context, state) => const AdminUpdatePage(),
+      ),
   ],
 );

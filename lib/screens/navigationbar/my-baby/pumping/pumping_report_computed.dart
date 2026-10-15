@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/pumping/pumping_report_page.dart';
+import 'package:mama_meow/utils/date_range.dart';
 
 class PumpingReportComputed {
   final int sessions;
@@ -33,9 +33,13 @@ class PumpingReportComputed {
 }
 
 class PumpingAiCompute {
+  /// Rapor metrikleri. Saat dağılımı, aralıklar ve "son seans" kullanıcının
+  /// seçtiği başlangıç saatine göredir (`createdAt` kaydetme anıdır).
+  /// Günlük sıklık, dönemin bugüne kadar geçen gün sayısına bölünür.
   static PumpingReportComputed compute({
     required List<PumpingModel> pumpings,
-    required PumpingReportMode mode,
+    required ReportPeriod mode,
+    DateTime? now,
   }) {
     if (pumpings.isEmpty) {
       return const PumpingReportComputed(
@@ -52,78 +56,61 @@ class PumpingAiCompute {
       );
     }
 
-    // sort by createdAt (fallback)
-    final sorted = [...pumpings]
-      ..sort((a, b) {
-        final aDt =
-            DateTime.tryParse(a.createdAt) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final bDt =
-            DateTime.tryParse(b.createdAt) ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return aDt.compareTo(bDt);
-      });
-
     final sessions = pumpings.length;
 
-    int totalMinutes = 0;
-    int leftMinutes = 0;
-    int rightMinutes = 0;
-
-    final minutesByHour = <int, int>{for (int i = 0; i < 24; i++) i: 0};
+    var totalMinutes = 0;
+    var leftMinutes = 0;
+    var rightMinutes = 0;
+    final minutesByHour = <int, int>{for (var i = 0; i < 24; i++) i: 0};
+    final times = <DateTime>[];
+    PumpingModel? lastPumping;
+    DateTime? lastAt;
 
     for (final p in pumpings) {
       totalMinutes += p.duration;
-
       if (p.isLeft) {
         leftMinutes += p.duration;
       } else {
         rightMinutes += p.duration;
       }
 
-      final dt = DateTime.tryParse(p.createdAt);
-      final hour = dt?.hour ?? int.tryParse(p.startTime.split(':').first) ?? 0;
-      final h = (hour < 0 || hour > 23) ? 0 : hour;
+      final at = p.eventAt;
+      final hour = at?.hour ?? parseHourMinute(p.startTime)?.$1 ?? 0;
+      minutesByHour[hour] = (minutesByHour[hour] ?? 0) + p.duration;
 
-      minutesByHour[h] = (minutesByHour[h] ?? 0) + p.duration;
+      if (at != null) {
+        times.add(at);
+        if (lastAt == null || at.isAfter(lastAt)) {
+          lastAt = at;
+          lastPumping = p;
+        }
+      }
     }
 
-    final avgSessionMinutes = sessions == 0
-        ? 0
-        : (totalMinutes / sessions).round();
+    final avgSessionMinutes = (totalMinutes / sessions).round();
 
-    // last session time
-    String lastSessionTime = '-';
-    final last = sorted.last;
-    final lastDt = DateTime.tryParse(last.createdAt);
-    lastSessionTime = lastDt != null
-        ? DateFormat('HH:mm').format(lastDt)
-        : last.startTime;
+    // last session time (kullanıcının seçtiği saat)
+    final lastSessionTime = lastAt != null
+        ? DateFormat('HH:mm').format(lastAt)
+        : (lastPumping?.startTime ?? pumpings.last.startTime);
 
-    // longest gap hours (between createdAt)
-    double longestGapHours = 0;
-    for (int i = 1; i < sorted.length; i++) {
-      final prev = DateTime.tryParse(sorted[i - 1].createdAt);
-      final cur = DateTime.tryParse(sorted[i].createdAt);
-      if (prev == null || cur == null) continue;
-      final gap = cur.difference(prev).inMinutes.abs() / 60.0;
+    // longest gap hours (ardışık seanslar arası)
+    times.sort();
+    var longestGapHours = 0.0;
+    for (var i = 1; i < times.length; i++) {
+      final gap = times[i].difference(times[i - 1]).inMinutes / 60.0;
       if (gap > longestGapHours) longestGapHours = gap;
     }
 
-    // frequency per day (rough by period)
-    final days = switch (mode) {
-      PumpingReportMode.today => 1.0,
-      PumpingReportMode.week => 7.0,
-      PumpingReportMode.month => 30.0, // basit yaklaşım
-    };
+    // frequency per day: dönemin bugüne kadar geçen günü
+    final days = DateRange.forPeriod(mode, now: now).elapsedDays(now: now);
     final frequencyPerDay = sessions / days;
 
-    // most frequent time block (4 block)
-    // 05-09, 09-13, 13-17, 17-21, 21-05 (night)
+    // most frequent time block
     int sumBlock(int start, int endExclusive) {
-      int s = 0;
-      for (int h = start; h < endExclusive; h++) {
-        s += (minutesByHour[h] ?? 0);
+      var s = 0;
+      for (var h = start; h < endExclusive; h++) {
+        s += minutesByHour[h] ?? 0;
       }
       return s;
     }
@@ -133,14 +120,11 @@ class PumpingAiCompute {
       "09:00 - 13:00": sumBlock(9, 13),
       "13:00 - 17:00": sumBlock(13, 17),
       "17:00 - 21:00": sumBlock(17, 21),
-      "21:00 - 05:00": (sumBlock(21, 24) + sumBlock(0, 5)),
+      "21:00 - 05:00": sumBlock(21, 24) + sumBlock(0, 5),
     };
-
-    final mostFrequentTime = blocks.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final mostTimeLabel = mostFrequentTime.isEmpty
-        ? "-"
-        : mostFrequentTime.first.key;
+    final mostTimeLabel = blocks.entries
+        .reduce((a, b) => b.value > a.value ? b : a)
+        .key;
 
     return PumpingReportComputed(
       sessions: sessions,
@@ -154,36 +138,5 @@ class PumpingAiCompute {
       lastSessionTime: lastSessionTime,
       minutesByHour: minutesByHour,
     );
-  }
-
-  /// ✅ AI’ya gidecek optimize payload
-  static Map<String, dynamic> buildAiPayload({
-    required PumpingReportMode mode,
-    required PumpingReportComputed c,
-    List<String> notes = const [],
-    String periodLabel = '',
-  }) {
-    String modeText = switch (mode) {
-      PumpingReportMode.today => "Daily",
-      PumpingReportMode.week => "Weekly",
-      PumpingReportMode.month => "Monthly",
-    };
-
-    return {
-      "period": modeText,
-      "rangeLabel": periodLabel,
-      "sessions": c.sessions,
-      "stats": {
-        "totalMinutes": c.totalMinutes,
-        "avgSessionTime": c.avgSessionMinutes,
-        "sides": {"leftMinutes": c.leftMinutes, "rightMinutes": c.rightMinutes},
-        "frequencyPerDay": c.frequencyPerDay,
-      },
-      "patterns": {
-        "mostFrequentTime": c.mostFrequentTime,
-        "longestGapHours": c.longestGapHours,
-      },
-      "notes": notes,
-    };
   }
 }

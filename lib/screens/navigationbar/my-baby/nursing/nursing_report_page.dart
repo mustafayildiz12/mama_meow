@@ -1,24 +1,24 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/nursing/add_nursing_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_computed.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_pdf_builder.dart';
-import 'package:mama_meow/service/analytic_service.dart';
-import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_helpers.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_widgets.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
+import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/nursing_ai_service.dart';
-import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
-import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:mama_meow/service/review_service.dart';
+import 'package:mama_meow/utils/date_range.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import 'package:mama_meow/models/activities/nursing_model.dart';
-import 'package:mama_meow/service/activities/nursing_service.dart';
-// GlassSegmented widget'ını senin paylaştığın yerden import et.
+// Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
+typedef NursingReportMode = ReportPeriod;
 
-enum NursingReportMode { today, week, month }
+const _nursingColor = Color(0xFFff9aa2);
+
+const _palette = ReportPalette(tint: _nursingColor, segmentFill: _nursingColor);
 
 class NursingReportPage extends StatefulWidget {
   const NursingReportPage({super.key});
@@ -27,354 +27,116 @@ class NursingReportPage extends StatefulWidget {
   State<NursingReportPage> createState() => _NursingReportPageState();
 }
 
-class _NursingReportPageState extends State<NursingReportPage> {
-  NursingReportMode _mode = NursingReportMode.today;
-  late Future<List<NursingModel>> _future;
-
-  List<NursingModel>? _cachedNursings;
-  NursingReportComputed? _cachedComputed;
-  NursingReportMode? _cachedMode;
-
-  bool isLoading = false;
-
-  void _clearCache() {
-    _cachedNursings = null;
-    _cachedComputed = null;
-    _cachedMode = null;
-  }
-
-  NursingReportComputed _getOrCompute(List<NursingModel> nursings) {
-    if (_cachedComputed == null || _cachedMode != _mode) {
-      _cachedNursings = nursings;
-      _cachedComputed = _computeNursingReport(nursings);
-      _cachedMode = _mode;
-    }
-    return _cachedComputed!;
+class _NursingReportPageState extends State<NursingReportPage>
+    with
+        ReportPageMixin<
+          NursingReportPage,
+          NursingModel,
+          NursingReportComputed
+        > {
+  @override
+  void initState() {
+    super.initState();
+    initReport('nursing_report_page');
   }
 
   @override
-  void initState() {
-    _future = _fetchByMode(_mode);
-    analyticService.screenView('nursing_report_page');
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFF8FAFC),
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
-    );
-    super.initState();
-  }
-
-  Future<List<NursingModel>> _fetchByMode(NursingReportMode mode) {
-    switch (mode) {
-      case NursingReportMode.today:
+  Future<List<NursingModel>> fetchFor(ReportPeriod period) {
+    switch (period) {
+      case ReportPeriod.today:
         return nursingService.todayNursings();
-      case NursingReportMode.week:
+      case ReportPeriod.week:
         return nursingService.weekNursings();
-      case NursingReportMode.month:
+      case ReportPeriod.month:
         return nursingService.monthNursings();
     }
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _future = _fetchByMode(_mode);
-      _clearCache();
-    });
-    await _future;
-  }
+  @override
+  NursingReportComputed computeReport(List<NursingModel> items) =>
+      NursingReportComputed.fromNursings(items);
 
-  String _rangeLabel(NursingReportMode mode) {
-    final now = DateTime.now();
-    if (mode == NursingReportMode.today) {
-      return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == NursingReportMode.week) {
-      final s = now.startOfWeekTR, e = now.endOfWeekTR;
-      return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
-    } else {
-      final s = now.startOfMonth, e = now.endOfMonth;
-      return "${DateFormat('MMM yyyy').format(s)} (1–${DateFormat('d').format(e)})";
-    }
+  Future<void> _exportPdf(BuildContext anchor) => exportPdf(
+    anchor,
+    filePrefix: 'nursing',
+    emptyMessage: 'No nursing data to export.',
+    shareText:
+        "My baby's nursing report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
+    buildPdf: (nursings, computed, period, label) async {
+      final ai = await NursingAIService().analyze(
+        mode: period,
+        c: computed,
+        rangeLabel: label,
+      );
+      return NursingReportPdfBuilder.build(
+        format: PdfPageFormat.a4,
+        mode: period,
+        rangeLabel: label,
+        nursings: nursings,
+        ai: ai,
+      );
+    },
+  );
+
+  Future<void> _addNursing() async {
+    await showActivitySheet(context, (_) => const AddNursingBottomSheet());
+    if (mounted) await refreshReport();
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = authenticationService.getUser();
-    return CustomLoader(
-      inAsyncCall: isLoading,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-          ),
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            centerTitle: true,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.arrow_back_ios),
-                ),
-              ),
-            ),
-            title: const Text(
-              "🍼  Nursing Reports",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              if (user != null) ...[
-                IconButton(
-                  icon: const Icon(
-                    Icons.picture_as_pdf,
-                    color: Color(0xFFff9aa2),
-                  ),
-                  onPressed: () async {
-                    setState(() {
-                      isLoading = true;
-                    });
-                    try {
-                      // ✅ mümkünse cache’li veriyi kullan
-                      final sleeps = _cachedNursings ?? await _future;
-                      if (sleeps.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('No sleep data to export.'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      final computed =
-                          (_cachedComputed != null && _cachedMode == _mode)
-                          ? _cachedComputed!
-                          : _computeNursingReport(sleeps);
-
-                      final ai = await NursingAIService().analyze(
-                        mode: _mode,
-                        c: computed,
-                        rangeLabel: _rangeLabel(_mode),
-                      );
-
-                      final bytes = await NursingReportPdfBuilder.build(
-                        format: PdfPageFormat.a4,
-                        mode: _mode,
-                        rangeLabel: _rangeLabel(_mode),
-                        nursings: sleeps,
-                        ai: ai,
-                      );
-
-                      final filename = _buildPdfFileName(_mode);
-
-                      final filepath = await globalFunctions.downloadBytes(
-                        bytes,
-                        filename,
-                      );
-                      await globalFunctions.sharePdf(
-                        filepath,
-                        text:
-                            "My baby's nursing report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
-                      );
-                      await reviewService.recordPositiveMomentAndMaybeAsk();
-                    } catch (e) {
-                      customSnackBar.warning('PDF error: $e');
-                    }
-                    setState(() {
-                      isLoading = false;
-                    });
-                  },
-                ),
-              ],
-            ],
-          ),
-          body: SafeArea(
-            top: false,
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12, top: 12),
-                    child: Center(
-                      child: _GlassSegmented(
-                        value: _mode,
-                        onChanged: (m) => setState(() {
-                          _mode = m;
-                          _future = _fetchByMode(_mode);
-                          _clearCache();
-                        }),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: FutureBuilder<List<NursingModel>>(
-                      future: _future,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const _LoadingView();
-                        }
-                        if (snapshot.hasError) {
-                          return _CenteredMessage(
-                            emoji: '⚠️',
-                            title: 'Something went wrong',
-                            subtitle:
-                                "We couldn't load this report. Pull to refresh and try again.",
-                          );
-                        }
-                        final nursings = snapshot.data ?? [];
-                        if (nursings.isEmpty) {
-                          return _CenteredMessage(
-                            emoji: '🍼',
-                            title: 'No record found',
-                            subtitle:
-                                'You will see it here when you add breastfeeding for this month.',
-                            actionLabel: 'Add nursing',
-                            onAction: () => Navigator.pop(context),
-                          );
-                        }
-
-                        final computed = _getOrCompute(nursings);
-                        return _buildReportBody(context, nursings, computed);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+    return ReportScaffold<NursingModel>(
+      title: "🍼  Nursing Reports",
+      palette: _palette,
+      pdfIconColor: _nursingColor,
+      isLoading: exporting,
+      onExportPdf: _exportPdf,
+      onRefresh: refreshReport,
+      period: period,
+      onPeriodChanged: changePeriod,
+      future: future,
+      bottomSafeArea: true,
+      empty: CenteredMessage(
+        emoji: '🍼',
+        title: 'No record found',
+        subtitle:
+            'You will see it here when you add breastfeeding for this period.',
+        actionLabel: 'Add nursing',
+        onAction: _addNursing,
       ),
+      builder: (context, nursings) =>
+          _buildReportBody(nursings, computedFor(nursings)),
     );
-  }
-
-  String _buildPdfFileName(NursingReportMode mode) {
-    final now = DateTime.now();
-
-    switch (mode) {
-      case NursingReportMode.today:
-        final d = DateFormat('dd_MM_yyyy').format(now);
-        return 'nursing_daily_$d.pdf';
-
-      case NursingReportMode.week:
-        final start = now.startOfWeekTR;
-        final end = now.endOfWeekTR;
-        final a = DateFormat('dd_MM_yyyy').format(start);
-        final b = DateFormat('dd_MM_yyyy').format(end);
-        return 'nursing_weekly_${a}_$b.pdf';
-
-      case NursingReportMode.month:
-        final m = DateFormat('MM_yyyy').format(now);
-        return 'nursing_monthly_$m.pdf';
-    }
   }
 
   // ---- RAPOR GÖVDESİ (seçili aralığa uygulanır) ----
   Widget _buildReportBody(
-    BuildContext context,
     List<NursingModel> nursings,
     NursingReportComputed computed,
   ) {
-    final byHourRaw = <int, int>{}; // 0..23 -> count
-    final bySide = <String, int>{}; // side -> count
-    final byFeedingType = <String, int>{}; // feeding type -> count
-    final byMilkType = <String, int>{}; // bottle milk type -> count
-    final byAmountType = <String, double>{}; // unit -> total amount
-
-    final details = <_NursingDetail>[];
-    String lastTimeLabel = '-';
-    DateTime? latest;
-
-    int totalDuration = 0;
-
-    for (final n in nursings) {
-      // saat dağılımı (startTime "HH:mm")
-      final h = _parseHourSafe(n.startTime);
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-      // side / feedingType
-      bySide[_normalize(n.side)] = (bySide[_normalize(n.side)] ?? 0) + 1;
-      byFeedingType[_normalize(n.feedingType)] =
-          (byFeedingType[_normalize(n.feedingType)] ?? 0) + 1;
-
-      // milkType (şişe için)
-      if (n.milkType != null) {
-        byMilkType[_normalize(n.milkType!)] =
-            (byMilkType[_normalize(n.milkType!)] ?? 0) + 1;
-      }
-
-      // amountType toplam
-      byAmountType[n.amountType] = (byAmountType[n.amountType] ?? 0) + n.amount;
-
-      // süre
-      totalDuration += n.duration;
-
-      // detay listesi
-      details.add(
-        _NursingDetail(
-          side: n.side,
-          feedingType: n.feedingType,
-          milkType: n.milkType,
-          time: n.startTime,
-          duration: n.duration,
-          amount: n.amount,
-          amountType: n.amountType,
-          createdAt: n.createdAt,
-        ),
+    // Oturum listesi gerçek olay zamanına göre (gün + saat) sıralı.
+    final sessions = [...nursings]
+      ..sort(
+        (a, b) => reportEventTime(
+          a.createdAt,
+          a.startTime,
+        ).compareTo(reportEventTime(b.createdAt, b.startTime)),
       );
-
-      // son emzirme
-      final ct = _tryParseDateTime(n.createdAt);
-      if (ct != null && (latest == null || ct.isAfter(latest))) {
-        latest = ct;
-        lastTimeLabel = n.startTime;
-      }
-    }
-
-    final total = nursings.length;
-    final avgDuration = total == 0 ? 0 : (totalDuration / total).round();
-
-    // kronolojik detay
-    details.sort((a, b) {
-      final at = _parseTime(a.time), bt = _parseTime(b.time);
-      if (at == null && bt == null) return 0;
-      if (at == null) return 1;
-      if (bt == null) return -1;
-      return at.compareTo(bt);
-    });
-
-    // grafik veri
-    final byHour = <_KV>[];
-    for (int h = 0; h < 24; h++) {
-      byHour.add(_KV(h.toString().padLeft(2, '0'), (byHourRaw[h] ?? 0)));
-    }
-    final sideList = bySide.entries.map((e) => _KV(e.key, e.value)).toList()
-      ..sort((a, b) => b.v.compareTo(a.v));
-    final feedingTypeList =
-        byFeedingType.entries.map((e) => _KV(e.key, e.value)).toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
-    final milkTypeList =
-        byMilkType.entries.map((e) => _KV(e.key, e.value)).toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
-    final amountTypeList =
-        byAmountType.entries.map((e) => _AmountKV(e.key, e.value)).toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
+    // Biberon kayıtlarında taraf boş, emzirmede miktar 0 yazılır; grafiklerde
+    // bu boş/sıfır dilimler gösterilmez.
+    final sideList = sortedEntries(computed.sideCounts)
+      ..removeWhere((e) => e.label.isEmpty);
+    final milkTypeList = sortedEntries(computed.milkTypeCounts)
+      ..removeWhere((e) => e.label.isEmpty);
+    final amountTypeList = sortedEntries(computed.amountTypeTotals)
+      ..removeWhere((e) => e.value <= 0);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
         const SizedBox(height: 16),
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Distribution by hour",
           subtitle: "When nursing sessions occurred",
           leading: "🤱",
@@ -393,13 +155,15 @@ class _NursingReportPageState extends State<NursingReportPage> {
               tooltipBehavior: TooltipBehavior(enable: true),
               enableAxisAnimation: true,
               series: [
-                ColumnSeries<_KV, String>(
-                  dataSource: byHour,
-                  xValueMapper: (e, _) => e.k,
-                  yValueMapper: (e, _) => e.v,
-                  dataLabelMapper: (e, _) => e.v == 0 ? "" : e.v.toString(),
+                ColumnSeries<ChartEntry, String>(
+                  dataSource: orderedEntries(computed.distHourCount),
+                  xValueMapper: (e, _) => e.label,
+                  yValueMapper: (e, _) => e.value,
+                  dataLabelMapper: (e, _) =>
+                      e.value == 0 ? "" : e.value.toString(),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  pointColorMapper: (e, _) => byHourColor(e.v),
+                  pointColorMapper: (e, _) =>
+                      tierColor(e.value, high: 2, mid: 1, low: 0.5),
                   name: 'Count',
                 ),
               ],
@@ -408,7 +172,7 @@ class _NursingReportPageState extends State<NursingReportPage> {
         ),
         const SizedBox(height: 16),
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Side preference",
           subtitle: "Distribution by nursing side",
           leading: "⏱️",
@@ -420,12 +184,13 @@ class _NursingReportPageState extends State<NursingReportPage> {
                 isVisible: true,
                 overflowMode: LegendItemOverflowMode.wrap,
               ),
-              series: <CircularSeries<_KV, String>>[
-                PieSeries<_KV, String>(
+              series: <CircularSeries<ChartEntry, String>>[
+                PieSeries<ChartEntry, String>(
                   dataSource: sideList,
-                  xValueMapper: (e, _) => e.k,
-                  yValueMapper: (e, _) => e.v,
-                  pointColorMapper: (e, _) => sideChartColor(e.v),
+                  xValueMapper: (e, _) => e.label,
+                  yValueMapper: (e, _) => e.value,
+                  pointColorMapper: (e, _) =>
+                      tierColor(e.value, high: 20, mid: 10, low: 5),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
                   explode: true,
                   explodeIndex: 0,
@@ -436,514 +201,98 @@ class _NursingReportPageState extends State<NursingReportPage> {
         ),
         const SizedBox(height: 16),
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Feeding types",
           subtitle: "Nursing vs bottle feeding",
           leading: "🍼",
-          child: SizedBox(
-            height: 220,
-            child: SfCartesianChart(
-              backgroundColor: Colors.transparent,
-              primaryXAxis: CategoryAxis(
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              primaryYAxis: NumericAxis(
-                majorGridLines: const MajorGridLines(width: 0.4),
-                axisLine: const AxisLine(width: 0),
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true),
-              series: [
-                BarSeries<_KV, String>(
-                  dataSource: feedingTypeList,
-                  xValueMapper: (e, _) => e.k,
-                  yValueMapper: (e, _) => e.v,
-                  pointColorMapper: (e, _) => feedingTypesColor(e.v),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  name: 'Count',
-                ),
-              ],
-            ),
+          child: _barChart(
+            sortedEntries(computed.feedingTypeCounts),
+            name: 'Count',
+            color: (e, _) => tierColor(e.value, high: 20, mid: 10, low: 5),
           ),
         ),
         const SizedBox(height: 16),
 
         if (milkTypeList.isNotEmpty) ...[
-          _SectionCard(
+          ReportSectionCard(
             title: "Milk types",
             subtitle: "Types of milk for bottle feeding",
             leading: "🐄",
-            child: SizedBox(
-              height: 220,
-              child: SfCartesianChart(
-                backgroundColor: Colors.transparent,
-                primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(width: 0),
-                ),
-                primaryYAxis: NumericAxis(
-                  majorGridLines: const MajorGridLines(width: 0.4),
-                  axisLine: const AxisLine(width: 0),
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: [
-                  BarSeries<_KV, String>(
-                    dataSource: milkTypeList,
-                    xValueMapper: (e, _) => e.k,
-                    yValueMapper: (e, _) => e.v,
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
-                    name: 'Count',
-                  ),
-                ],
-              ),
-            ),
+            child: _barChart(milkTypeList, name: 'Count'),
           ),
           const SizedBox(height: 16),
         ],
 
         if (amountTypeList.isNotEmpty) ...[
-          _SectionCard(
+          ReportSectionCard(
             title: "Amount by type",
             subtitle: "Total amounts by unit type",
             leading: "🥛",
-            child: SizedBox(
-              height: 220,
-              child: SfCartesianChart(
-                backgroundColor: Colors.transparent,
-                primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(width: 0),
-                ),
-                primaryYAxis: NumericAxis(
-                  majorGridLines: const MajorGridLines(width: 0.4),
-                  axisLine: const AxisLine(width: 0),
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: [
-                  BarSeries<_AmountKV, String>(
-                    dataSource: amountTypeList,
-                    xValueMapper: (e, _) => e.k,
-                    yValueMapper: (e, _) => e.v,
-                    pointColorMapper: (datum, index) {
-                      if (index == 0) {
-                        return Colors.pinkAccent;
-                      } else {
-                        return Colors.teal;
-                      }
-                    },
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
-                    name: 'Amount',
-                  ),
-                ],
-              ),
+            child: _barChart(
+              amountTypeList,
+              name: 'Amount',
+              color: (_, index) => index == 0 ? Colors.pinkAccent : Colors.teal,
             ),
           ),
           const SizedBox(height: 16),
         ],
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Sessions",
-          subtitle: "Chronological list for ${_rangeLabel(_mode)}",
+          subtitle: "Chronological list for $rangeLabel",
           leading: "⏱️",
-          child: Column(
-            children: [
-              for (final d in details)
-                _NursingTile(
-                  side: d.side,
-                  feedingType: d.feedingType,
-                  milkType: d.milkType,
-                  time: d.time,
-                  duration: d.duration,
-                  amount: d.amount,
-                  amountType: d.amountType,
-                ),
-            ],
-          ),
+          child: Column(children: [for (final n in sessions) _NursingTile(n)]),
         ),
-        SizedBox(height: 16),
-        nursingTips(),
+        const SizedBox(height: 16),
+        const ReportTipsCard(
+          title: "AI Nursing Tips",
+          leading: "🤖",
+          badgeColor: Colors.pinkAccent,
+          tips: [
+            (
+              "💡",
+              "Your feeding intervals are very consistent. This helps establish a great routine!",
+            ),
+            (
+              "🌡️",
+              "Your baby seems to love sweet foods. Gradually mix in vegetables for balanced taste",
+            ),
+            (
+              "💪",
+              "Consider iron-rich foods like spinach or lentils - perfect age for this nutrition!",
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  Widget nursingTips() {
-    return _SectionCard(
-      title: "AI Nursing Tips",
-      leading: "🤖",
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.pinkAccent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("💡", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Your feeding intervals are very consistent. This helps establish a great routine!",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.pinkAccent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("🌡️", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Your baby seems to love sweet foods. Gradually mix in vegetables for balanced taste",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.pinkAccent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("💪", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Consider iron-rich foods like spinach or lentils - perfect age for this nutrition!",
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color byHourColor(int count) {
-    if (count >= 2) {
-      return const Color(0xFF2ECC71); // y
-    } else if (count >= 1 && count < 2) {
-      return const Color(0xFFFF7F50); // mercan
-    } else if (count >= 0.5 && count < 1) {
-      // Biraz daha parlak/aydınlık
-      final base = const Color(0xFFF1C40F);
-      final hsl = HSLColor.fromColor(base);
-      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
-    } else if (count < 0.5) {
-      return const Color(0xFF3498DB);
-    } else {
-      return Colors.teal;
-    }
-  }
-
-  Color sideChartColor(int count) {
-    if (count >= 20) {
-      return const Color(0xFF2ECC71); // y
-    } else if (count >= 10 && count < 20) {
-      return const Color(0xFFFF7F50); // mercan
-    } else if (count >= 5 && count < 10) {
-      // Biraz daha parlak/aydınlık
-      final base = const Color(0xFFF1C40F);
-      final hsl = HSLColor.fromColor(base);
-      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
-    } else if (count < 5) {
-      return const Color(0xFF3498DB);
-    } else {
-      return Colors.teal;
-    }
-  }
-
-  Color feedingTypesColor(int count) {
-    if (count >= 20) {
-      return const Color(0xFF2ECC71); // y
-    } else if (count >= 10 && count < 20) {
-      return const Color(0xFFFF7F50); // mercan
-    } else if (count >= 5 && count < 10) {
-      // Biraz daha parlak/aydınlık
-      final base = const Color(0xFFF1C40F);
-      final hsl = HSLColor.fromColor(base);
-      return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
-    } else if (count < 5) {
-      return const Color(0xFF3498DB);
-    } else {
-      return Colors.teal;
-    }
-  }
-
-  // ---- Helpers ----
-  int _parseHourSafe(String hhmm) {
-    final h = int.tryParse(hhmm.split(':').first);
-    return (h == null || h < 0 || h > 23) ? 0 : h;
-  }
-
-  DateTime? _parseTime(String timeStr) {
-    try {
-      final p = timeStr.split(':');
-      return DateTime(2000, 1, 1, int.parse(p[0]), int.parse(p[1]));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  DateTime? _tryParseDateTime(String iso) {
-    try {
-      return DateTime.parse(iso);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String _normalize(String s) => s.trim().toLowerCase();
-
-  NursingReportComputed _computeNursingReport(List<NursingModel> nursings) {
-    final byHourRaw = <int, int>{};
-    final bySide = <String, int>{};
-    final byFeedingType = <String, int>{};
-    final byMilkType = <String, int>{};
-    final byAmountType = <String, double>{};
-
-    int totalDuration = 0;
-    DateTime? latest;
-    String lastTimeLabel = '-';
-
-    for (final n in nursings) {
-      // hour
-      final h = int.tryParse(n.startTime.split(':').first) ?? 0;
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-      // side
-      bySide[_norm(n.side)] = (bySide[_norm(n.side)] ?? 0) + 1;
-
-      // feeding type
-      byFeedingType[_norm(n.feedingType)] =
-          (byFeedingType[_norm(n.feedingType)] ?? 0) + 1;
-
-      // milk type (bottle only)
-      if (n.milkType != null) {
-        byMilkType[_norm(n.milkType!)] =
-            (byMilkType[_norm(n.milkType!)] ?? 0) + 1;
-      }
-
-      // amount
-      byAmountType[n.amountType] =
-          (byAmountType[n.amountType] ?? 0) + n.amount.toDouble();
-
-      // duration
-      totalDuration += n.duration;
-
-      // last session
-      final dt = DateTime.tryParse(n.createdAt);
-      if (dt != null && (latest == null || dt.isAfter(latest))) {
-        latest = dt;
-        lastTimeLabel = n.startTime;
-      }
-    }
-
-    // 24h map
-    final distHour = <String, int>{};
-    for (int h = 0; h < 24; h++) {
-      distHour[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
-    }
-
-    final count = nursings.length;
-    final avg = count == 0 ? 0 : (totalDuration / count).round();
-
-    return NursingReportComputed(
-      sessionCount: count,
-      totalDuration: totalDuration,
-      avgDuration: avg,
-      lastTimeLabel: lastTimeLabel,
-      distHourCount: distHour,
-      sideCounts: bySide,
-      feedingTypeCounts: byFeedingType,
-      milkTypeCounts: byMilkType,
-      amountTypeTotals: byAmountType,
-    );
-  }
-
-  String _norm(String s) => s.trim().toLowerCase();
-}
-
-// --- view models / tiles ---
-
-class _KV {
-  final String k;
-  final int v;
-  _KV(this.k, this.v);
-}
-
-class _AmountKV {
-  final String k;
-  final double v;
-  _AmountKV(this.k, this.v);
-}
-
-class _NursingDetail {
-  final String side;
-  final String feedingType;
-  final String? milkType;
-  final String time;
-  final int duration;
-  final num amount;
-  final String amountType;
-  final String createdAt;
-  _NursingDetail({
-    required this.side,
-    required this.feedingType,
-    this.milkType,
-    required this.time,
-    required this.duration,
-    required this.amount,
-    required this.amountType,
-    required this.createdAt,
-  });
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: CircularProgressIndicator());
-}
-
-class _CenteredMessage extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String? subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  const _CenteredMessage({
-    required this.emoji,
-    required this.title,
-    this.subtitle,
-    this.actionLabel,
-    this.onAction,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                subtitle!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add),
-                label: Text(actionLabel!),
-              ),
-            ],
-          ],
+  Widget _barChart(
+    List<ChartEntry> data, {
+    required String name,
+    Color? Function(ChartEntry e, int index)? color,
+  }) {
+    return SizedBox(
+      height: 220,
+      child: SfCartesianChart(
+        backgroundColor: Colors.transparent,
+        primaryXAxis: CategoryAxis(
+          majorGridLines: const MajorGridLines(width: 0),
         ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final Widget child;
-  final EdgeInsets padding;
-  final String leading;
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    required this.leading,
-    this.padding = const EdgeInsets.all(16),
-    this.subtitle,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFff9aa2),
-            Colors.white.withValues(alpha: 0.9),
-          ],
-          stops: const [0.2, 1.0],
+        primaryYAxis: NumericAxis(
+          majorGridLines: const MajorGridLines(width: 0.4),
+          axisLine: const AxisLine(width: 0),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFff9aa2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text(leading, style: TextStyle(fontSize: 24)),
-              ),
-            ],
+        tooltipBehavior: TooltipBehavior(enable: true),
+        series: [
+          BarSeries<ChartEntry, String>(
+            dataSource: data,
+            xValueMapper: (e, _) => e.label,
+            yValueMapper: (e, _) => e.value,
+            pointColorMapper: color,
+            dataLabelSettings: const DataLabelSettings(isVisible: true),
+            name: name,
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-            ),
-          ],
-          const SizedBox(height: 12),
-          child,
         ],
       ),
     );
@@ -951,26 +300,17 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _NursingTile extends StatelessWidget {
-  final String side;
-  final String feedingType;
-  final String? milkType;
-  final String time;
-  final int duration;
-  final num amount;
-  final String amountType;
-
-  const _NursingTile({
-    required this.side,
-    required this.feedingType,
-    this.milkType,
-    required this.time,
-    required this.duration,
-    required this.amount,
-    required this.amountType,
-  });
+  final NursingModel n;
+  const _NursingTile(this.n);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtle = theme.textTheme.bodySmall?.copyWith(color: Colors.black54);
+    final title = n.side.trim().isEmpty
+        ? n.feedingType.toUpperCase()
+        : '${n.feedingType.toUpperCase()} - ${n.side.toUpperCase()}';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -988,7 +328,7 @@ class _NursingTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              feedingType.toLowerCase() == 'nursing'
+              n.feedingType.toLowerCase() == 'nursing'
                   ? Icons.child_care
                   : Icons.local_drink,
               color: Colors.teal,
@@ -1001,36 +341,24 @@ class _NursingTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${feedingType.toUpperCase()} - ${side.toUpperCase()}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Row(
                   children: [
-                    Text(
-                      '${duration}min',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
-                    if (amount > 0) ...[
+                    Text('${n.duration}min', style: subtle),
+                    if (n.amount > 0) ...[
                       const Text(' • '),
                       Text(
-                        '${amount.toStringAsFixed(1)} $amountType',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                        '${n.amount.toStringAsFixed(1)} ${n.amountType}',
+                        style: subtle,
                       ),
                     ],
-                    if (milkType != null) ...[
+                    if (n.milkType != null) ...[
                       const Text(' • '),
-                      Text(
-                        milkType!,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                      ),
+                      Text(n.milkType!, style: subtle),
                     ],
                   ],
                 ),
@@ -1038,151 +366,13 @@ class _NursingTile extends StatelessWidget {
             ),
           ),
           Text(
-            time,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            n.startTime,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: Colors.teal,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GlassSegmented extends StatelessWidget {
-  final NursingReportMode value;
-  final ValueChanged<NursingReportMode> onChanged;
-
-  const _GlassSegmented({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Renkleri kolay değiştirebilmen için tanımlar:
-    final bgColor = Colors.white;
-    final borderColor = Colors.white.withValues(
-      alpha: 0.3,
-    ); // rgba(255,255,255,0.3)
-    final activeFill = const Color(0xFFff9aa2); // aktif buton zemini
-    final inactiveFg = theme.textTheme.bodyMedium?.color; // pasif buton yazısı
-    final activeFg = Colors.white; // aktif buton yazısı
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(25, 0, 25, 0), // CSS'teki margin
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // blur(20px)
-          child: Container(
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: borderColor, width: 1),
-            ),
-            padding: const EdgeInsets.all(4), // CSS'teki padding: 4px
-            child: Row(
-              children: [
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Daily',
-                    selected: value == NursingReportMode.today,
-                    onTap: () => onChanged(NursingReportMode.today),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Weekly',
-                    selected: value == NursingReportMode.week,
-                    onTap: () => onChanged(NursingReportMode.week),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Monthly',
-                    selected: value == NursingReportMode.month,
-                    onTap: () => onChanged(NursingReportMode.month),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SegmentButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color activeFill;
-  final Color? inactiveFg;
-  final Color activeFg;
-
-  const _SegmentButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.activeFill,
-    required this.inactiveFg,
-    required this.activeFg,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: selected ? activeFill : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 2),
-                  color: Colors.black.withValues(alpha: 0.06),
-                ),
-              ]
-            : const [],
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-            child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: selected ? activeFg : inactiveFg,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

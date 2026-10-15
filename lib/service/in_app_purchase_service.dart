@@ -1,313 +1,192 @@
-// ignore_for_file: cast_from_null_always_fails
-
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
+import 'package:mama_meow/utils/platform_info.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-/// Abonelik ürünlerinin listesi
-List<StoreProduct>? _subsProducts;
+/// RevenueCat'te premium erişimi veren entitlement kimliği.
+const String premiumEntitlementId = 'premium';
 
-/// Müşteri bilgileri
-CustomerInfo? _customerInfo;
-
-/// Abonelik ürünlerinin listesini döndürür
-List<StoreProduct>? get getSubsProducts => _subsProducts;
-
-/// Müşteri bilgilerini döndürür
-CustomerInfo? get customerInfo => _customerInfo;
-
-/// Müşteri bilgilerini ayarlar
-set customerInfo(CustomerInfo? customerInfo) => _customerInfo = customerInfo;
-
-/// InAppPurchaseService, uygulama içi satın alma işlemlerini yöneten servis sınıfıdır.
-/// RevenueCat kütüphanesi kullanılarak abonelik ve tek seferlik satın alma işlemleri gerçekleştirilir.
+/// Uygulama içi satın alma işlemlerini (RevenueCat) yöneten servis.
 class InAppPurchaseService {
-  factory InAppPurchaseService() {
-    return _singleton;
-  }
-
+  factory InAppPurchaseService() => _singleton;
   InAppPurchaseService._internal();
-  // Singleton pattern uygulaması - yalnızca tek bir nesne üzerinden işlem yapılır
   static final InAppPurchaseService _singleton =
       InAppPurchaseService._internal();
 
-  /// RevenueCat platformunu başlatır ve yapılandırır
-  ///
-  /// Platform türüne göre (Android, iOS) uygun API anahtarını kullanarak
-  /// RevenueCat'i yapılandırır ve müşteri bilgilerini dinlemeye başlar.
+  CustomerInfo? _customerInfo;
+  bool _configured = false;
+
+  /// RevenueCat kimlik/müşteri bilgisi çağrılarını sıraya koyar: giriş
+  /// sırasında `logIn` ile eşzamanlı bir `getCustomerInfo` anonim kullanıcının
+  /// bilgisini sonradan yazıp premium durumunu ezmesin.
+  Future<void> _queue = Future<void>.value();
+
+  Future<T> _serial<T>(Future<T> Function() op) {
+    final result = _queue.then((_) => op());
+    _queue = result.then<void>((_) {}, onError: (_) {});
+    return result;
+  }
+
+  /// Premium durumunu dinlemek isteyen ekranlar için.
+  final ValueNotifier<bool> premiumNotifier = ValueNotifier<bool>(false);
+
+  CustomerInfo? get customerInfo => _customerInfo;
+
+  void _setCustomerInfo(CustomerInfo? info) {
+    _customerInfo = info;
+    premiumNotifier.value = _hasPremium(info);
+  }
+
+  static bool _hasPremium(CustomerInfo? info) =>
+      info?.entitlements.active.containsKey(premiumEntitlementId) ?? false;
+
+  /// RevenueCat'i platforma uygun anahtarla yapılandırır ve müşteri
+  /// bilgisi değişikliklerini dinlemeye başlar.
   Future<void> initPlatformState() async {
-    try {
-      PurchasesConfiguration configuration;
-
-      if (Platform.isAndroid) {
-        configuration = PurchasesConfiguration(
-          "goog_XNLNOWirMulrzrbickLvpMvDgta",
-        );
-      } else if (Platform.isIOS) {
-        configuration = PurchasesConfiguration(
-          "appl_jppIgRAPMvmyaXVorOLxBifTKyG",
-        );
-      } else {
-        configuration = PurchasesConfiguration("");
-        debugPrint("Not supported platform");
-      }
-      await Purchases.configure(configuration);
-
-      await Purchases.setLogLevel(LogLevel.debug);
-
-      Purchases.addCustomerInfoUpdateListener((info) async {
-        customerInfo = await Purchases.getCustomerInfo();
-        EntitlementInfo? entitlement =
-            customerInfo?.entitlements.all["premium"];
-        entitlementIsActive = entitlement?.isActive ?? false;
-
-        appUserID = await Purchases.appUserID;
-        print("App User: $appUserID");
-      });
-    } catch (e) {
-      customSnackBar.error("İnitiliaze Error. ${e.toString()}");
-    }
-  }
-
-  /// Önceki satın alımları geri yükler
-  ///
-  /// Kullanıcının önceki satın alımlarını RevenueCat üzerinden geri yükler.
-  /// Hata durumunda uygun hata mesajını gösterir.
-  Future<void> restorePurchases() async {
-    try {
-      final CustomerInfo customerInfo = await Purchases.restorePurchases();
-
-      final entitlements = customerInfo.entitlements.active;
-
-      if (entitlements.containsKey('premium')) {
-        // Kullanıcının Premium hakkı zaten vardı, sadece geri yükledik
-        customSnackBar.success("Aboneliğiniz geri yüklendi.");
-      } else {
-        // Kullanıcının geçerli bir aboneliği yok
-        customSnackBar.warning("Aktif abonelik bulunamadı.");
-      }
-    } on PlatformException catch (_) {
-      customSnackBar.error("Restore işlemi başarısız oldu.");
-    }
-  }
-
-  /// Abonelik ürünlerini yükler
-  ///
-  /// RevenueCat üzerinden abonelik ürünlerini yükler ve _subsProducts değişkenine atar.
-  /// Hata durumunda konsola hata mesajı yazdırır.
-  Future<List<StoreProduct>> loadSubs() async {
-    try {
-      List<StoreProduct> items = await Purchases.getProducts(
-        productCategory: ProductCategory.subscription,
-        [
-          'mama_monthly',
-          'mama_yearly',
-          'mama_apple_monthly',
-          'mama_apple_yearly',
-        ],
-      );
-
-      return items;
-    } on PlatformException catch (e) {
-      debugPrint("Error loading offerings info: $e");
-      return [];
-    }
-  }
-
-  /// Müşteri bilgilerini yükler
-  ///
-  /// RevenueCat üzerinden müşteri bilgilerini yükler ve _customerInfo değişkenine atar.
-  /// Hata durumunda konsola hata mesajı yazdırır.
-  Future<void> loadCustomerInfo() async {
-    try {
-      _customerInfo = await Purchases.getCustomerInfo();
-    } on PlatformException catch (e) {
-      debugPrint("Error loading purchaser info: $e");
-    }
-  }
-
-  /// Abonelik için giriş yapar
-  ///
-  /// Kullanıcının UID'sini kullanarak RevenueCat üzerinde giriş yapar.
-  /// Web platformunda çalışmaz.
-  Future<void> loginSubscription() async {
-    if (kIsWeb) {
+    final String apiKey;
+    if (PlatformInfo.isAndroid) {
+      apiKey = "goog_XNLNOWirMulrzrbickLvpMvDgta";
+    } else if (PlatformInfo.isIOS) {
+      apiKey = "appl_jppIgRAPMvmyaXVorOLxBifTKyG";
+    } else {
+      debugPrint("RevenueCat: platform not supported");
       return;
     }
     try {
-      final String uid = authenticationService.getUser()?.uid ?? '';
-      if (uid.isNotEmpty) {
-        LogInResult logInResult = await Purchases.logIn(uid);
-        customerInfo = logInResult.customerInfo;
-      }
-    } on Exception catch (e) {
-      debugPrint("Unable to logIn or logOut user in RevenueCat: $e");
+      await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.warn);
+      await Purchases.configure(PurchasesConfiguration(apiKey));
+      _configured = true;
+      Purchases.addCustomerInfoUpdateListener(_setCustomerInfo);
+    } catch (e, st) {
+      // Bu noktada henüz ScaffoldMessenger yok; snackbar gösterilemez.
+      debugPrint("RevenueCat configure failed: $e\n$st");
     }
   }
 
-  /// Abonelik ürünü satın alır
-  ///
-  /// [storeProduct] - Satın alınacak ürün
-  /// [context] - BuildContext
-  ///
-  /// RevenueCat üzerinden abonelik ürünü satın alır.
-  /// Başarılı satın alma durumunda kullanıcıyı bilgilendirir ve modalı kapatır.
-  /// Hata durumunda uygun hata mesajını gösterir.
-  Future<void> purchaseSubsItem(
-    StoreProduct storeProduct,
-    BuildContext context,
-  ) async {
+  /// Önceki satın alımları geri yükler. Geri yükleme sonrası premium
+  /// aktifse true döner; kullanıcıya sonucu snackbar ile bildirir.
+  Future<bool> restorePurchases() async {
+    if (!_configured) return false;
     try {
-      var purchaseProduct = await Purchases.purchase(
-        PurchaseParams.storeProduct(storeProduct),
-      );
-      customerInfo = purchaseProduct.customerInfo;
-      if (customerInfo!.activeSubscriptions.isNotEmpty) {
-        customSnackBar.success("Purchase success");
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      // Kullanıcı iptal etmiş olabilir vs.
-      debugPrint("Purchase error: $e");
-      customSnackBar.error("Purchase failed");
-    }
-  }
-
-  /// Kullanıcının aktif aboneliği olup olmadığını kontrol eder
-  ///
-  /// Kullanıcının aktif abonelikleri varsa true, yoksa false döndürür.
-  bool checkUserHaveProduct() {
-    if (customerInfo != null) {
-      final entitlement = customerInfo!.entitlements.all["premium"];
-      if (entitlement != null && entitlement.isActive) {
-        // Trial mı kontrol et
-        return entitlement.periodType == PeriodType.trial;
-      }
-      if (customerInfo!.activeSubscriptions.isNotEmpty) {
+      final info = await Purchases.restorePurchases();
+      _setCustomerInfo(info);
+      if (_hasPremium(info)) {
+        customSnackBar.success("Your subscription has been restored.");
         return true;
       }
+      customSnackBar.warning("No active subscription found.");
+      return false;
+    } on PlatformException catch (e) {
+      debugPrint("Restore failed: $e");
+      customSnackBar.error("Restore failed. Please try again.");
+      return false;
     }
-
-    return false;
   }
 
-  Future<bool> isTrial() async {
-    int? trialCount = infoStorage.read("trialCount");
-
-    // demek ki ücretsiz deniyor uygulamayı
-    if (trialCount != null && trialCount < 4) {
-      await infoStorage.write("trialCount", trialCount + 1);
-      return true;
-    }
-    return false;
+  /// Oturum açmış kullanıcıyı RevenueCat'e uid ile tanıtır.
+  Future<void> loginSubscription() async {
+    if (!_configured) return;
+    final String uid = authenticationService.getUser()?.uid ?? '';
+    if (uid.isEmpty) return;
+    await _serial(() async {
+      try {
+        final LogInResult result = await Purchases.logIn(uid);
+        _setCustomerInfo(result.customerInfo);
+      } catch (e) {
+        debugPrint("RevenueCat logIn failed: $e");
+      }
+    });
   }
 
-  ///
-  /// RevenueCat üzerinde çıkış yapar ve müşteri bilgilerini günceller.
+  /// RevenueCat oturumunu kapatır. Anonim kullanıcıda `logOut` hata verdiği
+  /// için önce kontrol edilir; bir sonraki kullanıcı önceki kullanıcının
+  /// RevenueCat kimliğini devralmasın.
   Future<void> logoutSubs() async {
-    try {
-      if (customerInfo != null &&
-          customerInfo!.activeSubscriptions.isNotEmpty) {
-        customerInfo = await Purchases.logOut();
+    if (!_configured) return;
+    await _serial(() async {
+      try {
+        if (!await Purchases.isAnonymous) {
+          _setCustomerInfo(await Purchases.logOut());
+        } else {
+          _setCustomerInfo(null);
+        }
+      } catch (e) {
+        debugPrint("RevenueCat logOut failed: $e");
+        _setCustomerInfo(null);
       }
-    } catch (e) {
-      customSnackBar.warning(e.toString());
-    }
+    });
   }
 
-  // InAppPurchaseService sınıfınıza bu metodları ekleyin:
+  /// Önbellekteki müşteri bilgisine göre premium (deneme dahil) aktif mi.
+  bool checkUserHaveProduct() => _hasPremium(_customerInfo);
 
-  /// Offerings'leri yükler
-  ///
-  /// RevenueCat üzerinden offerings'leri yükler.
-  /// Hata durumunda boş liste döndürür.
-  Future<Offering?> loadOfferings() async {
-    try {
-      Offerings offerings = await Purchases.getOfferings();
-
-      if (offerings.current != null) {
-        // Current offering'deki tüm paketleri döndür
-        return offerings.current;
+  /// RevenueCat'ten güncel müşteri bilgisini alarak premium durumunu döner.
+  /// SDK bilgiyi önbellekten verdiği için hızlıdır.
+  Future<bool> isPremium() async {
+    if (!_configured) return false;
+    return _serial(() async {
+      try {
+        _setCustomerInfo(await Purchases.getCustomerInfo());
+      } catch (e) {
+        debugPrint("RevenueCat getCustomerInfo failed: $e");
       }
+      return checkUserHaveProduct();
+    });
+  }
 
-      return null;
+  /// Geçerli offering'i yükler; yoksa veya hata olursa null döner.
+  Future<Offering?> loadOfferings() async {
+    if (!_configured) return null;
+    try {
+      final Offerings offerings = await Purchases.getOfferings();
+      return offerings.current;
     } on PlatformException catch (e) {
       debugPrint("Error loading offerings: $e");
       return null;
     }
   }
 
-  /// Belirli bir offering'i yükler
-  ///
-  /// [offeringIdentifier] - Yüklenecek offering'in identifier'ı
-  /// Belirli bir offering'deki paketleri döndürür.
-  Future<List<Package>> loadSpecificOffering(String offeringIdentifier) async {
-    try {
-      Offerings offerings = await Purchases.getOfferings();
-
-      final offering = offerings.all[offeringIdentifier];
-      if (offering != null) {
-        return offering.availablePackages;
-      }
-
-      return [];
-    } on PlatformException catch (e) {
-      debugPrint("Error loading specific offering: $e");
-      return [];
-    }
-  }
-
-  /// Package satın alır
-  ///
-  /// [package] - Satın alınacak paket
-  /// [context] - BuildContext
-  ///
-  /// RevenueCat üzerinden package satın alır.
-  /// Package'ler trial bilgilerini içerir.
+  /// Paketi satın alır; premium aktif olduysa true döner. Kullanıcı iptal
+  /// ederse hata gösterilmeden false döner.
   Future<bool> purchasePackage(Package package) async {
-    bool isPurchaseSuccess = false;
     try {
-      var purchaseResult = await Purchases.purchase(
-        PurchaseParams.package(package),
+      final result = await Purchases.purchase(PurchaseParams.package(package));
+      _setCustomerInfo(result.customerInfo);
+
+      if (!checkUserHaveProduct()) return false;
+
+      await analyticService.purchaseSuccess(
+        package.identifier,
+        package.storeProduct.price,
       );
-
-      customerInfo = purchaseResult.customerInfo;
-
-      EntitlementInfo? entitlement = customerInfo?.entitlements.all["premium"];
-      entitlementIsActive = entitlement?.isActive ?? false;
-
-      if (customerInfo!.activeSubscriptions.isNotEmpty) {
-        await analyticService.purchaseSuccess(
-          package.identifier,
-          package.storeProduct.price,
-        );
-        // Pakette ücretsiz deneme varsa trial dönüşümünü ayrıca işaretle.
-        final trialDays = getTrialDays(package);
-        if (trialDays != null && trialDays != "0") {
-          await analyticService.trialStarted(package.identifier);
-        }
-        customSnackBar.success("Purchase success");
-        isPurchaseSuccess = true;
+      final trialDays = getTrialDays(package);
+      if (trialDays != null && trialDays != "0") {
+        await analyticService.trialStarted(package.identifier);
       }
-    } catch (e) {
-      await analyticService.purchaseFailed(e.toString());
-      isPurchaseSuccess = false;
+      customSnackBar.success("Purchase successful");
+      return true;
+    } on PlatformException catch (e) {
+      final code = PurchasesErrorHelper.getErrorCode(e);
+      if (code == PurchasesErrorCode.purchaseCancelledError) {
+        await analyticService.purchaseCancelled();
+        return false;
+      }
+      await analyticService.purchaseFailed(code.name);
       debugPrint("Purchase error: $e");
-      customSnackBar.error("Purchase failed");
+      customSnackBar.error("Purchase failed. Please try again.");
+      return false;
+    } catch (e) {
+      await analyticService.purchaseFailed(e.runtimeType.toString());
+      debugPrint("Purchase error: $e");
+      customSnackBar.error("Purchase failed. Please try again.");
+      return false;
     }
-    return isPurchaseSuccess;
   }
 
-  /// Package'in trial bilgilerini alır
-  ///
-  /// [package] - İncelenecek paket
-  /// Trial gün sayısını string olarak döndürür, yoksa null.
+  /// Paketteki ücretsiz deneme süresini gün olarak döner, yoksa null.
   String? getTrialDays(Package package) {
     final product = package.storeProduct;
 
@@ -317,63 +196,46 @@ class InAppPurchaseService {
       ...?product.subscriptionOptions,
     ];
 
-    if (options.isEmpty) return null;
+    // iOS: deneme bilgisi introductoryPrice'ta gelir.
+    final intro = product.introductoryPrice;
+    if (options.isEmpty) {
+      if (intro == null || intro.price != 0) return null;
+      return _periodToDays(intro.periodUnit, intro.periodNumberOfUnits);
+    }
 
-    PricingPhase? trialPhase;
-
-    // Tüm option’larda 0 fiyatlı phase ara (trial/intro olabilir)
     for (final opt in options) {
       for (final ph in opt.pricingPhases) {
-        if (ph.price.amountMicros == 0) {
-          trialPhase = ph;
-          break;
+        if (ph.price.amountMicros == 0 && ph.billingPeriod != null) {
+          return _periodToDays(
+            ph.billingPeriod!.unit,
+            ph.billingPeriod!.value,
+          );
         }
       }
-      if (trialPhase != null) break;
     }
-
-    if (trialPhase == null) return null;
-
-    final per = trialPhase.billingPeriod;
-    if (per == null) return null;
-
-    final unit = per.unit;
-    final count = per.value;
-
-    switch (unit) {
-      case PeriodUnit.day:
-        return '$count';
-      case PeriodUnit.week:
-        return '${count * 7}';
-      case PeriodUnit.month:
-        return '${count * 30}';
-      case PeriodUnit.year:
-        return '${count * 365}';
-      default:
-        return null;
-    }
+    return null;
   }
 
-  /// Package'in tipini belirler (monthly, yearly)
+  static String? _periodToDays(PeriodUnit unit, int count) => switch (unit) {
+    PeriodUnit.day => '$count',
+    PeriodUnit.week => '${count * 7}',
+    PeriodUnit.month => '${count * 30}',
+    PeriodUnit.year => '${count * 365}',
+    _ => null,
+  };
+
+  /// Paketin tipini belirler (monthly, yearly).
   String getPackageType(Package package) {
-    // Package type'ına göre
     switch (package.packageType) {
       case PackageType.monthly:
         return 'monthly';
       case PackageType.annual:
         return 'yearly';
-
       default:
-        // Identifier'dan çıkarmaya çalış
         final id = package.identifier.toLowerCase();
         if (id.contains('month')) return 'monthly';
         if (id.contains('year') || id.contains('annual')) return 'yearly';
         return 'unknown';
     }
-  }
-
-  Future<bool> isPremium() async {
-    bool isUserPremium = checkUserHaveProduct() || await isTrial();
-    return isUserPremium;
   }
 }

@@ -1,20 +1,18 @@
 import 'dart:convert';
-import 'package:mama_meow/service/gpt_service/openai_proxy_service.dart';
-import 'package:mama_meow/constants/app_constants.dart';
+
+import 'package:mama_meow/models/activities/nursing_model.dart';
+import 'package:mama_meow/models/ai_models/ai_report_insight.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_computed.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_page.dart';
+import 'package:mama_meow/service/gpt_service/common/ai_common.dart';
+import 'package:mama_meow/utils/date_range.dart';
 
-
-
+/// Emzirme raporu AI cevabı (ortak model).
+typedef NursingAiInsight = AiReportInsight;
+typedef NursingAiSource = AiSource;
 
 class NursingAIService {
-  final String? _babyName = currentMeowUser?.babyName;
-  final String? _babyAgeKey = currentMeowUser?.ageRange;
-
-  // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
-
-  static final String _systemPrompt = r'''
-You are "Coo Care Baby Tracker" 🐱, a pediatric nutritionist & lactation expert.
+  static const String _systemPrompt = '''
+You are "Coo Care Baby Tracker", a pediatric nutritionist & lactation expert.
 
 GOAL
 - You will receive ONE REDUCED, PRE-COMPUTED JSON summary of feeding logs (nursing + bottle) for the selected interval.
@@ -23,6 +21,7 @@ GOAL
 IMPORTANT (NO MATH)
 - Do NOT recalculate totals, averages, or percentages.
 - Treat the numbers as ground truth. Focus on interpretation.
+- Fields that are missing were not measured; do not assume they are zero.
 
 STYLE
 - Output Language: Use the provided "userLanguage" if present (e.g., "en", "tr-TR"). If missing, use English.
@@ -40,186 +39,42 @@ SAFETY
   mention gently and suggest contacting a lactation consultant or pediatrician if concerned.
 - Always include: "Not medical advice."
 
-OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
-{
-  "ai_title": "string",
-  "ai_summary_bullets": ["bullet 1","bullet 2","bullet 3","bullet 4"],
-  "patterns": ["pattern 1","pattern 2","pattern 3"],
-  "watch_outs": ["watch out 1","watch out 2"],
-  "action_plan": ["action 1","action 2","action 3","action 4"],
-  "confidence_note": "string",
-  "disclaimer": "string (include Not medical advice...)",
-  "echo": {
-    "period": "Daily|Weekly|Monthly",
-    "totalVolumeMl": 0,
-    "breastMilkMl": 0,
-    "formulaMl": 0,
-    "nursingCount": 0,
-    "bottleCount": 0,
-    "nursingPct": "0%",
-    "bottlePct": "0%",
-    "avgNursingDurationMins": 0,
-    "avgBottleAmountMl": 0,
-    "leftTotalMins": 0,
-    "rightTotalMins": 0,
-    "dominantSide": "Left|Right|Balanced",
-    "avgIntervalHours": 0,
-    "mostActiveHours": "string"
-  },
-  "sources": [{"title":"string","publisher":"string","url":"https://...","year":2023}],
-  "last_updated": "YYYY-MM-DD"
-}
-''';
+$kAiReportOutputFormat''';
 
-  String _buildPersonalization() {
-    if (_babyName == null && _babyAgeKey == null) return '';
-
-    final ageMap = <String, String>{
-      'newborn': '0–3 months old',
-      'infant': '3–12 months old',
-      'toddler': '1–3 years old',
-      'preschool': '3–5 years old',
-      'school': '5+ years old',
-      'expecting': 'expecting (not born yet)',
-    };
-
-    final ageText = _babyAgeKey != null
-        ? (ageMap[_babyAgeKey] ?? _babyAgeKey)
-        : null;
-
-    if (_babyName != null && ageText != null) {
-      return "\n\nPERSONALIZATION: Baby name is $_babyName and age range is $ageText. Use the baby's name gently if helpful.";
-    } else if (_babyName != null) {
-      return "\n\nPERSONALIZATION: Baby name is $_babyName. Use the baby's name gently if helpful.";
-    } else if (ageText != null) {
-      return "\n\nPERSONALIZATION: Baby age range is $ageText. Tailor suggestions gently to age.";
-    }
-    return '';
-  }
-
+  /// [nursings] verilirse (veya [c] `fromNursings` ile kurulduysa) taraf
+  /// dakikaları, süt türüne göre hacim ve beslenme aralığı kayıtlardan kesin
+  /// hesaplanır; aksi halde bu alanlar payload'a hiç konmaz.
   Future<NursingAiInsight?> analyze({
-    required NursingReportMode mode,
+    required ReportPeriod mode,
     required String rangeLabel,
     required NursingReportComputed c,
+    List<NursingModel>? nursings,
     String userLanguage = "en",
     List<String> notes = const [],
-    int maxTokens = 650,
+    int maxTokens = kMaxAiTokens,
     double temperature = 0.4,
-  }) async {
-    try {
-      final systemPrompt = '$_systemPrompt${_buildPersonalization()}';
-
+  }) {
+    return requestAiReport(
+      tag: 'nursingReport',
+      systemPrompt: '$_systemPrompt${babyPersonalization()}',
       // ✅ Reduced payload from computed (NO raw list)
-      final payload = NursingAiCompute.buildPayload(
-        period: _modeText(mode),
-        rangeLabel: rangeLabel,
-        c: c,
-        userLanguage: userLanguage,
-        notes: notes,
-        babyName: _babyName,
-      );
-
-      final userJson = jsonEncode(payload.toMap());
-
-      final raw = await openAiProxyService.chat(
-        messages: [
-          {"role": "system", "content": systemPrompt},
-          {"role": "user", "content": userJson},
-        ],
-        model: askMiaModel,
-        maxTokens: maxTokens,
-        temperature: temperature,
-      );
-      if (raw.trim().isEmpty) return null;
-
-      final cleaned = _stripJsonFences(raw);
-      final map = jsonDecode(cleaned) as Map<String, dynamic>;
-      return NursingAiInsight.fromMap(map);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String _modeText(NursingReportMode mode) => switch (mode) {
-    NursingReportMode.today => "Daily",
-    NursingReportMode.week => "Weekly",
-    NursingReportMode.month => "Monthly",
-  };
-
-  String _stripJsonFences(String s) {
-    var t = s.trim();
-    if (t.startsWith('```')) {
-      t = t.replaceAll(RegExp(r'^```[a-zA-Z]*\s*'), '');
-      t = t.replaceAll(RegExp(r'\s*```$'), '');
-    }
-    return t.trim();
-  }
-}
-
-class NursingAiInsight {
-  final String aiTitle;
-  final List<String> aiSummaryBullets;
-  final List<String> patterns;
-  final List<String> watchOuts;
-  final List<String> actionPlan;
-  final String confidenceNote;
-  final String disclaimer;
-  final List<NursingAiSource> sources;
-  final String lastUpdated;
-
-  NursingAiInsight({
-    required this.aiTitle,
-    required this.aiSummaryBullets,
-    required this.patterns,
-    required this.watchOuts,
-    required this.actionPlan,
-    required this.confidenceNote,
-    required this.disclaimer,
-    required this.sources,
-    required this.lastUpdated,
-  });
-
-  factory NursingAiInsight.fromMap(Map<String, dynamic> m) {
-    List<String> ls(String k) =>
-        (m[k] is List) ? (m[k] as List).map((e) => "$e").toList() : [];
-
-    final src = (m['sources'] is List) ? (m['sources'] as List) : const [];
-    return NursingAiInsight(
-      aiTitle: "${m['ai_title'] ?? ''}",
-      aiSummaryBullets: ls('ai_summary_bullets'),
-      patterns: ls('patterns'),
-      watchOuts: ls('watch_outs'),
-      actionPlan: ls('action_plan'),
-      confidenceNote: "${m['confidence_note'] ?? ''}",
-      disclaimer: "${m['disclaimer'] ?? ''}",
-      lastUpdated: "${m['last_updated'] ?? ''}",
-      sources: src
-          .whereType<Map>()
-          .map((e) => NursingAiSource.fromMap(e.cast<String, dynamic>()))
-          .toList(),
-    );
-  }
-}
-
-class NursingAiSource {
-  final String title;
-  final String publisher;
-  final String url;
-  final int? year;
-
-  NursingAiSource({
-    required this.title,
-    required this.publisher,
-    required this.url,
-    required this.year,
-  });
-
-  factory NursingAiSource.fromMap(Map<String, dynamic> m) {
-    return NursingAiSource(
-      title: "${m['title'] ?? ''}",
-      publisher: "${m['publisher'] ?? ''}",
-      url: "${m['url'] ?? ''}",
-      year: m['year'] is num ? (m['year'] as num).toInt() : null,
+      buildUserContent: () => jsonEncode(
+        NursingAiCompute.buildPayload(
+          period: reportPeriodLabel(mode),
+          rangeLabel: rangeLabel,
+          c: c,
+          exact:
+              c.exact ??
+              (nursings == null
+                  ? null
+                  : NursingExactStats.fromNursings(nursings)),
+          userLanguage: userLanguage,
+          notes: notes,
+          babyName: currentBabyName,
+        ).toMap(),
+      ),
+      maxTokens: maxTokens,
+      temperature: temperature,
     );
   }
 }
@@ -230,37 +85,39 @@ class NursingAiPayload {
   final String userLanguage;
   final String? babyName;
 
-  // volumes in ml (normalized)
+  final int sessionCount;
+
+  /// Toplam hacim (ml; oz kayıtlar dönüştürülmüş).
   final int totalVolumeMl;
-  final int breastMilkMl;
-  final int formulaMl;
+
+  /// Süt türüne göre hacim (ml); kayıtlar yoksa null (ölçülmedi).
+  final int? breastMilkMl;
+  final int? formulaMl;
+  final int? otherMilkMl;
 
   // method split counts
   final int nursingCount;
   final int bottleCount;
-
-  // percentages as strings (no AI math)
   final String nursingPct;
   final String bottlePct;
 
-  // milk variety pct (if volumes unknown, we still give count-based pct as fallback)
+  // milk variety pct (hacim yoksa sayı bazlı)
   final String breastMilkPct;
   final String formulaPct;
+  final String milkPctBasis; // "volume" | "count"
 
-  // durations
-  final int
-  avgNursingDurationMins; // we only have c.avgDuration, so we use that
+  /// Emzirme süresi ortalaması (dakika).
+  final int avgNursingDurationMins;
 
-  // side balance (computed has only counts -> we estimate minutes)
+  // side balance
   final int leftCount;
   final int rightCount;
-  final int leftEstimatedMins;
-  final int rightEstimatedMins;
-  final bool sideMinutesAreEstimated;
+  final int? leftMins; // kayıtlardan kesin; yoksa null
+  final int? rightMins;
   final String dominantSide; // Left/Right/Balanced/Not enough data
 
   // routine
-  final double avgIntervalHours; // not available => 0.0
+  final double? avgIntervalHours; // hesaplanamazsa null
   final String mostActiveHours;
 
   final List<String> notes;
@@ -270,21 +127,23 @@ class NursingAiPayload {
     required this.rangeLabel,
     required this.userLanguage,
     required this.babyName,
+    required this.sessionCount,
     required this.totalVolumeMl,
     required this.breastMilkMl,
     required this.formulaMl,
+    required this.otherMilkMl,
     required this.nursingCount,
     required this.bottleCount,
     required this.nursingPct,
     required this.bottlePct,
     required this.breastMilkPct,
     required this.formulaPct,
+    required this.milkPctBasis,
     required this.avgNursingDurationMins,
     required this.leftCount,
     required this.rightCount,
-    required this.leftEstimatedMins,
-    required this.rightEstimatedMins,
-    required this.sideMinutesAreEstimated,
+    required this.leftMins,
+    required this.rightMins,
     required this.dominantSide,
     required this.avgIntervalHours,
     required this.mostActiveHours,
@@ -297,6 +156,7 @@ class NursingAiPayload {
     "userLanguage": userLanguage,
     "babyName": babyName,
     "stats": {
+      "sessions": sessionCount,
       "totalVolume": totalVolumeMl,
       "unit": "ml",
       "methods": {
@@ -306,24 +166,25 @@ class NursingAiPayload {
         "bottle_pct": bottlePct,
       },
       "milkVarieties": {
-        "breast_milk_ml": breastMilkMl,
-        "formula_ml": formulaMl,
+        "breast_milk_ml": ?breastMilkMl,
+        "formula_ml": ?formulaMl,
+        "other_milk_ml": ?otherMilkMl,
         "breast_milk_pct": breastMilkPct,
         "formula_pct": formulaPct,
+        "pct_basis": milkPctBasis,
       },
       "avgNursingDurationMins": avgNursingDurationMins,
       "sideBalance": {
         "left_count": leftCount,
         "right_count": rightCount,
-        "left_estimated_mins": leftEstimatedMins,
-        "right_estimated_mins": rightEstimatedMins,
-        "minutes_estimated": sideMinutesAreEstimated,
+        "left_mins": ?leftMins,
+        "right_mins": ?rightMins,
         "dominant_side": dominantSide,
       },
     },
     "patterns": {
       "mostActiveHours": mostActiveHours,
-      "avgIntervalHours": avgIntervalHours,
+      "avgIntervalHours": ?avgIntervalHours,
     },
     "notes": notes,
   };
@@ -337,77 +198,56 @@ class NursingAiCompute {
     required String userLanguage,
     required List<String> notes,
     required String? babyName,
+    NursingExactStats? exact,
   }) {
-    // -----------------------
     // 1) Method split: nursing vs bottle (counts)
-    // -----------------------
     final nursingCount = _pickCount(c.feedingTypeCounts, const [
       "nursing",
       "breast",
     ]);
     final bottleCount = _pickCount(c.feedingTypeCounts, const ["bottle"]);
-
     final totalMethod = nursingCount + bottleCount;
-    final nursingPct = _pctStr(nursingCount, totalMethod);
-    final bottlePct = _pctStr(bottleCount, totalMethod);
 
-    // -----------------------
-    // 2) Amounts: normalize to ml from amountTypeTotals (Map<String,double>)
-    //    We try to extract breast milk vs formula volumes if keys contain hints.
-    // -----------------------
-    final amount = _parseAmountsToMl(c.amountTypeTotals);
+    // 2) Volumes. amountTypeTotals anahtarları birimdir ("ml"/"oz"), süt
+    //    türü değil → tür ayrımı yalnızca kayıt bazlı [exact] ile yapılır.
+    final totalVolumeMl = exact != null
+        ? exact.totalVolumeMl.round()
+        : _unitTotalsToMl(c.amountTypeTotals).round();
+    final breastMl = exact?.breastMilkMl.round();
+    final formulaMl = exact?.formulaMl.round();
+    final otherMl = exact?.otherMilkMl.round();
 
-    final totalVolumeMl = amount.totalMl.round();
-    final breastMilkMl = amount.breastMilkMl.round();
-    final formulaMl = amount.formulaMl.round();
-
-    // milk pct:
-    // - if we have volume split => use it
-    // - else fallback to count-based milkTypeCounts
-    String breastMilkPct;
-    String formulaPct;
-
-    final totalMilkVol = breastMilkMl + formulaMl;
-    if (totalMilkVol > 0) {
-      breastMilkPct = _pctStr(breastMilkMl, totalMilkVol);
-      formulaPct = _pctStr(formulaMl, totalMilkVol);
+    // milk pct: hacim varsa hacimden, yoksa sayılardan
+    final volumeSplit = (breastMl ?? 0) + (formulaMl ?? 0) + (otherMl ?? 0);
+    final String breastMilkPct;
+    final String formulaPct;
+    final String pctBasis;
+    if (volumeSplit > 0) {
+      breastMilkPct = _pctStr(breastMl ?? 0, volumeSplit);
+      formulaPct = _pctStr(formulaMl ?? 0, volumeSplit);
+      pctBasis = "volume";
     } else {
       final bmCount = _pickCount(c.milkTypeCounts, const ["breast"]);
       final fCount = _pickCount(c.milkTypeCounts, const ["formula"]);
-      final total = bmCount + fCount;
-      breastMilkPct = total == 0 ? "0%" : _pctStr(bmCount, total);
-      formulaPct = total == 0 ? "0%" : _pctStr(fCount, total);
+      final total = c.milkTypeCounts.values.fold<int>(0, (a, b) => a + b);
+      breastMilkPct = _pctStr(bmCount, total);
+      formulaPct = _pctStr(fCount, total);
+      pctBasis = "count";
     }
 
-    // -----------------------
-    // 3) avg nursing duration
-    // -----------------------
-    final avgNursingDurationMins = c.avgDuration;
+    // 3) Duration: yalnızca süreli emzirme oturumları
+    final avgNursingDurationMins =
+        exact?.avgNursingDurationMins ?? c.avgDuration;
 
-    // -----------------------
-    // 4) Side balance
-    // Computed only has sideCounts (count). We estimate minutes with avgDuration.
-    // -----------------------
-    final leftCount = _pickCount(c.sideCounts, const ["left", "l"]);
-    final rightCount = _pickCount(c.sideCounts, const ["right", "r"]);
+    // 4) Side balance: kayıt bazlı kesin dakikalar (yoksa sayılar)
+    final leftCount = _sideCount(c.sideCounts, "left");
+    final rightCount = _sideCount(c.sideCounts, "right");
+    final dominantSide = exact != null
+        ? _dominantSide(exact.leftMinutes, exact.rightMinutes, tolerance: 10)
+        : _dominantSide(leftCount, rightCount, tolerance: 1);
 
-    final leftEstimatedMins = leftCount * avgNursingDurationMins;
-    final rightEstimatedMins = rightCount * avgNursingDurationMins;
-
-    final dominantSide = _dominantSide(leftEstimatedMins, rightEstimatedMins);
-
-    // -----------------------
-    // 5) Routine
-    // avgIntervalHours not available in computed => 0.0
-    // mostActiveHours from distHourCount
-    // -----------------------
-    final mostActiveHours = _best4HourWindowFromCounts(c.distHourCount);
-
-    // add an auto-note if we had to estimate side minutes
     final finalNotes = <String>[
       ...notes,
-      if ((leftCount + rightCount) > 0)
-        "Note: Side minutes are estimated from side counts × average duration (proxy).",
       if (c.sessionCount < 2) "Not enough sessions for strong conclusions.",
     ];
 
@@ -416,24 +256,26 @@ class NursingAiCompute {
       rangeLabel: rangeLabel,
       userLanguage: userLanguage,
       babyName: babyName,
+      sessionCount: c.sessionCount,
       totalVolumeMl: totalVolumeMl,
-      breastMilkMl: breastMilkMl,
+      breastMilkMl: breastMl,
       formulaMl: formulaMl,
+      otherMilkMl: otherMl,
       nursingCount: nursingCount,
       bottleCount: bottleCount,
-      nursingPct: nursingPct,
-      bottlePct: bottlePct,
+      nursingPct: _pctStr(nursingCount, totalMethod),
+      bottlePct: _pctStr(bottleCount, totalMethod),
       breastMilkPct: breastMilkPct,
       formulaPct: formulaPct,
+      milkPctBasis: pctBasis,
       avgNursingDurationMins: avgNursingDurationMins,
       leftCount: leftCount,
       rightCount: rightCount,
-      leftEstimatedMins: leftEstimatedMins,
-      rightEstimatedMins: rightEstimatedMins,
-      sideMinutesAreEstimated: true,
+      leftMins: exact?.leftMinutes,
+      rightMins: exact?.rightMinutes,
       dominantSide: dominantSide,
-      avgIntervalHours: 0.0,
-      mostActiveHours: mostActiveHours,
+      avgIntervalHours: exact?.avgIntervalHours,
+      mostActiveHours: best4HourWindow(c.distHourCount),
       notes: finalNotes,
     );
   }
@@ -443,99 +285,40 @@ class NursingAiCompute {
   // -----------------------
 
   static int _pickCount(Map<String, int> m, List<String> keys) {
-    int sum = 0;
+    var sum = 0;
     for (final e in m.entries) {
       final k = e.key.toLowerCase().trim();
-      if (keys.any((x) => k.contains(x))) sum += e.value;
+      if (keys.any(k.contains)) sum += e.value;
+    }
+    return sum;
+  }
+
+  static int _sideCount(Map<String, int> m, String side) {
+    var sum = 0;
+    for (final e in m.entries) {
+      if (e.key.toLowerCase().trim() == side) sum += e.value;
     }
     return sum;
   }
 
   static String _pctStr(int part, int total) {
     if (total <= 0) return "0%";
-    final p = ((part / total) * 100).round();
-    return "$p%";
+    return "${((part / total) * 100).round()}%";
   }
 
-  static String _dominantSide(int leftMins, int rightMins) {
-    if (leftMins == 0 && rightMins == 0) return "Not enough data";
-    final diff = (leftMins - rightMins).abs();
-    if (diff <= 10) return "Balanced";
-    return leftMins > rightMins ? "Left" : "Right";
+  static String _dominantSide(int left, int right, {required int tolerance}) {
+    if (left == 0 && right == 0) return "Not enough data";
+    if ((left - right).abs() <= tolerance) return "Balanced";
+    return left > right ? "Left" : "Right";
   }
 
-  static String _best4HourWindowFromCounts(Map<String, int> distHourCount) {
-    int bestSum = -1;
-    int bestStart = 0;
-
-    for (int start = 0; start <= 20; start += 4) {
-      int sum = 0;
-      for (int h = start; h < start + 4; h++) {
-        final key = h.toString().padLeft(2, '0');
-        sum += distHourCount[key] ?? 0;
-      }
-      if (sum > bestSum) {
-        bestSum = sum;
-        bestStart = start;
-      }
-    }
-
-    final end = bestStart + 4;
-    final s = bestStart.toString().padLeft(2, '0');
-    final e = end.toString().padLeft(2, '0');
-    return "$s:00 - $e:00";
-  }
-
-  // ---- Amount parsing & normalization ----
-
-  static const double _ozToMl = 29.5735;
-
-  static _Amounts _parseAmountsToMl(Map<String, double> amountTypeTotals) {
-    double totalMl = 0;
-    double breastMilkMl = 0;
-    double formulaMl = 0;
-
+  /// Birim anahtarlı toplamları ("ml"/"oz") ml'ye çevirip toplar.
+  static double _unitTotalsToMl(Map<String, double> amountTypeTotals) {
+    var totalMl = 0.0;
     for (final e in amountTypeTotals.entries) {
-      final key = e.key.toLowerCase().trim();
-      final val = e.value;
-
-      // unit detection (best-effort)
-      final isOz = key.contains('oz');
-      final isMl = key.contains('ml') || !isOz; // default to ml if unknown
-
-      final ml = isOz ? (val * _ozToMl) : val;
-      totalMl += ml;
-
-      // type detection (best-effort)
-      final isBreast =
-          key.contains('breast') ||
-          key.contains('bm') ||
-          key.contains('breastmilk');
-      final isFormula = key.contains('formula') || key.contains('fm');
-
-      if (isBreast) breastMilkMl += ml;
-      if (isFormula) formulaMl += ml;
-
-      // If keys are only "ml"/"oz", we cannot split by type -> leave breast/formula as 0.
+      final isOz = e.key.toLowerCase().trim() == 'oz';
+      totalMl += isOz ? e.value * NursingModel.ozToMl : e.value;
     }
-
-    // If we couldn’t split but we still have totalMl, keep breast/formula as 0.
-    return _Amounts(
-      totalMl: totalMl,
-      breastMilkMl: breastMilkMl,
-      formulaMl: formulaMl,
-    );
+    return totalMl;
   }
-}
-
-class _Amounts {
-  final double totalMl;
-  final double breastMilkMl;
-  final double formulaMl;
-
-  _Amounts({
-    required this.totalMl,
-    required this.breastMilkMl,
-    required this.formulaMl,
-  });
 }

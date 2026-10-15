@@ -1,83 +1,77 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:mama_meow/models/activities/custom_solid_model.dart';
+import 'package:mama_meow/service/activities/activity_store.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 
-/// TercihService sınıfı, Firebase Realtime Database ile etkileşim için gerekli metodları içerir.
-/// Kullanıcı tercihleri, sınav bilgileri ve diğer verilerin yönetimini sağlar.
+/// Kullanıcının eklediği özel yiyecekler: `customSolids/<uid>/<epochMsKey>`
+/// (görseller Storage'da `customSolids/<uid>/<fileName>`).
 class AddCustomSolidService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseDatabase _realtimeDatabase = FirebaseDatabase.instance;
 
-  /// Yeni bir kullanıcıyı Firebase'e ekler.
-  /// @param user - Eklenecek kullanıcı modeli
-  Future<void> addCustomSolid(CustomSolidModel customSolid) async {
-    final user = authenticationService.getUser()!;
-    final String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
-    await _realtimeDatabase
-        .ref('customSolids')
-        .child(user.uid)
-        .child(createdAt)
-        .set(customSolid.toMap());
+  String _requireUid() {
+    final user = authenticationService.getUser();
+    if (user == null) {
+      throw StateError('Adding a custom food requires a signed-in user.');
+    }
+    return user.uid;
   }
 
+  /// Yeni özel yiyeceği kaydeder; giriş yoksa [StateError] fırlatır.
+  Future<void> addCustomSolid(CustomSolidModel customSolid) async {
+    final uid = _requireUid();
+    await ActivityRtdb.write(
+      _realtimeDatabase
+          .ref('customSolids')
+          .child(uid)
+          .child(ActivityRtdb.nextKey())
+          .set(customSolid.toMap()),
+      label: 'customSolids add',
+    );
+  }
+
+  /// Kullanıcının özel yiyecekleri; giriş yoksa boş liste.
   Future<List<CustomSolidModel>> getCustomSolids() async {
-    final List<CustomSolidModel> customSolids = [];
     final user = authenticationService.getUser();
+    if (user == null) return [];
 
-    if (user == null) {
-      return [];
-    }
-
-    final DatabaseReference ref = _realtimeDatabase
+    final snapshot = await _realtimeDatabase
         .ref('customSolids')
-        .child(user.uid);
+        .child(user.uid)
+        .get();
 
-    final DataSnapshot snapshot = await ref.get();
-
-    try {
-      if (snapshot.exists) {
-        final raw = snapshot.value;
-
-        if (raw is Map) {
-          for (final value in raw.values) {
-            if (value is Map) {
-              final map = Map<String, dynamic>.from(value);
-              final model = CustomSolidModel.fromMap(map);
-
-              customSolids.add(model);
-            }
-          }
-        } else if (raw is List) {
-          for (final item in raw) {
-            if (item is Map) {
-              final map = Map<String, dynamic>.from(item);
-              final model = CustomSolidModel.fromMap(map);
-
-              customSolids.add(model);
-            }
-          }
-        }
+    final customSolids = <CustomSolidModel>[];
+    for (final child in snapshot.children) {
+      final value = child.value;
+      if (value is! Map) continue;
+      try {
+        customSolids.add(
+          CustomSolidModel.fromMap(Map<String, dynamic>.from(value)),
+        );
+      } catch (e, st) {
+        ActivityRtdb.reportNonFatal(
+          e,
+          st,
+          reason: 'Skipped malformed customSolids record (${child.key})',
+        );
       }
-    } catch (e) {
-      print(e.toString());
     }
-
     return customSolids;
   }
 
+  /// Görseli Storage'a yükler ve indirme URL'sini döner; giriş yoksa
+  /// [StateError] fırlatır.
   Future<String> uploadFile({
     required File file,
     required String fileName,
     String? contentType,
   }) async {
+    final uid = _requireUid();
     try {
-      final user = authenticationService.getUser()!;
-      final ref = _storage.ref('customSolids/${user.uid}/$fileName');
+      final ref = _storage.ref('customSolids/$uid/$fileName');
       final metadata = SettableMetadata(contentType: contentType);
       final snapshot = await ref.putFile(file, metadata);
       return await snapshot.ref.getDownloadURL();

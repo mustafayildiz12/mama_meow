@@ -1,9 +1,10 @@
+import 'package:mama_meow/models/ai_models/lenient_json.dart';
 import 'package:mama_meow/models/ai_models/mia_answer_model.dart';
 
 class QuestionAnswerAiModel {
   final String question;
   final MiaAnswer miaAnswer;
-  final int createdAt; 
+  final int createdAt;
 
   QuestionAnswerAiModel({
     required this.question,
@@ -11,23 +12,18 @@ class QuestionAnswerAiModel {
     required this.createdAt,
   });
 
-  factory QuestionAnswerAiModel.fromJson(Map<String, dynamic> m) {
+  /// RTDB'den gelen `Map<Object?, Object?>` dahil her Map kabul edilir
+  /// (derin kopya gerekmez).
+  factory QuestionAnswerAiModel.fromJson(Map<dynamic, dynamic> raw) {
+    final m = jsonMap(raw) ?? const <String, dynamic>{};
     // createdAt değeri yoksa 0 döndür, backward compatibility
-    final createdAtValue = (m['createdAt'] is int)
-        ? m['createdAt'] as int
-        : int.tryParse('${m['createdAt']}') ?? 0;
-
-    if (m['miaAnswer'] is Map) {
-      return QuestionAnswerAiModel(
-        question: (m['question'] ?? '') as String,
-        miaAnswer: MiaAnswer.fromMap(m['miaAnswer'] as Map<String, dynamic>),
-        createdAt: createdAtValue,
-      );
-    }
+    final createdAtValue = jsonInt(m['createdAt']) ?? 0;
+    final answer = m['miaAnswer'];
 
     return QuestionAnswerAiModel(
-      question: (m['question'] ?? '') as String,
-      miaAnswer: MiaAnswer.fromMap(m),
+      question: jsonString(m['question']),
+      // Eski kayıtlarda cevap alanları kökte duruyor.
+      miaAnswer: MiaAnswer.fromMap(answer is Map ? answer : m),
       createdAt: createdAtValue,
     );
   }

@@ -1,6 +1,4 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_globals.dart';
 import 'package:mama_meow/constants/app_localization.dart';
@@ -14,12 +12,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppInitService.initApp();
 
-  if (!kIsWeb) {
-    final db = FirebaseDatabase.instance;
-    db.setPersistenceEnabled(true);
-    db.setPersistenceCacheSizeBytes(50 * 1024 * 1024);
-  }
-
   audioHandler = await AudioService.init(
     builder: () => PodcastAudioHandler(),
     config: const AudioServiceConfig(
@@ -31,6 +23,9 @@ Future<void> main() async {
   );
 
   runMyApp();
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => AppInitService.initAfterFirstFrame(),
+  );
 }
 
 void runMyApp() {
@@ -43,8 +38,7 @@ void runMyApp() {
         fontFamily: "Nunito",
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-
-      locale: AppLocalization.locale, // Varsayılan dil
+      locale: AppLocalization.locale,
       supportedLocales: AppLocalization.supportedLocales,
       localizationsDelegates: AppLocalization.localizationsDelegates,
       routerConfig: router,

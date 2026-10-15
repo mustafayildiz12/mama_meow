@@ -1,415 +1,107 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/premium/widgets/feature_carousel.dart';
+import 'package:mama_meow/screens/premium/widgets/legal_footer.dart';
+import 'package:mama_meow/screens/premium/widgets/package_card.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:purchases_flutter/models/package_wrapper.dart';
+import 'package:mama_meow/utils/platform_info.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-enum PremiumType { monthly, yearly }
-
+/// Premium satın alma ekranı. Satın alma veya geri yükleme sonrası premium
+/// aktifse `true` ile kapanır.
 class PremiumPaywall extends StatefulWidget {
-  final bool showTrialFirst;
-
-  const PremiumPaywall({super.key, this.showTrialFirst = false});
+  const PremiumPaywall({super.key});
 
   @override
   State<PremiumPaywall> createState() => _PremiumPaywallState();
 }
 
 class _PremiumPaywallState extends State<PremiumPaywall> {
-  PremiumType selectedType = PremiumType.monthly;
+  static const _overlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Color(0xFFfbe7f3),
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+  );
 
-  final List<_Feature> features = [
-    _Feature(
+  static const _loadErrorMessage =
+      "Subscription plans couldn't be loaded. Please check your connection and try again.";
+
+  static const List<PaywallFeature> _features = [
+    PaywallFeature(
       icon: "👩‍🍼",
       title: "Complete Baby Tracking",
-      subtitle:
-          "Track every precious moment and milestone in your baby's development",
       advantages: ["Feeding & Sleep Logs", "Diaper & Medicine Tracking"],
     ),
-    _Feature(
+    PaywallFeature(
       icon: "🎧",
       title: "Expert Podcast Library",
-      subtitle:
-          "Learn from the best parenting exams with curated audio content",
       advantages: ["Summarized Parenting Books", "Expert Interview Series"],
     ),
-    _Feature(
+    PaywallFeature(
       icon: "🚀",
-      title: "AI-Powered Asistant",
-      subtitle:
-          "Get instant answers to all your parenting questions with smart AI technology",
+      title: "AI-Powered Assistant",
       advantages: ["24/7 Smart Q&A Support", "Personalized Recommendations"],
     ),
   ];
 
-  int pageIndex = 0;
-
-  // Dinamik offering state'i
   final InAppPurchaseService _iap = InAppPurchaseService();
+
+  PremiumType _selectedType = PremiumType.yearly;
   bool _loading = true;
   String? _error;
+  bool _purchasing = false;
+  bool _restoring = false;
 
   Package? _monthlyPackage;
   Package? _yearlyPackage;
 
-  // StoreProduct? _monthlyProduct;
-  //  StoreProduct? _yearlyProduct;
+  bool get _busy => _purchasing || _restoring;
+
+  Package? get _selectedPackage =>
+      _selectedType == PremiumType.monthly ? _monthlyPackage : _yearlyPackage;
 
   @override
   void initState() {
-    analyticService.screenView('paywall_screen');
-    analyticService.paywallShown(
-      source: widget.showTrialFirst ? 'trial_first' : 'feature_gate',
-    );
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFfbe7f3),
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
-    );
-    _loadOfferings();
     super.initState();
+    analyticService.screenView('paywall_screen');
+    analyticService.paywallShown(source: 'feature_gate');
+    _loadOfferings();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.topRight,
-
-              colors: [Color(0xFFfdf5fd), Color(0xFFfbe7f3)],
-              stops: [0.1, 0.4],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _overlayStyle,
+      child: Scaffold(
+        body: SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+                colors: [Color(0xFFfdf5fd), Color(0xFFfbe7f3)],
+                stops: [0.1, 0.4],
+              ),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+              boxShadow: [BoxShadow(blurRadius: 16, color: Colors.black12)],
             ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-            boxShadow: [BoxShadow(blurRadius: 16, color: Colors.black12)],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Column(
-              children: [
-                // Top bar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: _restore,
-                      child: Text(
-                        'Refresh',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: IconButton(
-                        icon: const Icon(
-                          CupertinoIcons.clear,
-                          color: Colors.black87,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ],
-                ),
-
-                if (_loading) ...[
-                  const SizedBox(height: 16),
-                  const Center(child: CircularProgressIndicator()),
-                ] else if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 8),
-                  FilledButton.tonal(
-                    onPressed: _loadOfferings,
-                    child: Text("Try Again"),
-                  ),
-                ] else
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Center(
-                            child: Text(
-                              "Unlock Premium Features",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 24,
-                                color: Color(0xFFf15a5f),
-                                height: 1,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Features – PageView
-                          Center(
-                            child: Container(
-                              height: 192,
-
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: PageView.builder(
-                                itemCount: features.length,
-                                onPageChanged: (i) =>
-                                    setState(() => pageIndex = i),
-                                itemBuilder: (_, i) {
-                                  final f = features[i];
-                                  return Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          height: 56,
-                                          width: 56,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.pink400,
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            f.icon,
-                                            style: TextStyle(fontSize: 32),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Center(
-                                          child: Text(
-                                            f.title,
-                                            maxLines: 3,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: f.advantages.map((e) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 8.0,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Text("✅"),
-                                                  SizedBox(width: 8),
-                                                  Text(e),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0,
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: (pageIndex + 1) / features.length,
-                                backgroundColor: Colors.pink.shade100,
-                                color: AppColors.pink500,
-                                minHeight: 6,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // YEARLY
-                          if (_yearlyPackage != null) ...[
-                            _buildPackageCard(
-                              _yearlyPackage!,
-                              PremiumType.yearly,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          // MONTHLY
-                          if (_monthlyPackage != null) ...[
-                            _buildPackageCard(
-                              _monthlyPackage!,
-                              PremiumType.monthly,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          const SizedBox(height: 16),
-                          // CTA
-                          InkWell(
-                            onTap: _purchaseSelected,
-                            child: Container(
-                              width: double.infinity,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [AppColors.pink500, Colors.pink],
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                _getButtonText(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 8),
-                          const SizedBox(height: 10),
-                          Text(
-                            "Auto-renewing subscription. Cancel anytime in Google Play > Payments & subscriptions. "
-                            "To avoid charges, cancel before the trial ends.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.black54,
-                              height: 1.3,
-                            ),
-                          ),
-
-                          // Restore + Info
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TextButton(
-                                onPressed: _restore,
-                                child: Text(
-                                  "Restore",
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const Icon(Icons.circle, size: 5),
-                              TextButton(
-                                onPressed: () => showDialog(
-                                  context: context,
-                                  builder: (_) => _InfoDialog(
-                                    monthly: _monthlyPackage,
-                                    yearly: _yearlyPackage,
-                                  ),
-                                ),
-                                child: Text(
-                                  "About Subscriptions",
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Footer links
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: () async {
-                        String url = "";
-                        if (GetPlatform.isIOS) {
-                          url =
-                              "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
-                        } else if (GetPlatform.isAndroid) {
-                          url =
-                              "https://play.google.com/intl/ALL_tr/about/play-terms/";
-                        }
-                        await launchUrl(Uri.parse(url));
-                      },
-                      child: Text(
-                        "Terms",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const Icon(Icons.circle, size: 4),
-                    TextButton(
-                      onPressed: () async {
-                        final uri = Uri.parse(
-                          "https://kuyumcu-fd31a.firebaseapp.com/#/mamaMeowPolicy",
-                        );
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(
-                            uri,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
-                      },
-                      child: Text(
-                        "Privacy",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const Icon(Icons.circle, size: 4),
-                    aboutSubsButton(),
-                  ],
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Column(
+                children: [
+                  _buildTopBar(),
+                  Expanded(child: _buildBody()),
+                  const PaywallLegalFooter(),
+                ],
+              ),
             ),
           ),
         ),
@@ -417,299 +109,258 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     );
   }
 
-  Widget _buildPackageCard(Package package, PremiumType type) {
-    final selected = selectedType == type;
-    final trialDays = _iap.getTrialDays(package);
-    final hasFreeTrial = trialDays != null && trialDays != "0";
+  Widget _buildTopBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Geri yükleme her durumda (yükleme hatasında da) erişilebilir.
+        TextButton(
+          onPressed: _busy ? null : _restore,
+          child: _restoring
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  'Restore',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+        ),
+        CircleAvatar(
+          backgroundColor: Colors.white,
+          child: IconButton(
+            tooltip: 'Close',
+            icon: const Icon(CupertinoIcons.clear, color: Colors.black87),
+            onPressed: _purchasing ? null : () => _close(),
+          ),
+        ),
+      ],
+    );
+  }
 
-    String title;
-    String subtitle;
-    String? chipText;
-    String perText;
-
-    switch (type) {
-      case PremiumType.monthly:
-        title = "Monthly Plan";
-        subtitle = (hasFreeTrial)
-            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
-            : _planLabel(package, type);
-
-        perText = "Billed monthly";
-
-        break;
-      case PremiumType.yearly:
-        title = "Annual Plan";
-        subtitle = (hasFreeTrial)
-            ? "Includes a $trialDays-day free trial.${_planLabel(package, type)}"
-            : _planLabel(package, type);
-
-        // Yıllık plan genelde en popüler
-        chipText = "MOST POPULAR"; // "En Popüler" vb.
-        perText = "Billed once per year";
-        break;
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    return InkWell(
-      onTap: () => setState(() => selectedType = type),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 128,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.pink.shade100,
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
-              border: Border.all(color: Colors.pink, width: selected ? 2 : 0.2),
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
             ),
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: _loadOfferings,
+              child: const Text("Try Again"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final yearly = _yearlyPackage;
+    final monthly = _monthlyPackage;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          const Center(
+            child: Text(
+              "Unlock Premium Features",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                color: Color(0xFFf15a5f),
+                height: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const PaywallFeatureCarousel(features: _features),
+          const SizedBox(height: 24),
+
+          RadioGroup<PremiumType>(
+            groupValue: _selectedType,
+            onChanged: (type) {
+              if (type != null && !_busy) setState(() => _selectedType = type);
+            },
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Title + Radio
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Price row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-
-                  children: [
-                    Text(
-                      perText,
-                      style: TextStyle(
-                        color: Color(0xFF7d828f),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Spacer(),
-
-                    Text(
-                      package.storeProduct.priceString,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFFec4899),
-                      ),
-                    ),
-
-                    Radio<bool>(
-                      value: true,
-                      groupValue: selected,
-                      onChanged: (_) => setState(() => selectedType = type),
-                      fillColor: WidgetStatePropertyAll(Colors.pink.shade500),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ],
-                ),
-
-                // Subtitle
-                Row(
-                  children: [
-                    const Icon(
-                      CupertinoIcons.info,
-                      size: 16,
-                      color: Colors.black54,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                if (yearly != null) ...[
+                  _packageCard(yearly, PremiumType.yearly),
+                  const SizedBox(height: 16),
+                ],
+                if (monthly != null) ...[
+                  _packageCard(monthly, PremiumType.monthly),
+                  const SizedBox(height: 16),
+                ],
               ],
             ),
           ),
-          if (chipText != null && chipText.isNotEmpty)
-            Positioned(
-              top: -10,
-              left: 0,
-              right: 0,
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  width: 136,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFFf46a12).withValues(alpha: 0.1),
-                        const Color(
-                          0xFFf46a12,
-                        ).withValues(alpha: 0.9), // Canlı turuncu
-                        const Color(0xFFf46a12), // Turuncuyu baskın yap
-                      ],
-                      stops: const [
-                        0.0, // %0 noktasında beyaz başlasın
-                        0.15, // %15’te beyaz-turuncu geçiş
-                        1.0, // geri kalan tamamen turuncu
-                      ],
-                    ),
 
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    chipText,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+          const SizedBox(height: 16),
+          _SubscribeButton(
+            label: _buttonText(),
+            loading: _purchasing,
+            onPressed: (_selectedPackage == null || _busy)
+                ? null
+                : _purchaseSelected,
+          ),
+
+          const SizedBox(height: 18),
+          Text(
+            _renewalNotice,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Colors.black54,
+              height: 1.3,
+            ),
+          ),
+
+          Center(
+            child: TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => _InfoDialog(monthly: monthly, yearly: yearly),
+              ),
+              child: const Text(
+                "About Subscriptions",
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  String _planLabel(Package p, PremiumType type) {
-    final price = p.storeProduct.priceString;
-    final trialDays = _iap.getTrialDays(p);
-    final freq = (type == PremiumType.monthly) ? "month" : "year";
-    final afterTrial = (trialDays != null && trialDays != "0")
-        ? " • After the $trialDays-day free trial, it renews at $price per $freq."
-        : " • Automatically renews at $price per $freq.";
-    return afterTrial;
+  Widget _packageCard(Package package, PremiumType type) {
+    return PaywallPackageCard(
+      type: type,
+      package: package,
+      trialDays: _iap.getTrialDays(package),
+      selected: _selectedType == type,
+      onSelected: _busy ? null : (t) => setState(() => _selectedType = t),
+    );
+  }
+
+  /// Platforma göre abonelik iptal bilgisi.
+  static String get _renewalNotice {
+    final where = PlatformInfo.isIOS
+        ? "your App Store account settings"
+        : PlatformInfo.isAndroid
+        ? "Google Play > Payments & subscriptions"
+        : "your app store account settings";
+    return "Auto-renewing subscription. Cancel anytime in $where. "
+        "To avoid charges, cancel before the trial ends.";
+  }
+
+  /// Paywall'ı kapatır; altında sayfa yoksa (derin bağlantı) uygulamaya döner.
+  void _close([bool? result]) {
+    if (context.canPop()) {
+      context.pop(result);
+    } else {
+      context.goNamed('myBaby');
+    }
   }
 
   Future<void> _loadOfferings() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-
-      List<Package> packages = [];
-
-      // Belirli bir offering istendiyse onu yükle, yoksa current'ı al
-
-      Offering? offers = await _iap.loadOfferings();
-
-      if (offers != null) {
-        packages = offers.availablePackages;
-      }
+      final offering = await _iap.loadOfferings();
 
       // Paketleri tipine göre ayır
       Package? monthly;
       Package? yearly;
-
-      for (final package in packages) {
-        final type = _iap.getPackageType(package);
-        switch (type) {
+      for (final package in offering?.availablePackages ?? const <Package>[]) {
+        switch (_iap.getPackageType(package)) {
           case 'monthly':
             monthly = package;
-            break;
           case 'yearly':
             yearly = package;
-            break;
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _monthlyPackage = monthly;
         _yearlyPackage = yearly;
-
-        // Default seçim: trial öne çıkarılacaksa ve trial varsa onu seç
-        if (widget.showTrialFirst) {
-          // Hangi pakette daha uzun trial varsa onu seç
-          final monthlyTrial = monthly != null
-              ? _iap.getTrialDays(monthly)
-              : null;
-          final yearlyTrial = yearly != null ? _iap.getTrialDays(yearly) : null;
-
-          if (monthlyTrial != null && yearlyTrial != null) {
-            final monthlyDays = int.tryParse(monthlyTrial) ?? 0;
-            final yearlyDays = int.tryParse(yearlyTrial) ?? 0;
-            selectedType = yearlyDays > monthlyDays
-                ? PremiumType.yearly
-                : PremiumType.monthly;
-          } else if (monthlyTrial != null) {
-            selectedType = PremiumType.monthly;
-          } else if (yearlyTrial != null) {
-            selectedType = PremiumType.yearly;
-          } else {
-            selectedType = monthly != null
-                ? PremiumType.monthly
-                : PremiumType.yearly;
-          }
+        if (monthly == null && yearly == null) {
+          _error = _loadErrorMessage;
         } else {
-          selectedType = yearly != null
+          // Varsayılan: yıllık (yoksa aylık)
+          _selectedType = yearly != null
               ? PremiumType.yearly
               : PremiumType.monthly;
         }
       });
-    } on PlatformException catch (e) {
-      setState(() {
-        _error = e.message ?? e.toString();
-      });
+    } catch (e) {
+      debugPrint('loadOfferings failed: $e');
+      if (mounted) setState(() => _error = _loadErrorMessage);
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Package? get _selectedPackage =>
-      selectedType == PremiumType.monthly ? _monthlyPackage : _yearlyPackage;
-
   Future<void> _purchaseSelected() async {
     final package = _selectedPackage;
+    if (_busy) return;
     if (package == null) {
       customSnackBar.error("No product selected");
       return;
     }
 
-    bool isSuccess = await _iap.purchasePackage(package);
-    if (isSuccess) {
-      Navigator.pop(context, true);
+    setState(() => _purchasing = true);
+    var isSuccess = false;
+    try {
+      isSuccess = await _iap.purchasePackage(package);
+    } finally {
+      if (mounted) setState(() => _purchasing = false);
     }
+    if (isSuccess && mounted) _close(true);
   }
 
   Future<void> _restore() async {
+    if (_busy) return;
+    setState(() => _restoring = true);
+    var isPremium = false;
     try {
-      await _iap.restorePurchases();
+      // Sonuç snackbar'ını servis gösterir.
+      isPremium = await _iap.restorePurchases();
     } catch (e) {
-      customSnackBar.error("Restore failed");
+      debugPrint('restorePurchases failed: $e');
+      customSnackBar.error("Restore failed. Please try again.");
+    } finally {
+      if (mounted) setState(() => _restoring = false);
     }
+    if (isPremium && mounted) _close(true);
   }
 
-  String _getButtonText() {
+  String _buttonText() {
     final p = _selectedPackage;
     if (p == null) return "Subscribe";
     final price = p.storeProduct.priceString;
-    final freq = (selectedType == PremiumType.monthly) ? "month" : "year";
+    final freq = _selectedType == PremiumType.monthly ? "month" : "year";
     final trialDays = _iap.getTrialDays(p);
 
     if (trialDays != null && trialDays != "0") {
@@ -717,20 +368,79 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     }
     return "Subscribe for $price / $freq";
   }
+}
 
-  Widget aboutSubsButton() {
-    return Visibility(
-      visible: Platform.isAndroid,
-      child: TextButton(
-        onPressed: () async {
-          final uri = Uri.parse(
-            "https://play.google.com/store/account/subscriptions",
-          );
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        },
-        child: const Text(
-          "Manage Subscription",
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+/// Gradyanlı ana satın alma düğmesi; işlem sürerken spinner gösterir.
+class _SubscribeButton extends StatelessWidget {
+  const _SubscribeButton({
+    required this.label,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final radius = BorderRadius.circular(20);
+
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: Opacity(
+        opacity: enabled || loading ? 1 : 0.5,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: radius,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.pink500, Colors.pink],
+              ),
+            ),
+            child: InkWell(
+              borderRadius: radius,
+              onTap: onPressed,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: 52,
+                  minWidth: double.infinity,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Center(
+                    child: loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -755,6 +465,12 @@ class _InfoDialog extends StatelessWidget {
       return "• $name plan: $price per $freq$trial";
     }
 
+    final manageWhere = PlatformInfo.isIOS
+        ? "in your App Store account settings"
+        : PlatformInfo.isAndroid
+        ? "in the Google Play Subscription Center"
+        : "in your app store account settings";
+
     return AlertDialog(
       title: const Text("About Subscription"),
       content: SingleChildScrollView(
@@ -763,7 +479,7 @@ class _InfoDialog extends StatelessWidget {
             "Subscriptions automatically renew unless canceled at least 24 hours before the current period ends.",
             lineFor(monthly, "Monthly"),
             lineFor(yearly, "Yearly"),
-            "You can manage or cancel your subscription anytime in the Google Play Subscription Center.",
+            "You can manage or cancel your subscription anytime $manageWhere.",
           ].where((e) => e.isNotEmpty).join("\n\n"),
         ),
       ),
@@ -775,17 +491,4 @@ class _InfoDialog extends StatelessWidget {
       ],
     );
   }
-}
-
-class _Feature {
-  final String icon;
-  final String title;
-  final String subtitle;
-  final List<String> advantages;
-  const _Feature({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.advantages,
-  });
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/service/global_functions.dart';
@@ -63,13 +64,13 @@ class ReviewService {
         appStoreId: kAppStoreId, // iOS App Store numeric ID
       );
     } catch (e) {
-      print("Hata: $e");
+      debugPrint("openStoreListing failed: $e");
       // iOS'ta App Store ID girilmemişse mağaza sayfası açılamaz; native
       // değerlendirme akışına düş.
       try {
         await _inAppReview.requestReview();
       } catch (e) {
-        print("Hata 2: $e");
+        debugPrint("requestReview failed: $e");
         // Sessizce geç.
       }
     }

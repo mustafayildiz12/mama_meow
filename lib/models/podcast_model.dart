@@ -23,20 +23,21 @@ class Podcast {
     required this.icon,
   });
 
-  /// JSON'dan model oluşturma
+  /// JSON'dan model oluşturma. Eksik alanlar boş metin olur; tek bir eksik
+  /// alan yüzünden tüm liste düşmesin.
   factory Podcast.fromJson(Map<String, dynamic> json) {
+    String str(String key) => json[key]?.toString() ?? '';
     return Podcast(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      duration: json['duration'] as String,
-      category: json['category'] as String,
-
-      description: json['description'] as String,
-      audioUrl: json['audioUrl'] as String,
-      icon: json['icon'] as String,
-      source: json['source'] as String,
-      creator: json['creator'] as String,
+      id: str('id'),
+      title: str('title'),
+      subtitle: str('subtitle'),
+      duration: str('duration'),
+      category: str('category'),
+      description: str('description'),
+      audioUrl: str('audioUrl'),
+      icon: str('icon'),
+      source: str('source'),
+      creator: str('creator'),
     );
   }
 
@@ -51,6 +52,7 @@ class Podcast {
       'description': description,
       'audioUrl': audioUrl,
       'icon': icon,
+      'source': source,
       'creator': creator,
     };
   }

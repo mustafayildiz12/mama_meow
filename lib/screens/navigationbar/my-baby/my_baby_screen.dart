@@ -9,6 +9,7 @@ import 'package:mama_meow/screens/navigationbar/my-baby/nursing/add_nursing_bott
 import 'package:mama_meow/screens/navigationbar/my-baby/pumping/add_pumping_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
@@ -19,6 +20,89 @@ import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
 
+/// My Baby ekranındaki bir aktivite kartının tanımı.
+class _ActivitySpec {
+  const _ActivitySpec({
+    required this.emoji,
+    required this.title,
+    required this.colors,
+    required this.textColor,
+    required this.reportRoute,
+    required this.countStream,
+    required this.sheetBuilder,
+  });
+
+  final String emoji;
+  final String title;
+  final List<Color> colors;
+  final Color textColor;
+  final String reportRoute;
+
+  /// Bugünkü kayıt sayısı (servis oturum ve gün değişimini kendisi izler).
+  final Stream<int> Function() countStream;
+  final WidgetBuilder sheetBuilder;
+}
+
+final List<_ActivitySpec> _activities = [
+  _ActivitySpec(
+    emoji: '🍼',
+    title: 'Nursing',
+    colors: const [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
+    textColor: Colors.green.shade700,
+    reportRoute: 'nursingReport',
+    countStream: nursingService.todayNursingCountStream,
+    sheetBuilder: (_) => const AddNursingBottomSheet(),
+  ),
+  _ActivitySpec(
+    emoji: '🍛',
+    title: 'Solid',
+    colors: const [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
+    textColor: Colors.orange.shade700,
+    reportRoute: 'solidReport',
+    countStream: solidService.todaySolidCountStream,
+    sheetBuilder: (_) => const AddSolidBottomSheet(),
+  ),
+  _ActivitySpec(
+    emoji: '😴',
+    title: 'Sleep',
+    colors: [Colors.blue.shade200, Colors.purple.shade200],
+    textColor: Colors.blue.shade700,
+    reportRoute: 'sleepReport',
+    countStream: sleepService.todaySleepCountStream,
+    sheetBuilder: (_) => SleepExtendedMultiSliderBottomSheet(
+      initialStartEnds: const [12 * 60, 15 * 60],
+      sleepDate: DateTime.now(),
+    ),
+  ),
+  _ActivitySpec(
+    emoji: '👶',
+    title: 'Diaper',
+    colors: [Colors.green.shade200, Colors.tealAccent.shade200],
+    textColor: Colors.green.shade700,
+    reportRoute: 'diaperReport',
+    countStream: diaperService.todayDiaperCountStream,
+    sheetBuilder: (_) => const AddDiaperBottomSheet(),
+  ),
+  _ActivitySpec(
+    emoji: '👩‍🍼',
+    title: 'Pumping',
+    colors: const [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
+    textColor: Colors.pink.shade700,
+    reportRoute: 'pumpingReport',
+    countStream: pumpingService.todayPumpingCountStream,
+    sheetBuilder: (_) => const AddPumpingBottomSheet(),
+  ),
+  _ActivitySpec(
+    emoji: '💊',
+    title: 'Medicine',
+    colors: const [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
+    textColor: Colors.red.shade700,
+    reportRoute: 'medicineReport',
+    countStream: medicineService.todayMedicineCountStream,
+    sheetBuilder: (_) => AddMedicineBottomSheet(selectedDate: DateTime.now()),
+  ),
+];
+
 class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
 
@@ -28,34 +112,13 @@ class MyBabyScreen extends StatefulWidget {
 
 class _MyBabyScreenState extends State<MyBabyScreen>
     with WidgetsBindingObserver {
-  late final Stream<int> _solidCount$;
-  late final Stream<int> _sleepCount$;
-  late final Stream<int> _diaperCount$;
-  late final Stream<int> _pumpingCount$;
-  late final Stream<int> _medicineCount$;
-  late final Stream<int> _nursingCount$;
-
   @override
   void initState() {
+    super.initState();
     analyticService.screenView('my_baby_screen');
-    // Eğer service zaten broadcast veriyorsa .asBroadcastStream() şart değil,
-    // emin değilsen ekle (zararı yok):
     updateTopUi();
-    _solidCount$ = solidService.todaySolidCountStream().asBroadcastStream();
-    _sleepCount$ = sleepService.todaySleepCountStream().asBroadcastStream();
-    _diaperCount$ = diaperService.todayDiaperCountStream().asBroadcastStream();
-    _pumpingCount$ = pumpingService
-        .todayPumpingCountStream()
-        .asBroadcastStream();
-    _medicineCount$ = medicineService
-        .todayMedicineCountStream()
-        .asBroadcastStream();
-    _nursingCount$ = nursingService
-        .todayNursingCountStream()
-        .asBroadcastStream();
     WidgetsBinding.instance.addObserver(this);
     AlarmPolicy.instance.refresh(); // sessiz kontrol
-    super.initState();
   }
 
   @override
@@ -73,6 +136,7 @@ class _MyBabyScreenState extends State<MyBabyScreen>
 
   void updateTopUi() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarColor: Theme.of(context).scaffoldBackgroundColor,
@@ -81,6 +145,14 @@ class _MyBabyScreenState extends State<MyBabyScreen>
         ),
       );
     });
+  }
+
+  Future<void> _openJournal() async {
+    if (authenticationService.getUser() == null) {
+      context.pushNamed("login");
+      return;
+    }
+    await showActivitySheet(context, (_) => const JournalDiaryPage());
   }
 
   @override
@@ -92,382 +164,121 @@ class _MyBabyScreenState extends State<MyBabyScreen>
           Center(
             child: Column(
               children: [
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 SvgPicture.asset("assets/baby.svg", width: 64, height: 64),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   "My Baby 👶",
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   "I may be small, but my stories are big! Don't miss a meowment! 🐾✨",
                   style: TextStyle(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
               ],
             ),
           ),
-          StreamBuilder(
-            stream: _nursingCount$,
-            builder: (context, snapshot) {
-              int nursingCount = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '🍼',
-                title: 'Nursing',
-                subtitle: 'Today: $nursingCount times',
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
-                ),
-                textColor: Colors.green.shade700,
-                bgColor: Colors.green.shade50,
-                onReportPressed: () {
-                  context.pushNamed('nursingReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) => const AddNursingBottomSheet(),
-                  );
-                },
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _solidCount$,
-            builder: (context, snapshot) {
-              int solidTime = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '🍛',
-                title: 'Solid',
-                subtitle: 'Today: $solidTime times',
-                gradient: LinearGradient(
-                  colors: [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
-                ),
-                textColor: Colors.orange.shade700,
-                bgColor: Colors.orange.shade50,
-                onReportPressed: () {
-                  context.pushNamed('solidReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) => const AddSolidBottomSheet(),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _sleepCount$,
-            builder: (context, snapshot) {
-              int sleepTime = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '😴',
-                title: 'Sleep',
-                subtitle: 'Today: $sleepTime times',
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade200, Colors.purple.shade200],
-                ),
-                textColor: Colors.blue.shade700,
-                bgColor: Colors.blue.shade50,
-                onReportPressed: () {
-                  context.pushNamed('sleepReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => SleepExtendedMultiSliderBottomSheet(
-                      initialStartEnds: [12 * 60, 15 * 60],
-                      sleepDate: DateTime.now(),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _diaperCount$,
-            builder: (context, snapshot) {
-              int diaperTime = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '👶',
-                title: 'Diaper',
-                subtitle: 'Today: $diaperTime times',
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade200, Colors.tealAccent.shade200],
-                ),
-                textColor: Colors.green.shade700,
-                bgColor: Colors.green.shade50,
-                onReportPressed: () {
-                  context.pushNamed('diaperReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) => const AddDiaperBottomSheet(),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _pumpingCount$,
-            builder: (context, snapshot) {
-              int pumpingTime = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '👩‍🍼',
-                title: 'Pumping',
-                subtitle: 'Today: $pumpingTime times',
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
-                ),
-                textColor: Colors.pink.shade700,
-                bgColor: Colors.pink.shade50,
-                onReportPressed: () {
-                  context.pushNamed('pumpingReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) => const AddPumpingBottomSheet(),
-                  );
-                },
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-          StreamBuilder(
-            stream: _medicineCount$,
-            builder: (context, snapshot) {
-              int medicineCount = snapshot.hasData ? snapshot.data! : 0;
-              return _babyCard(
-                emoji: '💊',
-                title: 'Medicine',
-                subtitle: 'Today: $medicineCount times',
-                gradient: LinearGradient(
-                  colors: [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
-                ),
-                textColor: Colors.red.shade700,
-                bgColor: Colors.red.shade50,
-                onReportPressed: () {
-                  context.pushNamed('medicineReport');
-                },
-                onPlusPressed: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    builder: (context) =>
-                        AddMedicineBottomSheet(selectedDate: DateTime.now()),
-                  );
-                },
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          _babyCardJournal(
-            emoji: '📔',
-            title: 'Journal',
-            gradient: LinearGradient(
-              colors: [Colors.purple.shade100, Colors.indigo.shade200],
-            ),
-            textColor: Colors.purple.shade600,
-            bgColor: Colors.purple.shade50,
-            onReportPressed: () async {
-              final user = authenticationService.getUser();
-
-              if (user == null) {
-                context.pushNamed("login");
-              } else {
-                await showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                  ),
-                  builder: (context) => const JournalDiaryPage(),
-                );
-              }
-            },
-          ),
-
+          for (final spec in _activities) ...[
+            _ActivityCard(spec: spec),
+            const SizedBox(height: 16),
+          ],
+          _JournalCard(onTap: _openJournal),
           const SizedBox(height: 32),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.yellow.shade100, Colors.orange.shade100],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.amber, width: 2),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.amber,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'AI Tips for Today',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white70,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.amberAccent, width: 2),
-                  ),
-                  child: const Text(
-                    '💡 Tip of the day: Babies typically need 8-12 feedings per day. Watch for hunger cues like rooting or sucking motions!',
-                    style: TextStyle(color: Colors.black87, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const _TipOfTheDay(),
         ],
       ),
     );
   }
+}
 
-  Widget _babyCard({
-    required String emoji,
-    required String title,
-    required String subtitle,
-    required LinearGradient gradient,
-    required Color textColor,
-    required Color bgColor,
-    required void Function() onPlusPressed,
-    void Function()? onReportPressed,
-  }) {
+/// Bugünkü sayaçlı aktivite kartı (rapor + ekle butonları).
+class _ActivityCard extends StatefulWidget {
+  const _ActivityCard({required this.spec});
+
+  final _ActivitySpec spec;
+
+  @override
+  State<_ActivityCard> createState() => _ActivityCardState();
+}
+
+class _ActivityCardState extends State<_ActivityCard> {
+  // Kart her oluşturulduğunda taze stream; ListView kartı yeniden
+  // oluşturduğunda tek-abonelik stream'i iki kez dinleme hatası olmaz.
+  late final Stream<int> _count = widget.spec.countStream();
+
+  @override
+  Widget build(BuildContext context) {
+    final spec = widget.spec;
+    final textColor = spec.textColor;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
       decoration: BoxDecoration(
-        gradient: gradient,
+        gradient: LinearGradient(colors: spec.colors),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white, width: 4),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Text(spec.emoji, style: const TextStyle(fontSize: 32)),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 32)),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
+                  Text(
+                    spec.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  StreamBuilder<int>(
+                    stream: _count,
+                    builder: (context, snapshot) => Text(
+                      'Today: ${snapshot.data ?? 0} times',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textColor.withValues(alpha: 0.7),
                       ),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: textColor.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        onReportPressed!();
-                      },
-                      icon: Icon(Icons.bar_chart, color: textColor),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        onPlusPressed();
-                      },
-                      icon: Icon(Icons.add, color: textColor, size: 28),
-                    ),
-                  ),
-                ],
+            ],
+          ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  onPressed: () => context.pushNamed(spec.reportRoute),
+                  icon: Icon(Icons.bar_chart, color: textColor),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  onPressed: () =>
+                      showActivitySheet(context, spec.sheetBuilder),
+                  icon: Icon(Icons.add, color: textColor, size: 28),
+                ),
               ),
             ],
           ),
@@ -475,46 +286,90 @@ class _MyBabyScreenState extends State<MyBabyScreen>
       ),
     );
   }
+}
 
-  Widget _babyCardJournal({
-    required String emoji,
-    required String title,
+class _JournalCard extends StatelessWidget {
+  const _JournalCard({required this.onTap});
 
-    required LinearGradient gradient,
-    required Color textColor,
-    required Color bgColor,
+  final VoidCallback onTap;
 
-    void Function()? onReportPressed,
-  }) {
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
-      onTap: onReportPressed,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
         decoration: BoxDecoration(
-          gradient: gradient,
+          gradient: LinearGradient(
+            colors: [Colors.purple.shade100, Colors.indigo.shade200],
+          ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white, width: 4),
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 32)),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-              ],
+            const Text('📔', style: TextStyle(fontSize: 32)),
+            const SizedBox(width: 12),
+            Text(
+              'Journal',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple.shade600,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TipOfTheDay extends StatelessWidget {
+  const _TipOfTheDay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.yellow.shade100, Colors.orange.shade100],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.amber, width: 2),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'AI Tips for Today',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white70,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.amberAccent, width: 2),
+            ),
+            child: const Text(
+              '💡 Tip of the day: Babies typically need 8-12 feedings per day. Watch for hunger cues like rooting or sucking motions!',
+              style: TextStyle(color: Colors.black87, fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }

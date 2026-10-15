@@ -1,354 +1,325 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/meow_user_model.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/database_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/service/reminders/reminders.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:crypto/crypto.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// AuthenticationService, kullanıcı kimlik doğrulama işlemlerini yöneten servis sınıfıdır.
-/// Firebase Authentication kullanarak kullanıcı girişi, kayıt, çıkış ve anonim giriş gibi
-/// işlemleri gerçekleştirir.
-class AuthenticationService {
-  factory AuthenticationService() {
-    return _singleton;
-  }
+/// Google / Apple ile giriş sonuç kodları. Giriş ekranı bunlara göre yönlenir.
+abstract final class SocialSignInResult {
+  /// Kayıtlı kullanıcı → doğrudan uygulamaya.
+  static const int existingUser = 0;
 
+  /// Yeni kullanıcı → önce bebek bilgisi.
+  static const int newUser = 1;
+
+  /// Hata (mesaj servis tarafından gösterildi).
+  static const int failed = 2;
+
+  /// Kullanıcı vazgeçti → hiçbir şey yapma.
+  static const int cancelled = 3;
+}
+
+/// Firebase Authentication üzerinden giriş, kayıt, çıkış işlemleri.
+class AuthenticationService {
+  factory AuthenticationService() => _singleton;
   AuthenticationService._internal();
-  // Singleton pattern uygulaması - yalnızca tek bir nesne üzerinden işlem yapılır
   static final AuthenticationService _singleton =
       AuthenticationService._internal();
 
-  // Firebase Authentication nesnesi
-  FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
-  /// Kullanıcı girişi yapar
+  bool _googleInitialized = false;
+
+  User? getUser() => firebaseAuth.currentUser;
+
+  /// E-posta/şifre ile giriş.
   ///
-  /// [context] - BuildContext
-  /// [email] - Kullanıcı e-posta adresi
-  /// [password] - Kullanıcı şifresi
-  ///
-  /// Başarılı giriş durumunda kullanıcıyı tercihExamsPath sayfasına yönlendirir.
-  /// Hata durumunda uygun hata mesajını gösterir.
+  /// 1 = başarılı, 2 = hesap kalıcı olarak silinmiş, 0 = başarısız (mesaj
+  /// gösterildi). [context] geriye dönük uyumluluk için duruyor.
   Future<int> login(
     BuildContext context, {
     required String email,
     required String password,
   }) async {
-    int isSuccess = 0;
     try {
-      await firebaseAuth
-          .signInWithEmailAndPassword(email: email, password: password)
-          .then((UserCredential userCredential) async {
-            final bool isUserExist = await checkUserExist(
-              userCredential: userCredential,
-            );
+      final credential = await firebaseAuth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) return 0;
 
-            final bool isUserDataExist = await databaseService
-                .getAdminBasicInfoFromRealTime(userCredential.user!.uid);
+      var hasProfile = await databaseService.getAdminBasicInfoFromRealTime(
+        user.uid,
+      );
+      if (!hasProfile) {
+        // Auth hesabı var ama users/<uid> kaydı yok (ör. kayıt yarıda
+        // kaldıysa): kullanıcıyı içeride bırakıp profilsiz bırakmak yerine
+        // kaydı yeniden oluştur.
+        await databaseService.addUserToRealTime(
+          MeowUserModel(
+            uid: user.uid,
+            userEmail: user.email ?? email.trim(),
+            userName: user.displayName,
+            createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+        hasProfile = await databaseService.getAdminBasicInfoFromRealTime(
+          user.uid,
+        );
+      }
+      if (!hasProfile) {
+        customSnackBar.warning("Could not load your profile. Please try again.");
+        await firebaseAuth.signOut();
+        return 0;
+      }
 
-            if (isUserExist && isUserDataExist) {
-              if (currentMeowUser?.status != 1) {
-                isSuccess = 1;
-              } else {
-                isSuccess = 2;
-              }
-            }
-            await analyticService.emailLoginSuccess();
-          });
+      await analyticService.emailLoginSuccess();
+      return currentMeowUser?.status == 1 ? 2 : 1;
     } on FirebaseAuthException catch (e) {
       await analyticService.emailLoginFailed(e.message ?? e.code);
-      isSuccess = 0;
-      if (e.code == 'user-not-found') {
-        customSnackBar.warning("User not found");
-      } else if (e.code == 'wrong-password') {
-        customSnackBar.warning("Wrong Password");
-      } else if (e.code == "invalid-credential") {
-        customSnackBar.warning("Invalid Credentials");
-      } else {
-        customSnackBar.warning("Could not log in");
-      }
+      customSnackBar.warning(switch (e.code) {
+        'user-not-found' => "User not found",
+        'wrong-password' || 'invalid-credential' => "Wrong email or password",
+        'invalid-email' => "Invalid email address",
+        'user-disabled' => "This account has been disabled",
+        'too-many-requests' => "Too many attempts. Please try again later.",
+        'network-request-failed' => "No internet connection",
+        _ => "Could not log in",
+      });
+      return 0;
     } catch (e) {
       await analyticService.emailLoginFailed(e.toString());
-      debugPrint(e.toString());
-      isSuccess = 0;
+      debugPrint("login failed: $e");
+      customSnackBar.warning("Could not log in");
+      return 0;
     }
-    return isSuccess;
   }
 
-  /// Yeni kullanıcı kaydı oluşturur
-  ///
-  /// [email] - Kullanıcı e-posta adresi
-  /// [password] - Kullanıcı şifresi
-  /// [context] - BuildContext
-  ///
-  /// Başarılı kayıt durumunda kullanıcıyı tercihExamsPath sayfasına yönlendirir.
-  /// Hata durumunda uygun hata mesajını gösterir.
+  /// Yeni kullanıcı kaydı. Veritabanı kaydı başarısız olursa yarım kalmış
+  /// Auth hesabı geri silinir; böylece "profilsiz" kullanıcı oluşmaz.
   Future<bool> registerAndSaveUser({
     required String name,
     required String email,
     required String password,
     required BuildContext context,
   }) async {
-    bool isSuccess = false;
+    UserCredential? credential;
     try {
-      final credential = await firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
+      credential = await firebaseAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
         password: password,
       );
-      final bool isUserExist = await checkUserExist(userCredential: credential);
-      if (isUserExist) {
-        await databaseService.addUserToRealTime(
-          MeowUserModel(
-            uid: credential.user!.uid,
-            babyName: currentMeowUser?.babyName,
-            ageRange: currentMeowUser?.ageRange,
-            userEmail: email,
-            userName: name,
-            userPassword: password,
-            createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
-
-        await databaseService.getAdminBasicInfoFromRealTime(
-          credential.user!.uid,
-        );
-        isSuccess = true;
-        await analyticService.registerSuccess();
-      }
+      final uid = credential.user!.uid;
+      await databaseService.addUserToRealTime(
+        MeowUserModel(
+          uid: uid,
+          babyName: currentMeowUser?.babyName,
+          ageRange: currentMeowUser?.ageRange,
+          userEmail: email.trim(),
+          userName: name.trim(),
+          createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      await databaseService.getAdminBasicInfoFromRealTime(uid);
+      await analyticService.registerSuccess();
+      return true;
     } on FirebaseAuthException catch (e) {
       await analyticService.registerFailed(e.message ?? e.code);
-      isSuccess = false;
-      if (e.code == 'user-not-found') {
-        customSnackBar.warning("User not found");
-      } else if (e.code == 'wrong-password') {
-        customSnackBar.warning("Wrong Password");
-      } else if (e.code == "email-already-in-use") {
-        customSnackBar.warning("Email already in use");
-      } else {
-        customSnackBar.warning("Unable to register");
-      }
-    }
-    return isSuccess;
-  }
-
-  /// Kullanıcının var olup olmadığını kontrol eder
-  ///
-  /// [userCredential] - Firebase'den dönen kullanıcı bilgileri
-  ///
-  /// Kullanıcı varsa true, yoksa false döner
-  Future<bool> checkUserExist({required UserCredential userCredential}) async {
-    if (userCredential.user != null) {
-      return true;
-    } else {
+      customSnackBar.warning(switch (e.code) {
+        'email-already-in-use' => "Email already in use",
+        'invalid-email' => "Invalid email address",
+        'weak-password' => "Password should be at least 6 characters",
+        'network-request-failed' => "No internet connection",
+        _ => "Unable to register",
+      });
+      return false;
+    } catch (e) {
+      await analyticService.registerFailed(e.toString());
+      debugPrint("register failed: $e");
+      try {
+        await credential?.user?.delete();
+      } catch (_) {}
+      customSnackBar.warning("Unable to register. Please try again.");
       return false;
     }
   }
 
   Future<bool> forgotPassword({required String email}) async {
-    bool isSendResetEmailSuccess = false;
     try {
-      await firebaseAuth.sendPasswordResetEmail(email: email);
-      isSendResetEmailSuccess = true;
-      customSnackBar.success("Reset password send");
+      await firebaseAuth.sendPasswordResetEmail(email: email.trim());
+      customSnackBar.success("Password reset email sent");
+      return true;
     } catch (e) {
-      isSendResetEmailSuccess = false;
-      customSnackBar.error("Reset password send");
+      debugPrint("forgotPassword failed: $e");
+      customSnackBar.error("Could not send password reset email");
+      return false;
     }
-    return isSendResetEmailSuccess;
   }
 
-  /// Mevcut kullanıcının ID'sini döndürür
-  Future<String?> userId() async {
-    return firebaseAuth.currentUser!.uid;
-  }
-
-  /// Mevcut kullanıcı nesnesini döndürür
-  User? getUser() {
-    return firebaseAuth.currentUser;
-  }
-
-  /// Kullanıcı çıkışı yapar
-  ///
-  /// [context] - BuildContext
-  ///
-  /// Google hesabından çıkış yapar, Firebase'den çıkış yapar,
-  /// abonelikleri iptal eder ve kullanıcıyı tercihLoginPath sayfasına yönlendirir.
+  /// Çıkış yapar ve cihazdaki kullanıcıya ait durumu temizler. Adımlar
+  /// birbirinden bağımsızdır; biri hata verse de diğerleri çalışır.
   Future<bool> logoutFromFirebase() async {
-    bool isSuccess = false;
     try {
-      await GoogleSignIn().signOut();
+      await _ensureGoogleInitialized();
+      await GoogleSignIn.instance.signOut();
+    } catch (e) {
+      debugPrint("Google signOut failed: $e");
+    }
+
+    try {
       await firebaseAuth.signOut();
-      await InAppPurchaseService().logoutSubs();
-
-      final User? currentUser = getUser();
-
-      currentMeowUser = null;
-      // kullanıcının çıktığından emin olduktan sonra
-      // locali silme ve navgationu temizleme işlemi yapıyoruz.
-      if (currentUser == null) {
-        await localStorage.erase();
-        await analyticService.logoutSuccess();
-
-        isSuccess = true;
-      }
     } catch (e) {
       await analyticService.logoutFailed(e.toString());
-      debugPrint(e.toString());
-      isSuccess = false;
+      debugPrint("Firebase signOut failed: $e");
+      return false;
     }
-    return isSuccess;
+
+    await InAppPurchaseService().logoutSubs();
+    // Hatırlatıcılar cihazda tutulur; bir sonraki kullanıcıya geçmesin.
+    await cancelAndClearAllReminders();
+    currentMeowUser = null;
+    await localStorage.erase();
+    await analyticService.logoutSuccess();
+    return true;
   }
 
-  /// Google hesabı ile giriş yapar
-  ///
-  /// [context] - BuildContext
-  ///
-  /// Google hesabı ile giriş yapar, kullanıcı bilgilerini Firebase'e kaydeder
-  /// ve tercihExamsPath sayfasına yönlendirir.
-  /// Hata durumunda uygun hata mesajını gösterir.
+  Future<void> _ensureGoogleInitialized() async {
+    if (_googleInitialized) return;
+    // Android: google-services.json'daki web istemcisi, iOS: Info.plist
+    // GIDClientID otomatik kullanılır.
+    await GoogleSignIn.instance.initialize();
+    _googleInitialized = true;
+  }
+
+  /// Google hesabı ile giriş. Sonuç: [SocialSignInResult].
   Future<int> signInWithGoogle() async {
-    int isSuccess = 2;
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
+      await _ensureGoogleInitialized();
+      final account = await GoogleSignIn.instance.authenticate(
+        scopeHint: const ['email'],
       );
-
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
-
-      if (userCredential.user != null) {
-        await analyticService.googleLoginSuccess();
-        final String uid = userCredential.user!.uid;
-
-        /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
-        final bool isUserDataExist = await databaseService
-            .getAdminBasicInfoFromRealTime(uid);
-
-        if (!isUserDataExist) {
-          final Map<String, dynamic>? profile =
-              userCredential.additionalUserInfo?.profile;
-          await databaseService
-              .addUserToRealTime(
-                MeowUserModel(
-                  uid: uid,
-                  userEmail: profile!['email'],
-                  userName: profile['name'],
-                  createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
-                ),
-              )
-              .then((v) async {
-                await databaseService.getAdminBasicInfoFromRealTime(uid);
-              });
-          isSuccess = 1;
-        } else {
-          isSuccess = 0;
-        }
-      } else {
-        isSuccess = 2;
+      final credential = GoogleAuthProvider.credential(
+        idToken: account.authentication.idToken,
+      );
+      final userCredential = await firebaseAuth.signInWithCredential(
+        credential,
+      );
+      await analyticService.googleLoginSuccess();
+      return await _completeSocialSignIn(userCredential);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        return SocialSignInResult.cancelled;
       }
+      return _socialSignInFailed(
+        analyticService.googleLoginFailed,
+        '${e.code.name}: ${e.description}',
+      );
     } catch (e) {
-      await analyticService.googleLoginFailed(e.toString());
-      isSuccess = 2;
-      customSnackBar.warning("Failed to login");
-      debugPrint("Hata: $e");
-      if (e is PlatformException) {
-        debugPrint("PlatformException: ${e.message}");
-        debugPrint("Details: ${e.details}");
-      }
+      return _socialSignInFailed(analyticService.googleLoginFailed, '$e');
     }
-    return isSuccess;
   }
 
+  /// Apple hesabı ile giriş. Sonuç: [SocialSignInResult].
   Future<int> signInWithApple() async {
-    int isSuccess = 2;
     try {
       final rawNonce = generateNonce();
-      final nonce = sha256ofString(rawNonce);
-      final credential = await SignInWithApple.getAppleIDCredential(
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
-        nonce: nonce,
+        nonce: sha256ofString(rawNonce),
       );
 
-      final AuthCredential appleAuthCredential = OAuthProvider('apple.com')
-          .credential(
-            idToken: credential.identityToken,
-            rawNonce: rawNonce,
-            accessToken: credential.authorizationCode,
-          );
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
+      );
+      final userCredential = await firebaseAuth.signInWithCredential(
+        oauthCredential,
+      );
+      await analyticService.appleLoginSuccess();
 
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(appleAuthCredential);
-
-      if (userCredential.user != null) {
-        await analyticService.appleLoginSuccess();
-        final String uid = userCredential.user!.uid;
-
-        /// isUserDataExist true ise bu kullanıcı db'ye kaydedilmiş demektir
-        final bool isUserDataExist = await databaseService
-            .getAdminBasicInfoFromRealTime(uid);
-
-        if (!isUserDataExist) {
-          final Map<String, dynamic>? profile =
-              userCredential.additionalUserInfo?.profile;
-
-          final String? fullName = (credential.givenName != null)
-              ? '${credential.givenName} ${credential.familyName}'
-              : userCredential.user?.displayName;
-
-          await databaseService
-              .addUserToRealTime(
-                MeowUserModel(
-                  uid: uid,
-                  userName: fullName,
-                  userEmail: profile!['email'] ?? "",
-                  createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
-                ),
-              )
-              .then((v) async {
-                await databaseService.getAdminBasicInfoFromRealTime(uid);
-              });
-          isSuccess = 1;
-        } else {
-          isSuccess = 0;
-        }
-      } else {
-        isSuccess = 2;
-        debugPrint("User bulunamadı.");
+      // Apple adı yalnızca ilk girişte verir; null parçaları atla.
+      final nameParts = [
+        appleCredential.givenName,
+        appleCredential.familyName,
+      ].whereType<String>().where((p) => p.trim().isNotEmpty);
+      return await _completeSocialSignIn(
+        userCredential,
+        displayName: nameParts.isEmpty ? null : nameParts.join(' '),
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return SocialSignInResult.cancelled;
       }
+      return _socialSignInFailed(
+        analyticService.appleLoginFailed,
+        '${e.code.name}: ${e.message}',
+      );
     } catch (e) {
-      await analyticService.appleLoginFailed(e.toString());
-      isSuccess = 2;
-      customSnackBar.warning("Failed to login");
-      debugPrint("Hata: $e");
-
-      if (e is PlatformException) {
-        debugPrint("PlatformException: ${e.message}");
-        debugPrint("Details: ${e.details}");
-      }
+      return _socialSignInFailed(analyticService.appleLoginFailed, '$e');
     }
-    return isSuccess;
   }
 
-  /// Generates a cryptographically secure random nonce, to be included in a
-  /// credential request.
+  /// Sosyal girişlerin ortak devamı: profil yoksa oluştur, silinmiş hesabı
+  /// içeri alma.
+  Future<int> _completeSocialSignIn(
+    UserCredential userCredential, {
+    String? displayName,
+  }) async {
+    final user = userCredential.user;
+    if (user == null) {
+      customSnackBar.warning("Failed to login");
+      return SocialSignInResult.failed;
+    }
+
+    if (await databaseService.getAdminBasicInfoFromRealTime(user.uid)) {
+      if (currentMeowUser?.status == 1) {
+        customSnackBar.warning("This account is deleted permanently");
+        await logoutFromFirebase();
+        return SocialSignInResult.failed;
+      }
+      return SocialSignInResult.existingUser;
+    }
+
+    final profile = userCredential.additionalUserInfo?.profile;
+    await databaseService.addUserToRealTime(
+      MeowUserModel(
+        uid: user.uid,
+        userEmail: (profile?['email'] as String?) ?? user.email ?? '',
+        userName:
+            displayName ?? (profile?['name'] as String?) ?? user.displayName,
+        createDateTimeStamp: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    await databaseService.getAdminBasicInfoFromRealTime(user.uid);
+    return SocialSignInResult.newUser;
+  }
+
+  Future<int> _socialSignInFailed(
+    Future<void> Function(String) logFailure,
+    String error,
+  ) async {
+    debugPrint("Social sign-in failed: $error");
+    await logFailure(error);
+    customSnackBar.warning("Failed to login");
+    return SocialSignInResult.failed;
+  }
+
+  /// Apple girişi için kriptografik olarak güvenli rastgele nonce.
   String generateNonce([int length = 32]) {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
@@ -359,16 +330,16 @@ class AuthenticationService {
     ).join();
   }
 
-  String sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
+  String sha256ofString(String input) =>
+      sha256.convert(utf8.encode(input)).toString();
 
-  String findUserProvider() {
-    return getUser()!.providerData.first.providerId;
+  /// Oturumdaki kullanıcının giriş sağlayıcısı ('password', 'google.com',
+  /// 'apple.com'); oturum yoksa null.
+  String? findUserProvider() {
+    final providers = getUser()?.providerData;
+    if (providers == null || providers.isEmpty) return null;
+    return providers.first.providerId;
   }
 }
 
-// Singleton instance
 final AuthenticationService authenticationService = AuthenticationService();

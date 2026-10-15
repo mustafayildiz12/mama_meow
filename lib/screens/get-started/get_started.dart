@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -50,8 +48,15 @@ class _GetStartedPageState extends State<GetStartedPage>
   int get _pageCount => _slides.length + 1;
   bool get _isLastPage => _page == _pageCount - 1;
 
+  static const _overlayStyle = SystemUiOverlayStyle(
+    statusBarColor: AppColors.pink100,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+  );
+
   @override
   void initState() {
+    super.initState();
     analyticService.screenView('get_started_screen');
     _controller = AnimationController(
       vsync: this,
@@ -62,15 +67,6 @@ class _GetStartedPageState extends State<GetStartedPage>
       begin: 0,
       end: -20,
     ).chain(CurveTween(curve: Curves.easeInOut)).animate(_controller);
-
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: AppColors.pink100,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
-    );
-    super.initState();
   }
 
   @override
@@ -106,98 +102,103 @@ class _GetStartedPageState extends State<GetStartedPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.pink100, // pink-100
-              AppColors.purple50, // purple-50
-              AppColors.blue100,
-            ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _overlayStyle,
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.pink100, // pink-100
+                AppColors.purple50, // purple-50
+                AppColors.blue100,
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Skip -> doğrudan kayıt akışına geç.
-              Align(
-                alignment: Alignment.centerRight,
-                child: AnimatedOpacity(
-                  opacity: _isLastPage ? 0 : 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: TextButton(
-                    onPressed: _isLastPage ? null : _startGetStarted,
-                    child: const Text(
-                      "Skip",
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ),
-                ),
-              ),
-
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _pageCount,
-                  onPageChanged: (i) => setState(() => _page = i),
-                  itemBuilder: (context, index) {
-                    if (index == 0) return _buildHeroPage();
-                    return _buildValuePage(_slides[index - 1]);
-                  },
-                ),
-              ),
-
-              // Sayfa noktaları
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pageCount, (i) {
-                  final active = i == _page;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: active ? 22 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: active ? AppColors.pink500 : Colors.pink.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppColors.pink400,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Skip -> doğrudan kayıt akışına geç.
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: AnimatedOpacity(
+                    opacity: _isLastPage ? 0 : 1,
+                    duration: const Duration(milliseconds: 200),
+                    child: TextButton(
+                      onPressed: _isLastPage ? null : _startGetStarted,
+                      child: const Text(
+                        "Skip",
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
                       ),
-                      shadowColor: Colors.pinkAccent,
-                      elevation: 8,
-                    ),
-                    onPressed: _onNext,
-                    child: Text(
-                      _isLastPage ? "Get Started 😸" : "Next",
-                      style: const TextStyle(fontSize: 18),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Made with ❤️ for families",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-            ],
+
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: _pageCount,
+                    onPageChanged: (i) => setState(() => _page = i),
+                    itemBuilder: (context, index) {
+                      if (index == 0) return _buildHeroPage();
+                      return _buildValuePage(_slides[index - 1]);
+                    },
+                  ),
+                ),
+
+                // Sayfa noktaları
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_pageCount, (i) {
+                    final active = i == _page;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: active ? 22 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? AppColors.pink500
+                            : Colors.pink.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 20),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppColors.pink400,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        shadowColor: Colors.pinkAccent,
+                        elevation: 8,
+                      ),
+                      onPressed: _onNext,
+                      child: Text(
+                        _isLastPage ? "Get Started 😸" : "Next",
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Made with ❤️ for families",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),
@@ -223,7 +224,7 @@ class _GetStartedPageState extends State<GetStartedPage>
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
+                  colors: [AppColors.pink200, AppColors.pink300],
                 ),
                 boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
               ),
@@ -270,7 +271,7 @@ class _GetStartedPageState extends State<GetStartedPage>
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: [Color(0xFFFBCFE8), Color(0xFFF9A8D4)],
+                colors: [AppColors.pink200, AppColors.pink300],
               ),
               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
             ),
@@ -300,11 +301,6 @@ class _GetStartedPageState extends State<GetStartedPage>
         ],
       ),
     );
-  }
-
-  void launchUrl(String url) {
-    // You can use url_launcher or another package
-    debugPrint('Launching: \$url');
   }
 }
 

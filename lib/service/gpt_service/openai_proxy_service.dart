@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 
 /// OpenAI çağrılarını Firebase Cloud Functions proxy'sine yönlendiren tek katman.
 ///
@@ -16,7 +16,7 @@ class OpenAiProxyService {
   // Varsayılan bölge us-central1 — fonksiyonların dağıtıldığı bölgeyle eşleşir.
   final FirebaseFunctions _fns = FirebaseFunctions.instance;
 
-  static const Duration _timeout = Duration(seconds: 60);
+  static const Duration _defaultTimeout = Duration(seconds: 60);
 
   /// Sohbet (chat completions) proxy'si. Ham asistan içeriği string'ini döner.
   ///
@@ -26,29 +26,38 @@ class OpenAiProxyService {
   /// gerçek sebep (örn. `not-found` = fonksiyon deploy edilmemiş,
   /// `unauthenticated`, `resource-exhausted` = günlük kota, `unavailable`)
   /// görünür olur.
+  ///
+  /// [responseFormat] OpenAI `response_format` olarak iletilir (ör.
+  /// `{'type': 'json_object'}`); [timeout] verilmezse 60 sn.
   Future<String> chat({
     required List<Map<String, dynamic>> messages,
     required String model,
     required int maxTokens,
     required double temperature,
     Map<String, dynamic>? responseFormat,
+    Duration? timeout,
   }) async {
     try {
       final callable = _fns.httpsCallable(
         'openaiChat',
-        options: HttpsCallableOptions(timeout: _timeout),
+        options: HttpsCallableOptions(timeout: timeout ?? _defaultTimeout),
       );
       final res = await callable.call<Map<String, dynamic>>({
         'messages': messages,
         'model': model,
         'maxTokens': maxTokens,
         'temperature': temperature,
-        if (responseFormat != null) 'responseFormat': responseFormat,
+        'responseFormat': ?responseFormat,
       });
       return (res.data['content'] as String?) ?? '';
     } on FirebaseFunctionsException catch (e, st) {
-      _reportCallableError('openaiChat', e, st,
-          code: e.code, details: e.details);
+      _reportCallableError(
+        'openaiChat',
+        e,
+        st,
+        code: e.code,
+        details: e.details,
+      );
       rethrow;
     } catch (e, st) {
       _reportCallableError('openaiChat', e, st);
@@ -66,25 +75,31 @@ class OpenAiProxyService {
     String? language,
     String? prompt,
     double? temperature,
+    Duration? timeout,
   }) async {
     try {
       final callable = _fns.httpsCallable(
         'openaiTranscribe',
-        options: HttpsCallableOptions(timeout: _timeout),
+        options: HttpsCallableOptions(timeout: timeout ?? _defaultTimeout),
       );
       final res = await callable.call<Map<String, dynamic>>({
         'audioBase64': base64Encode(audioBytes),
         'filename': filename,
         'mimeType': mimeType,
         'model': model,
-        if (language != null) 'language': language,
-        if (prompt != null) 'prompt': prompt,
-        if (temperature != null) 'temperature': temperature,
+        'language': ?language,
+        'prompt': ?prompt,
+        'temperature': ?temperature,
       });
       return (res.data['text'] as String?) ?? '';
     } on FirebaseFunctionsException catch (e, st) {
-      _reportCallableError('openaiTranscribe', e, st,
-          code: e.code, details: e.details);
+      _reportCallableError(
+        'openaiTranscribe',
+        e,
+        st,
+        code: e.code,
+        details: e.details,
+      );
       rethrow;
     } catch (e, st) {
       _reportCallableError('openaiTranscribe', e, st);
@@ -108,12 +123,15 @@ class OpenAiProxyService {
       error: error,
       stackTrace: st,
     );
-    FirebaseCrashlytics.instance.recordError(
-      error,
-      st,
-      reason: 'OpenAiProxyService.$fn (code=$code)',
-      fatal: false,
-    );
+    if (kIsWeb) return; // Crashlytics web'i desteklemiyor.
+    FirebaseCrashlytics.instance
+        .recordError(
+          error,
+          st,
+          reason: 'OpenAiProxyService.$fn (code=$code)',
+          fatal: false,
+        )
+        .catchError((Object _) {});
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 
 class TermsAndPrivacyModal extends StatefulWidget {
   const TermsAndPrivacyModal({super.key});
@@ -35,7 +36,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFEC4899),
+                          color: AppColors.pink500,
                         ),
                       ),
                       SizedBox(height: 8),
@@ -53,7 +54,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   '📋 Terms of Use',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFEC4899),
+                    color: AppColors.pink500,
                     fontSize: 16,
                   ),
                 ),
@@ -61,9 +62,9 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFF1F5),
+                    color: AppColors.pink50,
                     border: Border(
-                      left: BorderSide(color: Color(0xFFF472B6), width: 4),
+                      left: BorderSide(color: AppColors.pink400, width: 4),
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -103,7 +104,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   '🔒 Privacy Policy',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFEC4899),
+                    color: AppColors.pink500,
                     fontSize: 16,
                   ),
                 ),
@@ -111,9 +112,9 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFF1F5),
+                    color: AppColors.pink50,
                     border: Border(
-                      left: BorderSide(color: Color(0xFFF472B6), width: 4),
+                      left: BorderSide(color: AppColors.pink400, width: 4),
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -151,7 +152,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   children: [
                     Checkbox(
                       value: agreedToTerms,
-                      activeColor: Color(0xFFEC4899),
+                      activeColor: AppColors.pink500,
                       onChanged: (val) => setState(() => agreedToTerms = val!),
                     ),
                     const Expanded(child: Text('I agree to the Terms of Use')),
@@ -161,7 +162,7 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                   children: [
                     Checkbox(
                       value: agreedToPrivacy,
-                      activeColor: Color(0xFFEC4899),
+                      activeColor: AppColors.pink500,
                       onChanged: (val) =>
                           setState(() => agreedToPrivacy = val!),
                     ),
@@ -190,10 +191,10 @@ class _TermsAndPrivacyModalState extends State<TermsAndPrivacyModal> {
                               }
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFF472B6),
-                          disabledBackgroundColor: const Color(
-                            0xFFF472B6,
-                          ).withValues(alpha: 0.5),
+                          backgroundColor: AppColors.pink400,
+                          disabledBackgroundColor: AppColors.pink400.withValues(
+                            alpha: 0.5,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

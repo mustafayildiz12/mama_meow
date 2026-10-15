@@ -1,18 +1,17 @@
 import 'dart:convert';
-import 'package:mama_meow/service/gpt_service/openai_proxy_service.dart';
 
-import 'package:mama_meow/constants/app_constants.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
-import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_page.dart';
+import 'package:mama_meow/models/ai_models/ai_report_insight.dart';
+import 'package:mama_meow/service/gpt_service/common/ai_common.dart';
+import 'package:mama_meow/utils/date_range.dart';
+
+/// Uyku raporu AI cevabı (ortak model).
+typedef SleepAiInsight = AiReportInsight;
+typedef SleepAiSource = AiSource;
 
 class SleepAIService {
-  final String? _babyName = currentMeowUser?.babyName;
-  final String? _babyAgeKey = currentMeowUser?.ageRange;
-
-  // OpenAI uç noktası/anahtarı/timeout artık proxy'de (openAiProxyService).
-
-  static final String _systemPrompt = r'''
-You are "Coo Care Baby Tracker" 🐱, an evidence-informed baby sleep report assistant.
+  static const String _systemPrompt = '''
+You are "Coo Care Baby Tracker", an evidence-informed baby sleep report assistant.
 
 GOAL
 - You will receive a REDUCED, PRE-COMPUTED JSON summary of sleep data for the selected interval.
@@ -21,6 +20,7 @@ GOAL
 IMPORTANT (NO MATH)
 - Do NOT recalculate totals or averages.
 - Treat numbers as ground truth. Focus on interpretation.
+- "totalSessions" counts sleeps; a sleep that crossed midnight is already merged into one session.
 
 STYLE
 - English
@@ -36,129 +36,41 @@ SAFETY
 - If red flags are implied, mention gently and recommend consulting a pediatrician.
 - Always include: "Not medical advice."
 
-OUTPUT FORMAT (STRICT JSON ONLY, NO EXTRA TEXT)
-{
-  "ai_title": "string",
-  "ai_summary_bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4"],
-  "patterns": ["pattern 1", "pattern 2", "pattern 3"],
-  "watch_outs": ["watch out 1", "watch out 2"],
-  "action_plan": ["action 1", "action 2", "action 3", "action 4"],
-  "confidence_note": "string (1 short line about data limits)",
-  "disclaimer": "string (include Not medical advice...)",
-  "computed_flags": {"fast_falling_asleep": true},
-  "computed_numbers": {"avg_fall_asleep_minutes": 20, "avg_sleep_minutes": 95},
-  "sources": [{"title":"string","publisher":"string","url":"https://...","year":2023}],
-  "last_updated": "YYYY-MM-DD"
-}
-''';
-
-  String _buildPersonalization() {
-    if (_babyName == null && _babyAgeKey == null) return '';
-    final map = <String, String>{
-      'newborn': '0-3 months old',
-      'infant': '3-12 months old',
-      'toddler': '1-3 years old',
-      'preschool': '3-5 years old',
-      'school': '5+ years old',
-      'expecting': 'expecting (not born yet)',
-    };
-    final ageText = _babyAgeKey != null ? (map[_babyAgeKey] ?? _babyAgeKey) : null;
-
-    if (_babyName != null && ageText != null) {
-      return "\n\nIMPORTANT PERSONALIZATION: The baby's name is $_babyName and age range is $ageText. Use the baby's name naturally (optional).";
-    } else if (_babyName != null) {
-      return "\n\nIMPORTANT PERSONALIZATION: The baby's name is $_babyName. Use the baby's name naturally (optional).";
-    } else {
-      return "\n\nIMPORTANT PERSONALIZATION: Baby age range is $ageText. Tailor suggestions gently to age.";
-    }
-  }
+$kAiReportOutputFormat''';
 
   Future<SleepAiInsight?> analyzeSleepReport({
-    required SleepReportMode mode,
+    required ReportPeriod mode,
     required String rangeLabel,
     required List<SleepModel> sleeps,
     List<String> notes = const [],
-    int maxTokens = 650,
+    int maxTokens = kMaxAiTokens,
     double temperature = 0.4,
-  }) async {
-    try {
-      final system = '$_systemPrompt${_buildPersonalization()}';
-
-      // ✅ REDUCED JSON payload (pre-computed)
-      final payload = SleepAiCompute.buildPayload(
-        sleeps: sleeps,
-        babyName: _babyName,
-        babyAgeRange: _babyAgeKey,
-        notes: notes,
-      );
-
-      final userText = _buildUserPromptAsJson(
-        mode: mode,
-        rangeLabel: rangeLabel,
-        payload: payload,
-      );
-
-      final raw = await openAiProxyService.chat(
-        messages: [
-          {"role": "system", "content": system},
-          {
-            "role": "user",
-            "content": [
-              {"type": "text", "text": userText},
-            ],
-          },
-        ],
-        model: askMiaModel,
-        maxTokens: maxTokens,
-        temperature: temperature,
-      );
-
-      if (raw.trim().isEmpty) return null;
-
-      final cleaned = _stripJsonFences(raw);
-      final map = jsonDecode(cleaned) as Map<String, dynamic>;
-      return SleepAiInsight.fromMap(map);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String _buildUserPromptAsJson({
-    required SleepReportMode mode,
-    required String rangeLabel,
-    required SleepAiPayload payload,
   }) {
-    final modeText = switch (mode) {
-      SleepReportMode.today => "daily",
-      SleepReportMode.week => "weekly",
-      SleepReportMode.month => "monthly",
-    };
-
-    final obj = <String, dynamic>{
-      "reportMode": modeText,
-      "rangeLabel": rangeLabel,
-      "payload": payload.toMap(),
-    };
-
-    // ✅ AI'ya düz JSON veriyoruz (koca liste değil)
-    return jsonEncode(obj);
-  }
-
-  String _stripJsonFences(String s) {
-    var t = s.trim();
-    if (t.startsWith('```')) {
-      t = t.replaceAll(RegExp(r'^```[a-zA-Z]*\s*'), '');
-      t = t.replaceAll(RegExp(r'\s*```$'), '');
-    }
-    return t.trim();
+    return requestAiReport(
+      tag: 'sleepReport',
+      systemPrompt: '$_systemPrompt${babyPersonalization()}',
+      // ✅ REDUCED JSON payload (pre-computed)
+      buildUserContent: () => jsonEncode({
+        'reportMode': reportPeriodLabel(mode),
+        'rangeLabel': rangeLabel,
+        'payload': SleepAiCompute.buildPayload(
+          sleeps: sleeps,
+          babyName: currentBabyName,
+          babyAgeRange: currentBabyAgeRange,
+          notes: notes,
+        ).toMap(),
+      }),
+      maxTokens: maxTokens,
+      temperature: temperature,
+    );
   }
 }
-
 
 class SleepAiPayload {
   final String? babyName;
   final String? babyAgeRange;
 
+  /// Gece yarısında bölünmüş kayıtlar birleştirilmiş uyku sayısı.
   final int totalSessions;
 
   /// computed basic sleep duration
@@ -179,14 +91,14 @@ class SleepAiPayload {
   });
 
   Map<String, dynamic> toMap() => {
-        "babyName": babyName,
-        "babyAgeRange": babyAgeRange,
-        "totalSessions": totalSessions,
-        "totalSleepMinutes": totalSleepMinutes,
-        "avgSleepMinutes": avgSleepMinutes,
-        "stats": stats.toMap(),
-        "notes": notes,
-      };
+    "babyName": babyName,
+    "babyAgeRange": babyAgeRange,
+    "totalSessions": totalSessions,
+    "totalSleepMinutes": totalSleepMinutes,
+    "avgSleepMinutes": avgSleepMinutes,
+    "stats": stats.toMap(),
+    "notes": notes,
+  };
 }
 
 class SleepAiStats {
@@ -197,7 +109,7 @@ class SleepAiStats {
   final Map<String, int> moodAtWakeUp;
 
   /// fall-asleep time analysis
-  final String avgFallAsleepTimeLabel; // "under 10 min", "10-30 min"...
+  final String avgFallAsleepTimeLabel; // "under 10 min", "10-30 min", ">30 min"
   final int avgFallAsleepMinutes; // computed numeric average
   final bool fastFallingAsleep; // derived flag
 
@@ -210,12 +122,12 @@ class SleepAiStats {
   });
 
   Map<String, dynamic> toMap() => {
-        "methodPreference": methodPreference,
-        "moodAtWakeUp": moodAtWakeUp,
-        "avgFallAsleepTime": avgFallAsleepTimeLabel,
-        "avgFallAsleepMinutes": avgFallAsleepMinutes,
-        "fastFallingAsleep": fastFallingAsleep,
-      };
+    "methodPreference": methodPreference,
+    "moodAtWakeUp": moodAtWakeUp,
+    "avgFallAsleepTime": avgFallAsleepTimeLabel,
+    "avgFallAsleepMinutes": avgFallAsleepMinutes,
+    "fastFallingAsleep": fastFallingAsleep,
+  };
 }
 
 /// --- Map/Reduce helpers ---
@@ -228,47 +140,38 @@ class SleepAiCompute {
   }) {
     final methodPref = <String, int>{};
     final moodWake = <String, int>{};
-
-    int totalSleepMin = 0;
-
-    // fall asleep time minutes list (startOfSleep -> numeric weights)
     final fallAsleepMinutesList = <int>[];
+    var totalSleepMin = 0;
 
-    for (final s in sleeps) {
-      // howItHappened freq
+    // Gece yarısında ikiye bölünmüş kayıtlar tek uyku sayılır; aksi halde
+    // gece uykuları ortalamayı yarıya düşürür ve etiketler iki kez sayılır.
+    final sessions = mergeSleepSessions(sleeps);
+
+    for (final session in sessions) {
+      final s = session.first; // etiketler parçalarda aynı
+
       final how = _canonicalHowItHappened(s.howItHappened);
-      if (how != null) {
-        methodPref[how] = (methodPref[how] ?? 0) + 1;
-      }
+      if (how != null) methodPref[how] = (methodPref[how] ?? 0) + 1;
 
-      // mood at wake-up (endOfSleep)
-      final mood = _canonicalMood(s.endOfSleep);
-      if (mood != null) {
-        moodWake[mood] = (moodWake[mood] ?? 0) + 1;
-      }
+      final mood = _canonicalMood(session.last.endOfSleep);
+      if (mood != null) moodWake[mood] = (moodWake[mood] ?? 0) + 1;
 
-      // duration (startTime/endTime)
-      final dur = _durationMinutes(s.sleepDate, s.startTime, s.endTime);
-      if (dur > 0) totalSleepMin += dur;
+      totalSleepMin += session.durationMinutes;
 
-      // startOfSleep -> numeric
       final fallMin = _startOfSleepToMinutes(s.startOfSleep);
       if (fallMin != null) fallAsleepMinutesList.add(fallMin);
     }
 
-    final totalSessions = sleeps.length;
-    final avgSleepMinutes =
-        totalSessions == 0 ? 0 : (totalSleepMin / totalSessions).round();
+    final totalSessions = sessions.length;
+    final avgSleepMinutes = totalSessions == 0
+        ? 0
+        : (totalSleepMin / totalSessions).round();
 
     final avgFallMin = fallAsleepMinutesList.isEmpty
         ? 0
         : (fallAsleepMinutesList.reduce((a, b) => a + b) /
-                fallAsleepMinutesList.length)
-            .round();
-
-    final avgFallLabel = _minutesToFallAsleepLabel(avgFallMin);
-    final fastFalling =
-        (fallAsleepMinutesList.isNotEmpty) ? (avgFallMin <= 20) : false;
+                  fallAsleepMinutesList.length)
+              .round();
 
     return SleepAiPayload(
       babyName: babyName,
@@ -279,62 +182,37 @@ class SleepAiCompute {
       stats: SleepAiStats(
         methodPreference: methodPref,
         moodAtWakeUp: moodWake,
-        avgFallAsleepTimeLabel: avgFallLabel,
+        avgFallAsleepTimeLabel: _minutesToFallAsleepLabel(avgFallMin),
         avgFallAsleepMinutes: avgFallMin,
-        fastFallingAsleep: fastFalling,
+        fastFallingAsleep: fallAsleepMinutesList.isNotEmpty && avgFallMin <= 20,
       ),
       notes: notes,
     );
   }
 
-  static int _durationMinutes(String sleepDate, String startHHmm, String endHHmm) {
-    DateTime? combine(String dateStr, String hhmm) {
-      try {
-        // sleepDate bazen "yyyy-MM-dd ..." gibi geliyor, ilk parçayı al
-        final dateOnly = dateStr.split(' ').first;
-        final ymd = DateTime.parse(dateOnly); // yyyy-MM-dd
-        final p = hhmm.split(':');
-        final h = int.tryParse(p[0]) ?? 0;
-        final m = int.tryParse(p.length > 1 ? p[1] : '0') ?? 0;
-        return DateTime(ymd.year, ymd.month, ymd.day, h, m);
-      } catch (_) {
-        return null;
-      }
-    }
-
-    final start = combine(sleepDate, startHHmm);
-    var end = combine(sleepDate, endHHmm);
-    if (start == null || end == null) return 0;
-
-    // gece sarkması
-    if (end.isBefore(start)) end = end.add(const Duration(days: 1));
-    final diff = end.difference(start).inMinutes;
-    return diff < 0 ? 0 : diff;
-  }
+  /// add_sleep_bottom_sheet.dart `SleepOptions.howItHappenedOptions` birebir.
+  static const Map<String, String> _howItHappenedKeys = {
+    'nursing': 'nursing',
+    'on own in bed': 'on_own',
+    'warm or health': 'warm_or_health',
+    'next to caregiver': 'next_to_caregiver',
+    'co-sleep': 'co_sleep',
+    'bottle': 'bottle',
+    'stroller': 'stroller',
+    'car': 'car_ride',
+    'swing': 'swing',
+  };
 
   static String? _canonicalHowItHappened(String? raw) {
     final s = (raw ?? '').trim().toLowerCase();
     if (s.isEmpty) return null;
-
-    // burada senin app’teki stringlere göre genişlet
-    if (s.contains('own') || s.contains('self') || s.contains('on_own')) {
-      return 'on_own';
-    }
-    if (s.contains('stroller')) return 'stroller';
-    if (s.contains('nursing') || s.contains('breast')) return 'nursing';
-    if (s.contains('rock') || s.contains('rocking')) return 'rocking';
-    if (s.contains('carrier')) return 'carrier';
-    if (s.contains('car')) return 'car_ride';
-
-    // bilinmeyenleri normalize edip anahtar yapalım:
-    return s.replaceAll(' ', '_');
+    return _howItHappenedKeys[s] ?? s.replaceAll(' ', '_');
   }
 
   static String? _canonicalMood(String? raw) {
     final s = (raw ?? '').trim().toLowerCase();
     if (s.isEmpty) return null;
 
-    // örnek canonical
     if (s.contains('content') || s.contains('happy') || s.contains('calm')) {
       return 'content';
     }
@@ -346,27 +224,36 @@ class SleepAiCompute {
     return s.replaceAll(' ', '_');
   }
 
-  /// startOfSleep -> numeric weight
-  /// "under 10 min" -> 10
-  /// "10-30 min" -> 20
-  /// "30-60 min" -> 45
-  /// "over 60 min" -> 75
+  /// startOfSleep → dakika ağırlığı. Seçenekler (SleepOptions):
+  /// "under 10 min to fall asleep" → 10, "10-30 min" → 20,
+  /// "more than 30 min" → 45. Ruh hali seçenekleri (upset/crying/content)
+  /// süre değildir → null.
   static int? _startOfSleepToMinutes(String? raw) {
     final s = (raw ?? '').trim().toLowerCase();
     if (s.isEmpty) return null;
 
-    if (s.contains('under') && s.contains('10')) return 10;
-    if (s.contains('10') && s.contains('30')) return 20;
-    if (s.contains('30') && s.contains('60')) return 45;
-    if (s.contains('over') && s.contains('60')) return 75;
+    switch (s) {
+      case 'under 10 min to fall asleep':
+        return 10;
+      case '10-30 min':
+        return 20;
+      case 'more than 30 min':
+        return 45;
+      case 'upset':
+      case 'crying':
+      case 'content':
+        return null;
+    }
 
-    // bazen "15 min" gibi gelebilir
+    // Eski/serbest metinler için yedek kurallar
+    if (s.contains('under') && s.contains('10')) return 10;
+    if (s.contains('more than') || s.contains('over')) return 45;
+    if (s.contains('10') && s.contains('30')) return 20;
     final numMatch = RegExp(r'(\d{1,3})').firstMatch(s);
     if (numMatch != null) {
       final n = int.tryParse(numMatch.group(1)!);
       if (n != null && n > 0 && n < 300) return n;
     }
-
     return null;
   }
 
@@ -374,106 +261,6 @@ class SleepAiCompute {
     if (minutes <= 0) return "not enough data";
     if (minutes <= 10) return "under 10 min";
     if (minutes <= 30) return "10-30 min";
-    if (minutes <= 60) return "30-60 min";
-    return "over 60 min";
+    return ">30 min";
   }
 }
-
-class SleepAiInsight {
-  final String aiTitle;
-  final List<String> aiSummaryBullets;
-  final List<String> patterns;
-  final List<String> watchOuts;
-  final List<String> actionPlan;
-  final String confidenceNote;
-  final String disclaimer;
-  final List<SleepAiSource> sources;
-  final String lastUpdated;
-
-  // ✅ NEW (optional)
-  final Map<String, dynamic>? computedFlags;
-  final Map<String, dynamic>? computedNumbers;
-
-  SleepAiInsight({
-    required this.aiTitle,
-    required this.aiSummaryBullets,
-    required this.patterns,
-    required this.watchOuts,
-    required this.actionPlan,
-    required this.confidenceNote,
-    required this.disclaimer,
-    required this.sources,
-    required this.lastUpdated,
-    this.computedFlags,
-    this.computedNumbers,
-  });
-
-  factory SleepAiInsight.fromMap(Map<String, dynamic> m) {
-    List<String> ls(String key) {
-      final v = m[key];
-      if (v is List) {
-        return v
-            .map((e) => (e ?? '').toString())
-            .where((s) => s.trim().isNotEmpty)
-            .toList();
-      }
-      return const [];
-    }
-
-    final src = (m['sources'] is List) ? (m['sources'] as List) : const [];
-    final sources = src
-        .whereType<Map>()
-        .map((e) => SleepAiSource.fromMap(e.cast<String, dynamic>()))
-        .toList();
-
-    return SleepAiInsight(
-      aiTitle: (m['ai_title'] ?? '').toString(),
-      aiSummaryBullets: ls('ai_summary_bullets'),
-      patterns: ls('patterns'),
-      watchOuts: ls('watch_outs'),
-      actionPlan: ls('action_plan'),
-      confidenceNote: (m['confidence_note'] ?? '').toString(),
-      disclaimer: (m['disclaimer'] ?? '').toString(),
-      sources: sources,
-      lastUpdated: (m['last_updated'] ?? '').toString(),
-      computedFlags: (m['computed_flags'] is Map)
-          ? (m['computed_flags'] as Map).cast<String, dynamic>()
-          : null,
-      computedNumbers: (m['computed_numbers'] is Map)
-          ? (m['computed_numbers'] as Map).cast<String, dynamic>()
-          : null,
-    );
-  }
-}
-
-class SleepAiSource {
-  final String title;
-  final String publisher;
-  final String url;
-  final int? year;
-
-  SleepAiSource({
-    required this.title,
-    required this.publisher,
-    required this.url,
-    required this.year,
-  });
-
-  factory SleepAiSource.fromMap(Map<String, dynamic> m) {
-    final y = m['year'];
-    return SleepAiSource(
-      title: (m['title'] ?? '').toString(),
-      publisher: (m['publisher'] ?? '').toString(),
-      url: (m['url'] ?? '').toString(),
-      year: (y is num) ? y.toInt() : int.tryParse((y ?? '').toString()),
-    );
-  }
-
-  Map<String, dynamic> toMap() => {
-        "title": title,
-        "publisher": publisher,
-        "url": url,
-        "year": year,
-      };
-}
-

@@ -1,27 +1,31 @@
-// ignore_for_file: use_build_context_synchronously
-
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/models/activities/medicine_model.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/medicine/add_medicine_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_compute.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/medicine_report_pdf_builder.dart';
-import 'package:mama_meow/service/analytic_service.dart';
-import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_helpers.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_widgets.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
+import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/medicine_ai_service.dart';
-import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
-import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
-import 'package:mama_meow/service/review_service.dart';
+import 'package:mama_meow/utils/date_range.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/models/activities/medicine_model.dart';
-import 'package:mama_meow/service/activities/medicine_service.dart';
+// Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
+typedef MedicineReportMode = ReportPeriod;
 
-// GlassSegmented'i kendi dosyandan import et.
-enum MedicineReportMode { today, week, month }
+const _chartColor = Color(0xFF059669);
+
+final _palette = ReportPalette(
+  tint: const Color(0xFFb5e2d6),
+  badge: const Color(0xFFa8d5ba),
+  segmentFill: const Color(0xFFA8E6CF),
+  segmentBackground: Colors.white.withValues(alpha: 0.8),
+  segmentActiveForeground: Colors.white.withValues(alpha: 0.9),
+);
 
 class MedicineReportPage extends StatefulWidget {
   const MedicineReportPage({super.key});
@@ -29,278 +33,109 @@ class MedicineReportPage extends StatefulWidget {
   State<MedicineReportPage> createState() => _MedicineReportPageState();
 }
 
-class _MedicineReportPageState extends State<MedicineReportPage> {
-  MedicineReportMode _mode = MedicineReportMode.today;
-  late Future<List<MedicineModel>> _future;
-
-  List<MedicineModel>? _cachedMedicines;
-  MedicineReportComputed? _cachedComputed;
-  MedicineReportMode? _cachedMode;
-
-  bool isLoading = false;
-
+class _MedicineReportPageState extends State<MedicineReportPage>
+    with
+        ReportPageMixin<
+          MedicineReportPage,
+          MedicineModel,
+          MedicineReportComputed
+        > {
   @override
   void initState() {
-    analyticService.screenView('medicine_report_page');
-    _future = _fetchByMode(_mode);
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFF8FAFC),
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
-    );
     super.initState();
+    initReport('medicine_report_page');
   }
 
-  void _clearCache() {
-    _cachedMedicines = null;
-    _cachedComputed = null;
-    _cachedMode = null;
-  }
-
-  MedicineReportComputed _getOrCompute(List<MedicineModel> medicines) {
-    if (_cachedComputed == null || _cachedMode != _mode) {
-      _cachedMedicines = medicines;
-      _cachedComputed = _computeMedicineReport(medicines);
-      _cachedMode = _mode;
-    }
-    return _cachedComputed!;
-  }
-
-  Future<List<MedicineModel>> _fetchByMode(MedicineReportMode mode) {
-    switch (mode) {
-      case MedicineReportMode.today:
+  @override
+  Future<List<MedicineModel>> fetchFor(ReportPeriod period) {
+    switch (period) {
+      case ReportPeriod.today:
         return medicineService.todayMedicines();
-      case MedicineReportMode.week:
+      case ReportPeriod.week:
         return medicineService.weekMedicines();
-      case MedicineReportMode.month:
+      case ReportPeriod.month:
         return medicineService.monthMedicines();
     }
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _future = _fetchByMode(_mode);
-      _clearCache();
-    });
-    await _future;
-  }
+  @override
+  MedicineReportComputed computeReport(List<MedicineModel> items) =>
+      MedicineReportComputed.fromMedicines(items);
 
-  String _rangeLabel(MedicineReportMode mode) {
-    final now = DateTime.now();
-    if (mode == MedicineReportMode.today) {
-      return DateFormat('EEEE, d MMM').format(now);
-    } else if (mode == MedicineReportMode.week) {
-      final s = now.startOfWeekTR, e = now.endOfWeekTR;
-      return "${DateFormat('d MMM').format(s)} – ${DateFormat('d MMM').format(e)}";
-    } else {
-      final s = now.startOfMonth, e = now.endOfMonth;
-      return "${DateFormat('MMM yyyy').format(s)} (1–${DateFormat('d').format(e)})";
-    }
-  }
+  Future<void> _exportPdf(BuildContext anchor) => exportPdf(
+    anchor,
+    filePrefix: 'medicine',
+    emptyMessage: 'No medicine data to export.',
+    shareText:
+        "My baby's medicine report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
+    buildPdf: (medicines, computed, period, label) async {
+      final ai = await MedicineAIService().analyze(
+        mode: period,
+        rangeLabel: label,
+        c: computed,
+      );
+      return MedicineReportPdfBuilder.build(
+        format: PdfPageFormat.a4,
+        mode: period,
+        rangeLabel: label,
+        medicines: medicines,
+        computed: computed,
+        ai: ai,
+      );
+    },
+  );
 
-  String _buildPdfFileName(MedicineReportMode mode) {
-    final now = DateTime.now();
-    switch (mode) {
-      case MedicineReportMode.today:
-        final d = DateFormat('dd_MM_yyyy').format(now);
-        return 'medicine_daily_$d.pdf';
-      case MedicineReportMode.week:
-        final start = now.startOfWeekTR;
-        final end = now.endOfWeekTR;
-        final a = DateFormat('dd_MM_yyyy').format(start);
-        final b = DateFormat('dd_MM_yyyy').format(end);
-        return 'medicine_weekly_${a}_$b.pdf';
-      case MedicineReportMode.month:
-        final m = DateFormat('MM_yyyy').format(now);
-        return 'medicine_monthly_$m.pdf';
-    }
+  Future<void> _addMedicine() async {
+    await showActivitySheet(
+      context,
+      (_) => AddMedicineBottomSheet(selectedDate: DateTime.now()),
+    );
+    if (mounted) await refreshReport();
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = authenticationService.getUser();
-    return CustomLoader(
-      inAsyncCall: isLoading,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-          ),
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            centerTitle: true,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.arrow_back_ios),
-                ),
-              ),
-            ),
-            title: const Text(
-              "💊  Medicine Reports",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              if (user != null) ...[
-                IconButton(
-                  icon: const Icon(
-                    Icons.picture_as_pdf,
-                    color: Color(0xFFA8E6CF),
-                  ),
-                  onPressed: () async {
-                    setState(() => isLoading = true);
-                    try {
-                      final medicines = _cachedMedicines ?? await _future;
-                      if (medicines.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('No medicine data to export.'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      final computed =
-                          (_cachedComputed != null && _cachedMode == _mode)
-                          ? _cachedComputed!
-                          : _computeMedicineReport(medicines);
-
-                      final ai = await MedicineAIService().analyze(
-                        mode: _mode,
-                        rangeLabel: _rangeLabel(_mode),
-                        c: computed,
-                      );
-
-                      final bytes = await MedicineReportPdfBuilder.build(
-                        format: PdfPageFormat.a4,
-                        mode: _mode,
-                        rangeLabel: _rangeLabel(_mode),
-                        medicines: medicines,
-                        computed: computed,
-                        ai: ai,
-                      );
-
-                      final filename = _buildPdfFileName(_mode);
-                      final filepath = await globalFunctions.downloadBytes(
-                        bytes,
-                        filename,
-                      );
-                      await globalFunctions.sharePdf(
-                        filepath,
-                        text:
-                            "My baby's medicine report from Coo Care Baby Tracker 🐾 ${globalFunctions.appInviteText()}",
-                      );
-                      await reviewService.recordPositiveMomentAndMaybeAsk();
-                    } catch (e) {
-                      customSnackBar.warning('PDF error: $e');
-                    } finally {
-                      setState(() => isLoading = false);
-                    }
-                  },
-                ),
-              ],
-            ],
-          ),
-          body: RefreshIndicator(
-            onRefresh: _refresh,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 12),
-                  child: Center(
-                    child: _GlassSegmented(
-                      value: _mode,
-                      onChanged: (m) => setState(() {
-                        _mode = m;
-                        _future = _fetchByMode(_mode);
-                        _clearCache();
-                      }),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: FutureBuilder<List<MedicineModel>>(
-                    future: _future,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const _LoadingView();
-                      }
-                      if (snapshot.hasError) {
-                        return _CenteredMessage(
-                          emoji: '⚠️',
-                          title: 'Something went wrong',
-                          subtitle:
-                              "We couldn't load this report. Pull to refresh and try again.",
-                        );
-                      }
-                      final medicines = snapshot.data ?? [];
-                      if (medicines.isEmpty) {
-                        return _CenteredMessage(
-                          emoji: '💊',
-                          title: 'No record found',
-                          subtitle:
-                              'You will see it here when you add medication for this period.',
-                          actionLabel: 'Add medicine',
-                          onAction: () => Navigator.pop(context),
-                        );
-                      }
-                      final computed = _getOrCompute(medicines);
-                      return _buildReportBody(context, medicines, computed);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return ReportScaffold<MedicineModel>(
+      title: "💊  Medicine Reports",
+      palette: _palette,
+      pdfIconColor: const Color(0xFFA8E6CF),
+      isLoading: exporting,
+      onExportPdf: _exportPdf,
+      onRefresh: refreshReport,
+      period: period,
+      onPeriodChanged: changePeriod,
+      future: future,
+      empty: CenteredMessage(
+        emoji: '💊',
+        title: 'No record found',
+        subtitle:
+            'You will see it here when you add medication for this period.',
+        actionLabel: 'Add medicine',
+        onAction: _addMedicine,
       ),
+      builder: (context, medicines) => _buildReportBody(computedFor(medicines)),
     );
   }
 
   // ---- RAPOR GÖVDESİ (seçili tarih aralığı) ----
-  Widget _buildReportBody(
-    BuildContext context,
-    List<MedicineModel> medicines,
-    MedicineReportComputed computed,
-  ) {
-    final byHour = computed.distHourCount.entries
-        .map((e) => _KV(e.key, e.value))
-        .toList();
+  Widget _buildReportBody(MedicineReportComputed computed) {
+    final amountTypeList = sortedEntries(computed.amountTypeTotals);
 
-    final medicineList =
-        computed.medicineCounts.entries.map((e) => _KV(e.key, e.value)).toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
-
-    final amountTypeList =
-        computed.amountTypeTotals.entries
-            .map((e) => _AmountKV(e.key, e.value))
-            .toList()
-          ..sort((a, b) => b.v.compareTo(a.v));
-
-    final details = computed.details;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
-        _HeaderCard(
-          dateLabel: _rangeLabel(_mode),
-          total: computed.totalCount,
-          unique: computed.uniqueMedicineCount,
-          lastTime: computed.lastTimeLabel,
+        ReportHeaderCard(
+          title: "Medicine Overview",
+          subtitle: rangeLabel,
+          stats: [
+            ("Total", "${computed.totalCount}"),
+            ("Types", "${computed.uniqueMedicineCount}"),
+            ("Last time", computed.lastTimeLabel),
+          ],
         ),
         const SizedBox(height: 16),
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Distribution by hour",
           subtitle: "When medicines were given",
           child: SizedBox(
@@ -318,13 +153,14 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
               tooltipBehavior: TooltipBehavior(enable: true),
               enableAxisAnimation: true,
               series: [
-                ColumnSeries<_KV, String>(
-                  dataSource: byHour,
-                  xValueMapper: (e, _) => e.k,
-                  yValueMapper: (e, _) => e.v,
-                  dataLabelMapper: (e, _) => e.v == 0 ? "" : e.v.toString(),
+                ColumnSeries<ChartEntry, String>(
+                  dataSource: orderedEntries(computed.distHourCount),
+                  xValueMapper: (e, _) => e.label,
+                  yValueMapper: (e, _) => e.value,
+                  dataLabelMapper: (e, _) =>
+                      e.value == 0 ? "" : e.value.toString(),
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  color: Color(0xFF059669),
+                  color: _chartColor,
                   name: 'Count',
                 ),
               ],
@@ -333,7 +169,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
         ),
         const SizedBox(height: 16),
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Medicine types",
           subtitle: "Distribution by medicine name",
           child: SizedBox(
@@ -344,12 +180,12 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                 isVisible: true,
                 overflowMode: LegendItemOverflowMode.wrap,
               ),
-              series: <CircularSeries<_KV, String>>[
-                PieSeries<_KV, String>(
-                  dataSource: medicineList,
-                  xValueMapper: (e, _) => e.k,
-                  yValueMapper: (e, _) => e.v,
-                  pointColorMapper: (datum, index) => Color(0xFF059669),
+              series: <CircularSeries<ChartEntry, String>>[
+                PieSeries<ChartEntry, String>(
+                  dataSource: sortedEntries(computed.medicineCounts),
+                  xValueMapper: (e, _) => e.label,
+                  yValueMapper: (e, _) => e.value,
+                  pointColorMapper: (_, _) => _chartColor,
                   dataLabelSettings: const DataLabelSettings(isVisible: true),
                   explode: true,
                   explodeIndex: 0,
@@ -361,7 +197,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
         const SizedBox(height: 16),
 
         if (amountTypeList.isNotEmpty) ...[
-          _SectionCard(
+          ReportSectionCard(
             title: "Amount by type",
             subtitle: "Total amounts by unit type",
             child: SizedBox(
@@ -377,10 +213,10 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                 ),
                 tooltipBehavior: TooltipBehavior(enable: true),
                 series: [
-                  BarSeries<_AmountKV, String>(
+                  BarSeries<ChartEntry, String>(
                     dataSource: amountTypeList,
-                    xValueMapper: (e, _) => e.k,
-                    yValueMapper: (e, _) => e.v,
+                    xValueMapper: (e, _) => e.label,
+                    yValueMapper: (e, _) => e.value,
                     dataLabelSettings: const DataLabelSettings(isVisible: true),
                     name: 'Amount',
                   ),
@@ -391,12 +227,13 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
           const SizedBox(height: 16),
         ],
 
-        _SectionCard(
+        ReportSectionCard(
           title: "Sessions",
-          subtitle: "Chronological list for ${_rangeLabel(_mode)}",
+          subtitle: "Chronological list for $rangeLabel",
           child: Column(
             children: [
-              for (final d in details)
+              // details kronolojik (gün + saat) sıralı gelir
+              for (final d in computed.details)
                 _MedicineTile(
                   name: d.name,
                   time: d.time,
@@ -406,402 +243,27 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
             ],
           ),
         ),
-        SizedBox(height: 16),
-        medicineTips(),
+        const SizedBox(height: 16),
+        const ReportTipsCard(
+          title: "AI Medicine Tips",
+          leading: "💡",
+          badgeColor: Color(0xFFdc2626),
+          tips: [
+            (
+              "⚠️",
+              "Always double-check dosage amounts before administering medication",
+            ),
+            (
+              "🌡️",
+              "Store all medications in a cool, dry place away from children",
+            ),
+            (
+              "📞",
+              "Contact pediatrician if you notice any unusual reactions or side effects",
+            ),
+          ],
+        ),
       ],
-    );
-  }
-
-  Widget medicineTips() {
-    return _SectionCard(
-      title: "AI Medicine Tips",
-      leading: "💡",
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Color(0xFFdc2626),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("⚠️", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Always double-check dosage amounts before administering medication",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Color(0xFFdc2626),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("🌡️", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Store all medications in a cool, dry place away from children",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Color(0xFFdc2626),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text("📞", style: TextStyle(fontSize: 20)),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Contact pediatrician if you notice any unusual reactions or side effects",
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---- Helpers ----
-  int _parseHourSafe(String hhmm, {required String createdAt}) {
-    final h = int.tryParse(hhmm.split(':').first);
-    if (h != null && h >= 0 && h <= 23) return h;
-    final dt = _tryParseDateTime(createdAt);
-    return dt?.hour ?? 0;
-  }
-
-  DateTime? _parseTime(String timeStr) {
-    try {
-      final p = timeStr.split(':');
-      return DateTime(2000, 1, 1, int.parse(p[0]), int.parse(p[1]));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  DateTime? _tryParseDateTime(String s) {
-    // Önce ISO deneriz (service putIfAbsent ile ISO yazıyor olabilir),
-    // sonra 'yyyy-MM-dd HH:mm' deneriz.
-    try {
-      return DateTime.parse(s);
-    } catch (_) {
-      /* continue */
-    }
-    try {
-      return DateFormat('yyyy-MM-dd HH:mm').parseStrict(s);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String _bestTime(MedicineModel m) {
-    final t = m.startTime;
-    if (t.trim().isNotEmpty) return t;
-    final dt = _tryParseDateTime(m.createdAt);
-    return dt != null ? DateFormat('HH:mm').format(dt) : '-';
-  }
-
-  String _normalize(String s) => s.trim().toLowerCase();
-
-  MedicineReportComputed _computeMedicineReport(List<MedicineModel> medicines) {
-    final byHourRaw = <int, int>{};
-    final byMedicine = <String, int>{};
-    final byAmountType = <String, double>{};
-    final details = <MedicineDetail>[];
-
-    String lastTime = '-';
-    DateTime? latest;
-
-    for (final m in medicines) {
-      final h = _parseHourSafe(m.startTime, createdAt: m.createdAt);
-      byHourRaw[h] = (byHourRaw[h] ?? 0) + 1;
-
-      final nameKey = _normalize(m.medicineName);
-      byMedicine[nameKey] = (byMedicine[nameKey] ?? 0) + 1;
-
-      byAmountType[m.amountType] =
-          (byAmountType[m.amountType] ?? 0) + m.amount.toDouble();
-
-      final time = _bestTime(m);
-      details.add(
-        MedicineDetail(
-          name: m.medicineName,
-          time: time,
-          amount: m.amount,
-          amountType: m.amountType,
-          createdAt: m.createdAt,
-        ),
-      );
-
-      final ct = _tryParseDateTime(m.createdAt);
-      if (ct != null && (latest == null || ct.isAfter(latest))) {
-        latest = ct;
-        lastTime = time;
-      }
-    }
-
-    details.sort((a, b) {
-      final at = _parseTime(a.time), bt = _parseTime(b.time);
-      if (at == null && bt == null) return 0;
-      if (at == null) return 1;
-      if (bt == null) return -1;
-      return at.compareTo(bt);
-    });
-
-    final distHourCount = <String, int>{};
-    for (int h = 0; h < 24; h++) {
-      distHourCount[h.toString().padLeft(2, '0')] = byHourRaw[h] ?? 0;
-    }
-
-    return MedicineReportComputed(
-      totalCount: medicines.length,
-      uniqueMedicineCount: byMedicine.keys.length,
-      lastTimeLabel: lastTime,
-      distHourCount: distHourCount,
-      medicineCounts: byMedicine,
-      amountTypeTotals: byAmountType,
-      details: details,
-    );
-  }
-}
-
-// --- küçük view modelleri ---
-
-class _KV {
-  final String k;
-  final int v;
-  _KV(this.k, this.v);
-}
-
-class _AmountKV {
-  final String k;
-  final double v;
-  _AmountKV(this.k, this.v);
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: CircularProgressIndicator());
-}
-
-class _CenteredMessage extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String? subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  const _CenteredMessage({
-    required this.emoji,
-    required this.title,
-    this.subtitle,
-    this.actionLabel,
-    this.onAction,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                subtitle!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add),
-                label: Text(actionLabel!),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final Widget child;
-  final EdgeInsets padding;
-  final String? leading;
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    this.subtitle,
-    this.leading,
-    this.padding = const EdgeInsets.all(16),
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFb5e2d6),
-            Colors.white.withValues(alpha: 0.9),
-          ],
-          stops: const [0.2, 1.0], // %20'de yeşil, %100'de beyaz
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (leading != null)
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFa8d5ba),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(leading!, style: TextStyle(fontSize: 24)),
-                ),
-            ],
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-            ),
-          ],
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderCard extends StatelessWidget {
-  final String dateLabel;
-  final int total;
-  final int unique;
-  final String lastTime;
-  const _HeaderCard({
-    required this.dateLabel,
-    required this.total,
-    required this.unique,
-    required this.lastTime,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-      title: "Medicine Overview ",
-      subtitle: dateLabel,
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatTile(title: "Total", value: "$total"),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(title: "Types", value: "$unique"),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _StatTile(title: "Last time", value: lastTime),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  final String title;
-  final String value;
-  const _StatTile({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 86,
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -809,7 +271,7 @@ class _StatTile extends StatelessWidget {
 class _MedicineTile extends StatelessWidget {
   final String name;
   final String time;
-  final int amount;
+  final num amount;
   final String amountType;
   const _MedicineTile({
     required this.name,
@@ -819,6 +281,7 @@ class _MedicineTile extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -835,7 +298,7 @@ class _MedicineTile extends StatelessWidget {
               color: AppColors.kLightOrange,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.medication,
               color: AppColors.kDeepOrange,
               size: 20,
@@ -848,167 +311,27 @@ class _MedicineTile extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   '$amount $amountType',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.black54,
+                  ),
                 ),
               ],
             ),
           ),
           Text(
             time,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.kDeepOrange,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GlassSegmented extends StatelessWidget {
-  final MedicineReportMode value;
-  final ValueChanged<MedicineReportMode> onChanged;
-
-  const _GlassSegmented({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Renkleri kolay değiştirebilmen için tanımlar:
-    final bgColor = Colors.white.withValues(
-      alpha: 0.8,
-    ); // rgba(255,255,255,0.8)
-    final borderColor = Colors.white.withValues(
-      alpha: 0.3,
-    ); // rgba(255,255,255,0.3)
-    final activeFill = const Color(0xFFA8E6CF); // aktif buton zemini
-    final inactiveFg = theme.textTheme.bodyMedium?.color; // pasif buton yazısı
-    final activeFg = Colors.white.withValues(alpha: 0.9); // aktif buton yazısı
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(25, 0, 25, 0), // CSS'teki margin
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // blur(20px)
-          child: Container(
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: borderColor, width: 1),
-            ),
-            padding: const EdgeInsets.all(4), // CSS'teki padding: 4px
-            child: Row(
-              children: [
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Daily',
-                    selected: value == MedicineReportMode.today,
-                    onTap: () => onChanged(MedicineReportMode.today),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Weekly',
-                    selected: value == MedicineReportMode.week,
-                    onTap: () => onChanged(MedicineReportMode.week),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Monthly',
-                    selected: value == MedicineReportMode.month,
-                    onTap: () => onChanged(MedicineReportMode.month),
-                    activeFg: activeFg,
-                    inactiveFg: inactiveFg,
-                    activeFill: activeFill,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SegmentButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color activeFill;
-  final Color? inactiveFg;
-  final Color activeFg;
-
-  const _SegmentButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.activeFill,
-    required this.inactiveFg,
-    required this.activeFg,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: selected ? activeFill : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 2),
-                  color: Colors.black.withValues(alpha: 0.06),
-                ),
-              ]
-            : const [],
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-            child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: selected ? activeFg : inactiveFg,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

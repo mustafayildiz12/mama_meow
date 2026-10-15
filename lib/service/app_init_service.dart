@@ -1,17 +1,15 @@
-import 'dart:io';
-import 'dart:ui';
+import 'dart:async';
 
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mama_meow/constants/app_constants.dart';
-import 'package:mama_meow/constants/app_routes.dart';
 import 'package:mama_meow/firebase_options.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
@@ -20,148 +18,129 @@ import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
 import 'package:mama_meow/service/motification_service.dart';
 import 'package:mama_meow/service/re_engagement_service.dart';
+import 'package:mama_meow/utils/platform_info.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 class AppInitService {
+  /// `runApp`'tan önce çalışması gerekenler. Native splash bunları beklediği
+  /// için kısa tutulur; ağ beklemesi olan adımlar zaman aşımına bağlıdır.
   static Future<void> initApp() async {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
-    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
-    await init();
-    await initPurchase();
-    await initRoute();
-    await initNotification();
-    _initSetSystemUIOverlayStyle();
-    // Her uygulama açılışında funnel'ın en üst metriği.
-    await analyticService.appOpen();
-  }
-
-  static Future<void> initNotification() async {
-    await requestAndroidNotificationPermission();
-
-    tz.initializeTimeZones();
-
-    try {
-      final TimezoneInfo info = await FlutterTimezone.getLocalTimezone();
-
-      // ✅ IANA id: "Europe/Istanbul"
-      tz.setLocalLocation(tz.getLocation(info.identifier));
-
-      print("🌍 Timezone identifier: ${info.identifier}");
-      print(
-        "🌍 Timezone localized: ${info.localizedName?.name} (${info.localizedName?.locale})",
-      );
-    } catch (e) {
-      tz.setLocalLocation(tz.getLocation('UTC'));
-      print("⚠️ Timezone fallback to UTC: $e");
-    }
-
-    // Notifications
-    await NotificationService.instance.init();
-
-    // Geri kazanım (re-engagement) dürtüleri: her açılışta hareketsizlik
-    // sayacını sıfırla ve haftalık özeti garanti et.
-    // Bildirim kurulumu opsiyoneldir; hata olursa açılışı (splash) bloke etmesin.
-    try {
-      await reEngagementService.init();
-      await reEngagementService.scheduleAll();
-    } catch (e) {
-      debugPrint("⚠️ Re-engagement scheduling failed (non-fatal): $e");
-    }
-  }
-
-  static Future<void> requestAndroidNotificationPermission() async {
-    if (!Platform.isAndroid) return;
-
-    final androidInfo = await DeviceInfoPlugin().androidInfo;
-    final sdkInt = androidInfo.version.sdkInt;
-
-    // ✅ Sadece Android 13+ (API 33) runtime permission ister
-    if (sdkInt < 33) return;
-
-    try {
-      final fln = FlutterLocalNotificationsPlugin();
-      await fln
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.requestNotificationsPermission();
-    } catch (e) {
-      // burada crash olmasın, logla geç
-      // debugPrint("Notif permission request failed: $e");
-    }
-  }
-
-  static void _initSetSystemUIOverlayStyle() {
-    // İçerik status/nav barın arkasına uzansın:
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: [SystemUiOverlay.top],
-    );
-  }
-
-  static initPurchase() async {
-    final iap = InAppPurchaseService();
-    await iap.initPlatformState(); // ÖNEMLİ: await
-  }
-
-  static Future<void> init() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    _initCrashlytics();
+    // RTDB'ye herhangi bir erişimden önce çağrılmalı; aksi halde eklenti
+    // ayarı sessizce yok sayar.
+    _initDatabasePersistence();
 
-    debugPrint('projectId: ${Firebase.app().options.projectId}');
-    debugPrint('appId: ${Firebase.app().options.appId}');
-
-    // Gerekli servislerin başlatılması
     await Future.wait([GetStorage.init("local"), GetStorage.init("info")]);
-
-    applicationVersion = await globalFunctions.getApplicationVersionNumber();
     deviceInfo = await globalFunctions.getDeviceVersionFunction();
+    await _initTimeZone();
+
+    await InAppPurchaseService().initPlatformState();
+    await _restoreSession();
+    _initSystemUIOverlayStyle();
   }
 
-  static Future<void> initRoute() async {
-    final User? user = authenticationService.getUser();
+  /// İlk kare çizildikten sonra çalışabilecek işler (izin istemleri,
+  /// bildirim zamanlamaları, analitik).
+  static Future<void> initAfterFirstFrame() async {
+    try {
+      await _initNotifications();
+    } catch (e, st) {
+      debugPrint("Notification init failed: $e");
+      _recordNonFatal(e, st, 'notification init');
+    }
+    await analyticService.appOpen();
+  }
 
-    if (user != null) {
-      final bool isUserExist = await databaseService
-          .getAdminBasicInfoFromRealTime(user.uid);
+  static void _initCrashlytics() {
+    if (kIsWeb) return; // Crashlytics web'i desteklemiyor.
+    final crashlytics = FirebaseCrashlytics.instance;
+    crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+    FlutterError.onError = (details) {
+      if (kDebugMode) FlutterError.presentError(details);
+      crashlytics.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      crashlytics.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
-      if (isUserExist) {
-        InAppPurchaseService iap = InAppPurchaseService();
-        bool isUserPremium = iap.checkUserHaveProduct() || await iap.isTrial();
-        if (isUserPremium) {
-          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
-        } else {
-          AppRoutes.initialRoute = AppRoutes.navigationBarPage;
-        }
-      }
-    } else {
-      bool? getStarted = infoStorage.read("getStarted");
-      if (getStarted != null) {
-        AppRoutes.initialRoute = AppRoutes.loginPage;
-      } else {
-        AppRoutes.initialRoute = AppRoutes.getStartedPage;
-      }
+  static void _initDatabasePersistence() {
+    if (kIsWeb) return;
+    final db = FirebaseDatabase.instance;
+    db.setPersistenceEnabled(true);
+    db.setPersistenceCacheSizeBytes(50 * 1024 * 1024);
+  }
+
+  /// Oturum açıksa kullanıcı profilini, RevenueCat oturumunu ve `appInfo`
+  /// yapılandırmasını yükler.
+  static Future<void> _restoreSession() async {
+    final user = authenticationService.getUser();
+    if (user == null) return;
+    try {
+      await databaseService
+          .getAdminBasicInfoFromRealTime(user.uid)
+          .timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      debugPrint("Session restore timed out; continuing offline.");
     }
   }
 
-  void checkIsTrial() {
-    int? trialCount = infoStorage.read("trialCount");
-    if (trialCount == null) {
-      isTrial = true;
-    } else if (trialCount < 4) {
-      isTrial = true;
+  static Future<void> _initTimeZone() async {
+    tz.initializeTimeZones();
+    try {
+      final TimezoneInfo info = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(info.identifier));
+    } catch (e, st) {
+      // Yanlış saat diliminde hatırlatıcılar yanlış saatte çalar; görünür olsun.
+      tz.setLocalLocation(tz.getLocation('Etc/UTC'));
+      debugPrint("Timezone fallback to UTC: $e");
+      _recordNonFatal(e, st, 'timezone fallback');
     }
+  }
+
+  static Future<void> _initNotifications() async {
+    await _requestAndroidNotificationPermission();
+    await NotificationService.instance.init();
+
+    // Geri kazanım dürtüleri: her açılışta hareketsizlik sayacını sıfırla ve
+    // haftalık özeti garanti et. Hata açılışı etkilemesin.
+    try {
+      await reEngagementService.init();
+      await reEngagementService.scheduleAll();
+    } catch (e) {
+      debugPrint("Re-engagement scheduling failed (non-fatal): $e");
+    }
+  }
+
+  /// Android 13+ (API 33) bildirim izni ister. Eklenti daha eski
+  /// sürümlerde izin verilmiş kabul eder.
+  static Future<void> _requestAndroidNotificationPermission() async {
+    if (!PlatformInfo.isAndroid) return;
+    try {
+      await FlutterLocalNotificationsPlugin()
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint("Notification permission request failed: $e");
+    }
+  }
+
+  static void _initSystemUIOverlayStyle() {
+    // İçerik status/nav barın arkasına uzansın (navigasyon çubuğu gizlenmez).
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  static void _recordNonFatal(Object e, StackTrace st, String reason) {
+    if (kIsWeb) return;
+    FirebaseCrashlytics.instance.recordError(e, st, reason: reason);
   }
 }
