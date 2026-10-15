@@ -42,14 +42,17 @@ dependencies:
   mime: ^2.1.0
   image: ^4.12.0 # AI'a gönderilmeden önce görsel format dönüşümü
 
-  # Firebase
-  firebase_core: ^5.0.0
-  firebase_auth: ^7.0.0
-  firebase_database: ^13.0.0
-  firebase_analytics: ^13.0.0
-  firebase_crashlytics: ^6.0.0
-  firebase_storage: ^14.0.0
-  cloud_functions: ^7.0.0 # OpenAI proxy (sunucu tarafı callable)
+  # Firebase — 4.x hattı (iOS SDK 12.19): FlutterFire 5 / iOS SDK 13, SPM'de
+  # google_sign_in_ios'un GoogleSignIn 9 bağımlılığıyla çakışıyor
+  # (gtm-session-fetcher 4+ vs <4). google_sign_in_ios GoogleSignIn 10'a
+  # geçince yükseltin.
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  firebase_database: ^12.6.0
+  firebase_analytics: ^12.6.0
+  firebase_crashlytics: ^5.4.0
+  firebase_storage: ^13.6.0
+  cloud_functions: ^6.5.0 # OpenAI proxy (sunucu tarafı callable)
 
   # Kimlik doğrulama
   google_sign_in: ^7.2.0
@@ -123,6 +126,11 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  config:
+    # iOS bağımlılıkları CocoaPods yerine Swift Package Manager ile gelir
+    # (Firebase Ekim 2026'dan sonra CocoaPods'a yayın yapmıyor). Proje
+    # ayarı, makinedeki global `flutter config` değerini ezer.
+    enable-swift-package-manager: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

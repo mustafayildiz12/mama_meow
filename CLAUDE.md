@@ -17,7 +17,6 @@ flutter run                         # run on connected device/emulator
 flutter analyze                     # static analysis (flutter_lints 6); must stay at "No issues found!"
 flutter build apk                   # Android release build (needs android/key.properties for signing)
 flutter build ios                   # iOS release build
-cd ios && pod install --repo-update # after plugin upgrades (Podfile.lock pins Firebase pods)
 dart run flutter_launcher_icons     # regenerate launcher icons from assets/full-logo.png
 
 # End-to-end smoke test against the real Firebase project: logs in with the test account from
@@ -189,5 +188,16 @@ contains old field types (e.g. medicine `amount` int, solid amount as String).
 - **Localization** is English only; AI prompts ask the model to reply in the user's language.
 - **Versioning:** `pubspec.yaml` `version:` sets versionName/CFBundleShortVersionString, but Android
   `versionCode` is hardcoded in `android/app/build.gradle.kts` — bump it for every Play upload.
-- **iOS:** deployment target 15.0 (Firebase requirement). Dependencies still come from CocoaPods;
-  Firebase stops publishing pods after Oct 2026.
+- **iOS:** deployment target 15.0. Native dependencies come from **Swift Package Manager** —
+  enabled per project in `pubspec.yaml` (`flutter: config: enable-swift-package-manager: true`,
+  which overrides the machine's global `flutter config`). There is no Podfile/CocoaPods; versions
+  are pinned in `ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved` (commit it). Flutter
+  CLI builds check packages out into `build/ios/SourcePackages` (excluded from `flutter analyze`).
+- **FlutterFire is held on the 4.x line** (firebase_core 4.15 → Firebase iOS SDK 12.19). FlutterFire 5
+  pins iOS SDK 13, which needs gtm-session-fetcher ≥4, while `google_sign_in_ios` still pins
+  GoogleSignIn 9 (gtm-session-fetcher <4) — SPM can't resolve both. Upgrade FlutterFire only once
+  `google_sign_in_ios` moves to GoogleSignIn 10.
+- **iOS UIScene lifecycle:** `Info.plist` declares `UIApplicationSceneManifest` with
+  `FlutterSceneDelegate`; `AppDelegate` is a `FlutterImplicitEngineDelegate` and registers plugins in
+  `didInitializeImplicitFlutterEngine` (not in `didFinishLaunching`). Plugins that need URL callbacks
+  (google_sign_in, firebase_auth) receive them through the scene delegate.
