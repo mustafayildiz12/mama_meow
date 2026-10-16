@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>MamaMeow - Learn Podcasts</title>
+<!-- Google Fonts: Nunito Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..900;1,6..12,300..900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-dim": "#dfd8d9",
+            "surface-tint": "#b0284b",
+            "on-surface": "#1d1b1c",
+            "tertiary-fixed": "#ffdbca",
+            "on-primary": "#ffffff",
+            "tertiary": "#795744",
+            "hairline": "#F5E3E7",
+            "tertiary-container": "#ba917b",
+            "on-secondary": "#ffffff",
+            "on-primary-container": "#6a0024",
+            "background": "#fff8f9",
+            "surface-variant": "#e7e1e2",
+            "inverse-on-surface": "#f6eff0",
+            "tertiary-fixed-dim": "#eabda6",
+            "inverse-surface": "#323031",
+            "error": "#C7365A",
+            "outline": "#8c7073",
+            "on-surface-variant": "#584143",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#ede7e8",
+            "secondary": "#8f4957",
+            "on-secondary-container": "#7a3846",
+            "active-berry": "#FF6584",
+            "surface": "#fff8f9",
+            "on-error": "#ffffff",
+            "inverse-primary": "#ffb2bc",
+            "on-tertiary": "#ffffff",
+            "peach-pastel": "#FFD0B8",
+            "on-tertiary-fixed-variant": "#5f3f2e",
+            "surface-container-low": "#f9f2f3",
+            "outline-variant": "#dfbfc2",
+            "secondary-container": "#fea5b4",
+            "secondary-fixed-dim": "#ffb2be",
+            "on-tertiary-fixed": "#2d1507",
+            "pink-tint": "#FFE3E9",
+            "error-container": "#ffdad6",
+            "warm-pink": "#FFA6B5",
+            "cosy-ivory": "#FFF8F9",
+            "on-secondary-fixed": "#3b0616",
+            "cotton-white": "#FFFFFF",
+            "primary": "#b0284b",
+            "berry-ink": "#C7365A",
+            "primary-fixed-dim": "#ffb2bc",
+            "on-tertiary-container": "#472b1b",
+            "secondary-fixed": "#ffd9de",
+            "on-secondary-fixed-variant": "#733240",
+            "on-background": "#1d1b1c",
+            "primary-fixed": "#ffd9dd",
+            "peach-tint": "#FFF0E8",
+            "on-primary-fixed": "#400012",
+            "surface-container-highest": "#e7e1e2",
+            "surface-container": "#f3eced",
+            "deep-charcoal": "#3D353A",
+            "surface-bright": "#fff8f9",
+            "primary-container": "#ff6584",
+            "on-error-container": "#93000a",
+            "on-primary-fixed-variant": "#8f0935",
+            "charcoal-soft": "#6E6369"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "12px",
+            "space-sm": "8px",
+            "space-xs": "4px",
+            "space-md": "16px",
+            "margin": "20px",
+            "space-lg": "24px",
+            "space-xl": "32px"
+          },
+          "fontFamily": {
+            "headline-md": ["Nunito Sans", "sans-serif"],
+            "stat-number": ["Nunito Sans", "sans-serif"],
+            "headline-lg": ["Nunito Sans", "sans-serif"],
+            "title": ["Nunito Sans", "sans-serif"],
+            "caption": ["Nunito Sans", "sans-serif"],
+            "label": ["Nunito Sans", "sans-serif"],
+            "body-md": ["Nunito Sans", "sans-serif"],
+            "body-lg": ["Nunito Sans", "sans-serif"],
+            "display": ["Nunito Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", {"lineHeight": "26px", "fontWeight": "800"}],
+            "stat-number": ["28px", {"lineHeight": "32px", "fontWeight": "800"}],
+            "headline-lg": ["24px", {"lineHeight": "30px", "fontWeight": "800"}],
+            "title": ["17px", {"lineHeight": "24px", "fontWeight": "700"}],
+            "caption": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+            "label": ["13px", {"lineHeight": "16px", "fontWeight": "700"}],
+            "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "display": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "800"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-cosy-ivory text-deep-charcoal font-body-md antialiased min-h-screen flex justify-center selection:bg-pink-tint selection:text-berry-ink">
+<!-- Mobile Frame Container (Strict 390px Width Target) -->
+<div class="w-full max-w-[390px] min-h-screen bg-cosy-ivory flex flex-col relative pb-[148px]">
+<!-- Shared Component: TopAppBar -->
+<!-- Main Content Flow -->
+<main class="flex-1 flex flex-col px-5 space-y-6 pt-6">
+<!-- Header & Search Section -->
+<section class="space-y-3">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-deep-charcoal tracking-tight">Podcasts</h2>
+<p class="text-body-md font-body-md text-charcoal-soft mt-0.5">Short episodes from pediatric experts</p>
+</div>
+<!-- Search Bar Input -->
+<div class="relative w-full">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-charcoal-soft">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="w-full h-[52px] bg-cotton-white border border-hairline rounded-full pl-11 pr-4 text-deep-charcoal text-body-md font-body-md placeholder:text-charcoal-soft focus:outline-none focus:ring-2 focus:ring-active-berry transition-all shadow-[0_2px_8px_rgba(61,53,58,0.02)]" placeholder="Search podcasts..." type="text"/>
+</div>
+</section>
+<!-- Category Chips (Horizontal Scroll, No Scrollbars) -->
+<section class="-mx-5 px-5">
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5">
+<!-- Active Chip -->
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-active-berry text-cotton-white font-title text-caption flex items-center justify-center shadow-[0_4px_12px_rgba(255,101,132,0.25)] active:scale-95 transition-transform" type="button">
+            All
+          </button>
+<!-- Unselected Chips -->
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Infant Care
+          </button>
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Child Sleep
+          </button>
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Baby Care
+          </button>
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Motor Skills
+          </button>
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Pregnancy
+          </button>
+<button class="flex-shrink-0 h-9 px-4 rounded-full bg-pink-tint text-deep-charcoal font-title text-caption flex items-center justify-center hover:bg-warm-pink/40 active:scale-95 transition-all" type="button">
+            Childbirth
+          </button>
+</div>
+</section>
+<!-- Featured Episode Card -->
+<section>
+<div class="bg-cotton-white rounded-3xl p-4 border border-hairline relative transition-all shadow-[0_4px_16px_rgba(61,53,58,0.04)]">
+<!-- Artwork / Graphic Container -->
+<div class="relative w-full h-[148px] rounded-2xl bg-gradient-to-br from-pink-tint via-peach-tint to-peach-pastel overflow-hidden flex items-center justify-center border border-hairline/60"><img alt="Gentle sleep routines for the first year" class="w-full h-full object-cover rounded-2xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrR9p9nHE0CEXxKjnU1DIHBD81-Idd6E9pV0NBUBguUT9muTsKQroMammvmcggQBChPYCMlUcW9oYciKKZxYFm77DXQgraG407bn8-eo4ieLCYp-Co66vsNUwTcPRYpka8xviQyFVXZfXcudbZpREbRwJVyr2U0FGBjvp7G8j9AMXfqq9Ni_3tOozLcEYzVFwgelhq4Gm3vTTji035ZZZKJE-2eSOQ5mk6YgQmMzwGVtyy8hgEJ6l6v-t_mKX0-mW7MWjjnI7Dew"/><div class="absolute top-3 left-3 bg-peach-tint/90 backdrop-blur-sm px-3 py-1 rounded-full border border-hairline flex items-center gap-1 shadow-sm"><span class="material-symbols-outlined text-[13px] text-berry-ink">verified</span><span class="text-caption font-title text-berry-ink">Featured</span></div><button aria-label="Play featured episode" class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_6px_16px_rgba(255,101,132,0.40)] active:scale-90 transition-transform" type="button"><span class="material-symbols-outlined text-[24px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span></button></div>
+<!-- Episode Metadata & Content -->
+<div class="mt-3.5 space-y-1">
+<h3 class="text-title font-headline-md text-deep-charcoal leading-snug">
+              Gentle sleep routines for the first year
+            </h3>
+<div class="flex items-center text-charcoal-soft text-label space-x-2 pt-0.5">
+<span>Dr. Emma Hart</span>
+<span class="text-hairline">·</span>
+<div class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-[15px] text-berry-ink">schedule</span>
+<span class="text-caption font-caption">18 min</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Latest Episodes Section -->
+<section class="space-y-3 pb-2">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-md font-headline-md text-deep-charcoal">Latest episodes</h2>
+<button class="text-caption font-title text-berry-ink hover:text-active-berry transition-colors" type="button">
+            See all
+          </button>
+</div>
+<div class="bg-cotton-white rounded-3xl p-3 border border-hairline divide-y divide-hairline shadow-[0_4px_16px_rgba(61,53,58,0.03)]">
+<!-- Episode Item 1 (With Active Listening Progress Indicator) -->
+<div class="py-3.5 first:pt-1 last:pb-1">
+<div class="flex items-center gap-3">
+<!-- Pastel Squircle Thumbnail -->
+<div class="w-12 h-12 rounded-2xl bg-peach-tint border border-hairline flex-shrink-0 flex items-center justify-center text-berry-ink">
+<span class="material-symbols-outlined text-[22px]">restaurant</span>
+</div>
+<!-- Details -->
+<div class="flex-1 min-w-0 pr-1">
+<h4 class="text-body-md font-title text-deep-charcoal truncate">Starting solids without stress</h4>
+<div class="flex items-center space-x-2 text-charcoal-soft text-caption mt-0.5">
+<span>Nutrition</span>
+<span>·</span>
+<span class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px] text-berry-ink">schedule</span> 14 min
+                  </span>
+</div>
+</div>
+<!-- Round Berry Play Button -->
+<button aria-label="Play starting solids episode" class="w-9 h-9 rounded-full bg-pink-tint text-berry-ink hover:bg-active-berry hover:text-cotton-white flex items-center justify-center flex-shrink-0 active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Listening Progress Bar (60%) -->
+<div class="mt-2.5 pl-[60px] pr-2">
+<div class="w-full h-1 bg-pink-tint rounded-full overflow-hidden">
+<div class="h-full bg-active-berry rounded-full w-[60%]"></div>
+</div>
+</div>
+</div>
+<!-- Episode Item 2 -->
+<div class="py-3.5 flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-peach-pastel/40 border border-hairline flex-shrink-0 flex items-center justify-center text-berry-ink">
+<span class="material-symbols-outlined text-[22px]">baby_changing_station</span>
+</div>
+<div class="flex-1 min-w-0 pr-1">
+<h4 class="text-body-md font-title text-deep-charcoal truncate">Reading your baby's hunger cues</h4>
+<div class="flex items-center space-x-2 text-charcoal-soft text-caption mt-0.5">
+<span>Infant Care</span>
+<span>·</span>
+<span class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px] text-berry-ink">schedule</span> 11 min
+                </span>
+</div>
+</div>
+<button aria-label="Play hunger cues episode" class="w-9 h-9 rounded-full bg-pink-tint text-berry-ink hover:bg-active-berry hover:text-cotton-white flex items-center justify-center flex-shrink-0 active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Episode Item 3 -->
+<div class="py-3.5 flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-pink-tint border border-hairline flex-shrink-0 flex items-center justify-center text-active-berry">
+<span class="material-symbols-outlined text-[22px]">pediatrics</span>
+</div>
+<div class="flex-1 min-w-0 pr-1">
+<h4 class="text-body-md font-title text-deep-charcoal truncate">Tummy time made easy</h4>
+<div class="flex items-center space-x-2 text-charcoal-soft text-caption mt-0.5">
+<span>Motor Skills</span>
+<span>·</span>
+<span class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px] text-berry-ink">schedule</span> 16 min
+                </span>
+</div>
+</div>
+<button aria-label="Play tummy time episode" class="w-9 h-9 rounded-full bg-pink-tint text-berry-ink hover:bg-active-berry hover:text-cotton-white flex items-center justify-center flex-shrink-0 active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Episode Item 4 -->
+<div class="py-3.5 flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-peach-tint border border-hairline flex-shrink-0 flex items-center justify-center text-berry-ink">
+<span class="material-symbols-outlined text-[22px]">stethoscope</span>
+</div>
+<div class="flex-1 min-w-0 pr-1">
+<h4 class="text-body-md font-title text-deep-charcoal truncate">Fever: when to call the doctor</h4>
+<div class="flex items-center space-x-2 text-charcoal-soft text-caption mt-0.5">
+<span>Health &amp; Safety</span>
+<span>·</span>
+<span class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px] text-berry-ink">schedule</span> 22 min
+                </span>
+</div>
+</div>
+<button aria-label="Play fever episode" class="w-9 h-9 rounded-full bg-pink-tint text-berry-ink hover:bg-active-berry hover:text-cotton-white flex items-center justify-center flex-shrink-0 active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Episode Item 5 -->
+<div class="py-3.5 flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-pink-tint border border-hairline flex-shrink-0 flex items-center justify-center text-active-berry">
+<span class="material-symbols-outlined text-[22px]">spa</span>
+</div>
+<div class="flex-1 min-w-0 pr-1">
+<h4 class="text-body-md font-title text-deep-charcoal truncate">Postpartum sleep for parents</h4>
+<div class="flex items-center space-x-2 text-charcoal-soft text-caption mt-0.5">
+<span>Parent Wellness</span>
+<span>·</span>
+<span class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px] text-berry-ink">schedule</span> 19 min
+                </span>
+</div>
+</div>
+<button aria-label="Play postpartum sleep episode" class="w-9 h-9 rounded-full bg-pink-tint text-berry-ink hover:bg-active-berry hover:text-cotton-white flex items-center justify-center flex-shrink-0 active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] ml-0.5" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Mini Player Floating Bar (Anchored above Bottom Navigation) -->
+<div class="fixed bottom-[68px] left-0 right-0 w-full max-w-[390px] mx-auto px-4 z-40 pointer-events-none">
+<div class="pointer-events-auto bg-cotton-white rounded-2xl border border-hairline shadow-[0_8px_24px_rgba(61,53,58,0.12)] p-2.5 flex items-center gap-3">
+<!-- Thumbnail -->
+<div class="w-10 h-10 rounded-xl bg-peach-tint border border-hairline/80 flex items-center justify-center text-berry-ink flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+<!-- Middle Info with Progress Track -->
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline justify-between">
+<h4 class="text-body-md font-title text-deep-charcoal truncate pr-2">Starting solids without stress</h4>
+<span class="text-caption text-charcoal-soft flex-shrink-0">8:24 / 14:00</span>
+</div>
+<p class="text-caption text-charcoal-soft truncate">Dr. Sarah Lin</p>
+<!-- 2px Tiny Progress Line -->
+<div class="w-full h-[2px] bg-pink-tint rounded-full mt-1.5 overflow-hidden">
+<div class="h-full bg-active-berry rounded-full w-[60%]"></div>
+</div>
+</div>
+<!-- Right Player Controls -->
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<button aria-label="Pause audio" class="w-9 h-9 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_4px_10px_rgba(255,101,132,0.30)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+<button aria-label="Favorite episode" class="w-8 h-8 rounded-full text-charcoal-soft hover:text-berry-ink hover:bg-pink-tint flex items-center justify-center active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Shared Component: BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 max-w-[390px] mx-auto bg-cotton-white border-t border-hairline shadow-[0_8px_24px_rgba(61,53,58,0.08)]">
+<!-- Nav Item 1: My Baby -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-4 py-1.5 transition-all hover:text-berry-ink active:scale-95" href="#baby">
+<span class="material-symbols-outlined text-[22px]">child_care</span>
+<span class="text-caption font-caption mt-0.5">My Baby</span>
+</a>
+<!-- Nav Item 2: Ask Meow -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-4 py-1.5 transition-all hover:text-berry-ink active:scale-95" href="#meow">
+<span class="material-symbols-outlined text-[22px]">smart_toy</span>
+<span class="text-caption font-caption mt-0.5">Ask Meow</span>
+</a>
+<!-- Nav Item 3: Learn (ACTIVE STATE) -->
+<a class="flex flex-col items-center justify-center bg-pink-tint text-berry-ink rounded-full px-4 py-1.5 transition-all active:scale-95" href="#learn">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="text-caption font-caption mt-0.5 font-bold">Learn</span>
+</a>
+<!-- Nav Item 4: Profile -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-4 py-1.5 transition-all hover:text-berry-ink active:scale-95" href="#profile">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="text-caption font-caption mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>

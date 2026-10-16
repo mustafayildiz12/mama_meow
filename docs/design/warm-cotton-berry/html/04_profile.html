@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coo Care - Profile</title>
+<!-- Google Fonts: Nunito Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800;1,6..12,400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#fea5b4",
+            "tertiary-fixed-dim": "#eabda6",
+            "active-berry": "#FF6584",
+            "on-primary-fixed-variant": "#8f0935",
+            "outline": "#8c7073",
+            "peach-tint": "#FFF0E8",
+            "on-surface": "#1d1b1c",
+            "inverse-on-surface": "#f6eff0",
+            "on-error": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "primary-fixed-dim": "#ffb2bc",
+            "deep-charcoal": "#3D353A",
+            "surface-container-low": "#f9f2f3",
+            "surface-container-highest": "#e7e1e2",
+            "outline-variant": "#dfbfc2",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed": "#2d1507",
+            "on-secondary-container": "#7a3846",
+            "tertiary-fixed": "#ffdbca",
+            "on-secondary": "#ffffff",
+            "error-container": "#ffdad6",
+            "berry-ink": "#C7365A",
+            "on-primary": "#ffffff",
+            "surface-bright": "#fff8f9",
+            "pink-tint": "#FFE3E9",
+            "error": "#C7365A",
+            "on-background": "#1d1b1c",
+            "primary": "#b0284b",
+            "on-primary-container": "#6a0024",
+            "cotton-white": "#FFFFFF",
+            "inverse-surface": "#323031",
+            "surface-container-high": "#ede7e8",
+            "on-secondary-fixed": "#3b0616",
+            "hairline": "#F5E3E7",
+            "surface-variant": "#e7e1e2",
+            "warm-pink": "#FFA6B5",
+            "background": "#fff8f9",
+            "secondary-fixed": "#ffd9de",
+            "on-primary-fixed": "#400012",
+            "primary-container": "#ff6584",
+            "surface": "#fff8f9",
+            "on-tertiary-fixed-variant": "#5f3f2e",
+            "on-tertiary-container": "#472b1b",
+            "tertiary-container": "#ba917b",
+            "surface-tint": "#b0284b",
+            "peach-pastel": "#FFD0B8",
+            "surface-container": "#f3eced",
+            "primary-fixed": "#ffd9dd",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#dfd8d9",
+            "on-secondary-fixed-variant": "#733240",
+            "inverse-primary": "#ffb2bc",
+            "charcoal-soft": "#6E6369",
+            "on-surface-variant": "#584143",
+            "secondary": "#8f4957",
+            "secondary-fixed-dim": "#ffb2be",
+            "tertiary": "#795744",
+            "cosy-ivory": "#FFF8F9"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "32px",
+            "space-sm": "8px",
+            "space-md": "16px",
+            "gutter": "12px",
+            "space-xs": "4px",
+            "space-lg": "24px",
+            "margin": "20px"
+          },
+          "fontFamily": {
+            "stat-number": ["Nunito Sans"],
+            "headline-md": ["Nunito Sans"],
+            "caption": ["Nunito Sans"],
+            "body-md": ["Nunito Sans"],
+            "body-lg": ["Nunito Sans"],
+            "display": ["Nunito Sans"],
+            "label": ["Nunito Sans"],
+            "title": ["Nunito Sans"],
+            "headline-lg": ["Nunito Sans"]
+          },
+          "fontSize": {
+            "stat-number": ["28px", { "lineHeight": "32px", "fontWeight": "800" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "fontWeight": "800" }],
+            "caption": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "display": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+            "label": ["13px", { "lineHeight": "16px", "fontWeight": "700" }],
+            "title": ["17px", { "lineHeight": "24px", "fontWeight": "700" }],
+            "headline-lg": ["24px", { "lineHeight": "30px", "fontWeight": "800" }]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-cosy-ivory text-deep-charcoal min-h-screen flex justify-center selection:bg-pink-tint selection:text-berry-ink">
+<!-- Mobile Viewport Shell (390px Max Width) -->
+<div class="w-full max-w-[390px] min-h-screen flex flex-col bg-cosy-ivory relative shadow-[0_0_50px_rgba(61,53,58,0.04)]">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-40 bg-cosy-ivory/95 backdrop-blur-sm border-b border-hairline w-full px-margin py-space-md flex items-center justify-between">
+<div class="w-10 h-10 flex items-center justify-start"></div>
+<h1 class="text-headline-lg font-headline-lg text-deep-charcoal tracking-tight">Profile</h1>
+<div class="w-10 h-10 flex items-center justify-end">
+<button aria-label="Notifications" class="w-10 h-10 rounded-full flex items-center justify-center text-deep-charcoal hover:bg-pink-tint active:scale-95 transition-all relative" type="button">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-active-berry"></span>
+</button>
+</div>
+</header>
+<!-- Main Scrollable Body Content -->
+<main class="flex-1 px-margin pt-space-md pb-32 space-y-space-lg">
+<!-- 1. Baby Card -->
+<section class="bg-cotton-white rounded-lg border border-hairline p-space-lg shadow-[0_4px_20px_rgba(61,53,58,0.03)] flex flex-col items-center text-center relative overflow-hidden">
+<!-- Soft Ambient Pastel Glow in Card Corner -->
+<div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-pink-tint/40 blur-2xl pointer-events-none"></div>
+<!-- Baby Avatar with Edit Badge -->
+<div class="relative mb-space-md">
+<div class="w-[102px] h-[102px] rounded-full p-1 bg-gradient-to-tr from-peach-pastel via-warm-pink to-active-berry shadow-sm">
+<div class="w-full h-full rounded-full overflow-hidden bg-cotton-white">
+<img alt="Luna" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7CDwieQd-v0si6kcOio8sjfIzqPekkxTtEB0ztIkwvwL-tSHhCwhZSu8L2uOOgH4KPhA-jb8VRT0-dzHkVUp78jyV4y_IEGmRIf14QhLvWzAOAqX3uXJZy04_7wi1q0cbU3yhDS9SxhL4z1xS875S3PsMuVOmNVzJhLKcJtkyotQWOqjcJnveuXawXtqD_Q36gAY0RbGLjkmVzA0857UEPVKtVfOqAwmaaZbVxq4wHGj9-8Yz-6Ufk_o33MNWtpW9VTFEXtQA5Q"/>
+</div>
+</div>
+<!-- Edit Badge Action Button -->
+<button aria-label="Edit Baby Profile" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.4)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+</div>
+<!-- Baby Name & Relationship -->
+<h2 class="text-display font-display text-deep-charcoal leading-none">Luna</h2>
+<!-- Structured Metadata Rows -->
+<div class="w-full mt-space-lg pt-space-md border-t border-hairline space-y-space-sm text-left">
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-space-sm text-charcoal-soft">
+<span class="material-symbols-outlined text-[18px] text-active-berry">hourglass_top</span>
+<span class="text-body-md font-body-md">Age Range</span>
+</div>
+<span class="bg-pink-tint text-berry-ink font-label text-caption px-3 py-1 rounded-full">
+              3–6 months
+            </span>
+</div>
+<div class="w-full h-[1px] bg-hairline"></div>
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-space-sm text-charcoal-soft">
+<span class="material-symbols-outlined text-[18px] text-active-berry">cake</span>
+<span class="text-body-md font-body-md">Birth date</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[14px]">
+              12 May 2026
+            </span>
+</div>
+</div>
+</section>
+<!-- 2. Premium Card ("Be Premium") -->
+<section class="bg-peach-tint rounded-lg p-space-lg relative overflow-hidden border border-peach-pastel/40">
+<!-- Subtle Decorative Background Shape -->
+<div class="flex items-start gap-space-md">
+<!-- Icon Holder Squircle -->
+<div class="w-12 h-12 rounded-2xl bg-cotton-white flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(61,53,58,0.04)]">
+<span class="material-symbols-outlined text-active-berry text-[26px]">star</span>
+</div>
+<div class="flex-1">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cotton-white/80 text-berry-ink text-caption font-caption mb-1">
+<span class="material-symbols-outlined text-[13px]">crown</span>
+<span>Parent Plus</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-deep-charcoal">Be Premium</h3>
+<p class="text-body-md font-body-md text-charcoal-soft mt-1 leading-snug">
+              Unlimited Ask Meow, expert podcasts and smart PDF reports
+            </p>
+</div>
+</div>
+<!-- Primary Pill Button -->
+<button class="w-full mt-space-lg h-14 bg-active-berry text-cotton-white rounded-full font-title text-title flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(255,101,132,0.30)] active:scale-[0.98] transition-transform" style="background: #FF6584; background-image: none;" type="button">
+<span>Try 7 days free</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</section>
+<!-- 3. Settings Card -->
+<section class="bg-cotton-white rounded-lg border border-hairline p-space-md shadow-[0_4px_20px_rgba(61,53,58,0.03)]">
+<h3 class="text-label font-label text-charcoal-soft px-space-sm pt-space-xs pb-space-sm">Preferences &amp; Support</h3>
+<div class="divide-y divide-hairline"><a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#reminders">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">alarm</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[15px]">Reminders</span>
+</div>
+<div class="flex items-center gap-1 text-charcoal-soft">
+<span class="text-caption font-caption text-charcoal-soft">Daily 8:00 PM</span>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</div>
+</a>
+<a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#notifications">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[15px]">Notifications</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-active-berry"></span>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</div>
+</a>
+<a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#rate">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</div>
+<div>
+<p class="text-title font-title text-deep-charcoal text-[15px] leading-tight">Rate Coo Care Baby Tracker</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">Love the app? Leave a quick review</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#share">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[15px]">Tell a friend</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#terms">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">description</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[15px]">Terms of Use</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between py-3.5 px-space-xs hover:bg-pink-tint/40 transition-colors group" href="#privacy">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-pink-tint flex items-center justify-center text-active-berry shrink-0">
+<span class="material-symbols-outlined text-[20px]">shield</span>
+</div>
+<span class="text-title font-title text-deep-charcoal text-[15px]">Privacy Policy</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-charcoal-soft group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</a></div>
+</section>
+<!-- 4. Account Card -->
+<section class="bg-cotton-white rounded-lg border border-hairline p-space-lg shadow-[0_4px_20px_rgba(61,53,58,0.03)] flex flex-col items-center text-center">
+<div class="w-11 h-11 rounded-full bg-surface-container-low flex items-center justify-center text-charcoal-soft mb-2">
+<span class="material-symbols-outlined text-[22px]">manage_accounts</span>
+</div>
+<p class="text-label font-label text-deep-charcoal">Account Sync Active</p>
+<p class="text-body-md font-body-md text-charcoal-soft mt-0.5">Signed in as parent@example.com</p>
+<!-- Secondary Button: Logout -->
+<button class="w-full mt-space-md h-12 bg-pink-tint text-deep-charcoal rounded-full font-title text-title flex items-center justify-center gap-2 hover:bg-warm-pink/30 active:scale-[0.98] transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] text-berry-ink">logout</span>
+<span>Logout</span>
+</button>
+<!-- Tertiary Link: Delete Account -->
+<button class="mt-space-md text-caption font-caption text-berry-ink underline hover:opacity-80 active:opacity-60 transition-opacity" type="button">
+          Delete account
+        </button>
+</section>
+<!-- 5. App Footer Meta -->
+<footer class="text-center pt-2 pb-6 space-y-1">
+<div class="flex items-center justify-center gap-1.5 text-charcoal-soft">
+<span class="material-symbols-outlined text-[16px] text-active-berry">child_care</span>
+<span class="text-label font-label text-deep-charcoal">Coo Care</span>
+</div>
+<p class="text-caption font-caption text-charcoal-soft">Version 2.4.0 (Build 382)</p>
+<p class="text-[11px] font-caption text-charcoal-soft/80">Crafted with care for calm family nights</p>
+</footer>
+</main>
+<!-- Bottom Navigation Bar (Docked Full Width) -->
+<!-- Executing Shared Components JSON with semantic mapping to Profile (Active) -->
+<nav class="fixed bottom-0 left-0 right-0 w-full z-50 flex justify-around items-center px-space-sm py-2 max-w-[390px] mx-auto bg-cotton-white border-t border-hairline shadow-[0_8px_24px_rgba(61,53,58,0.08)]">
+<!-- 1. My Baby (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-md py-1 hover:bg-peach-tint transition-colors active:scale-95 duration-150 rounded-full group" href="#my-baby">
+<span class="material-symbols-outlined text-[24px]">child_care</span>
+<span class="text-caption font-caption mt-0.5">My Baby</span>
+</a>
+<!-- 2. Ask Meow (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-md py-1 hover:bg-peach-tint transition-colors active:scale-95 duration-150 rounded-full group" href="#ask-meow">
+<span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+<span class="text-caption font-caption mt-0.5">Ask Meow</span>
+</a>
+<!-- 3. Learn (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-md py-1 hover:bg-peach-tint transition-colors active:scale-95 duration-150 rounded-full group" href="#learn">
+<span class="material-symbols-outlined text-[24px]">menu_book</span>
+<span class="text-caption font-caption mt-0.5">Learn</span>
+</a>
+<!-- 4. Profile (ACTIVE) -->
+<a aria-current="page" class="flex flex-col items-center justify-center bg-pink-tint text-berry-ink rounded-full px-space-md py-1 active:scale-95 transition-transform duration-150" href="#profile">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+<span class="text-caption font-caption font-bold mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coo Care - My Baby Dashboard</title>
+<!-- Google Fonts: Nunito Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800;1,6..12,400&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-bright": "#fff8f9",
+            "active-berry": "#FF6584",
+            "hairline": "#F5E3E7",
+            "surface-container-lowest": "#ffffff",
+            "pink-tint": "#FFE3E9",
+            "on-tertiary": "#ffffff",
+            "surface-container-highest": "#e7e1e2",
+            "tertiary": "#795744",
+            "tertiary-fixed-dim": "#eabda6",
+            "error-container": "#ffdad6",
+            "tertiary-container": "#ba917b",
+            "background": "#fff8f9",
+            "secondary-fixed": "#ffd9de",
+            "on-primary-fixed": "#400012",
+            "error": "#C7365A",
+            "surface-container-high": "#ede7e8",
+            "on-background": "#1d1b1c",
+            "secondary-fixed-dim": "#ffb2be",
+            "inverse-surface": "#323031",
+            "warm-pink": "#FFA6B5",
+            "outline": "#8c7073",
+            "outline-variant": "#dfbfc2",
+            "on-secondary-fixed-variant": "#733240",
+            "berry-ink": "#C7365A",
+            "inverse-on-surface": "#f6eff0",
+            "primary-fixed-dim": "#ffb2bc",
+            "primary": "#b0284b",
+            "charcoal-soft": "#6E6369",
+            "on-primary-container": "#6a0024",
+            "primary-fixed": "#ffd9dd",
+            "tertiary-fixed": "#ffdbca",
+            "on-primary-fixed-variant": "#8f0935",
+            "on-error-container": "#93000a",
+            "secondary-container": "#fea5b4",
+            "inverse-primary": "#ffb2bc",
+            "on-primary": "#ffffff",
+            "surface-container": "#f3eced",
+            "on-tertiary-container": "#472b1b",
+            "cotton-white": "#FFFFFF",
+            "on-secondary-container": "#7a3846",
+            "primary-container": "#ff6584",
+            "deep-charcoal": "#3D353A",
+            "secondary": "#8f4957",
+            "on-tertiary-fixed": "#2d1507",
+            "on-tertiary-fixed-variant": "#5f3f2e",
+            "surface": "#fff8f9",
+            "on-surface": "#1d1b1c",
+            "surface-tint": "#b0284b",
+            "on-secondary-fixed": "#3b0616",
+            "surface-variant": "#e7e1e2",
+            "peach-pastel": "#FFD0B8",
+            "surface-container-low": "#f9f2f3",
+            "peach-tint": "#FFF0E8",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "cosy-ivory": "#FFF8F9",
+            "on-surface-variant": "#584143",
+            "surface-dim": "#dfd8d9"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "16px",
+            "space-sm": "8px",
+            "space-xl": "32px",
+            "space-lg": "24px",
+            "margin": "20px",
+            "gutter": "12px",
+            "space-xs": "4px"
+          },
+          "fontFamily": {
+            "title": [
+              "Nunito Sans"
+            ],
+            "body-lg": [
+              "Nunito Sans"
+            ],
+            "headline-md": [
+              "Nunito Sans"
+            ],
+            "headline-lg": [
+              "Nunito Sans"
+            ],
+            "body-md": [
+              "Nunito Sans"
+            ],
+            "display": [
+              "Nunito Sans"
+            ],
+            "caption": [
+              "Nunito Sans"
+            ],
+            "stat-number": [
+              "Nunito Sans"
+            ],
+            "label": [
+              "Nunito Sans"
+            ]
+          },
+          "fontSize": {
+            "title": [
+              "17px",
+              {
+                "lineHeight": "24px",
+                "fontWeight": "700"
+              }
+            ],
+            "body-lg": [
+              "16px",
+              {
+                "lineHeight": "24px",
+                "fontWeight": "400"
+              }
+            ],
+            "headline-md": [
+              "20px",
+              {
+                "lineHeight": "26px",
+                "fontWeight": "800"
+              }
+            ],
+            "headline-lg": [
+              "24px",
+              {
+                "lineHeight": "30px",
+                "fontWeight": "800"
+              }
+            ],
+            "body-md": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "400"
+              }
+            ],
+            "display": [
+              "32px",
+              {
+                "lineHeight": "38px",
+                "letterSpacing": "-0.01em",
+                "fontWeight": "800"
+              }
+            ],
+            "caption": [
+              "12px",
+              {
+                "lineHeight": "16px",
+                "fontWeight": "600"
+              }
+            ],
+            "stat-number": [
+              "28px",
+              {
+                "lineHeight": "32px",
+                "fontWeight": "800"
+              }
+            ],
+            "label": [
+              "13px",
+              {
+                "lineHeight": "16px",
+                "fontWeight": "700"
+              }
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      background-color: #FFF8F9;
+      font-family: 'Nunito Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-cosy-ivory text-deep-charcoal antialiased min-h-screen flex justify-center selection:bg-pink-tint selection:text-berry-ink">
+<!-- Mobile Frame Container (Strict 390px max-width) -->
+<main class="w-full max-w-[390px] min-h-screen bg-cosy-ivory flex flex-col relative pb-[96px] shadow-[0_0_40px_rgba(61,53,58,0.04)]">
+<!-- 1. Top Header -->
+<header class="fixed top-0 left-0 right-0 z-40 bg-cotton-white/95 backdrop-blur-md max-w-[390px] mx-auto w-full px-space-md py-space-sm flex justify-between items-center shadow-sm">
+<div class="flex items-center gap-3">
+<!-- Baby Photo Avatar with warm peach ring -->
+<div class="relative w-12 h-12 rounded-full p-[2px] bg-peach-pastel flex items-center justify-center shrink-0">
+<img class="w-full h-full object-cover rounded-full" data-alt="A gentle, close-up portrait of a five-month-old baby with bright curious eyes and soft cheeks, wrapped snugly in a clean cream cotton blanket. The natural nursery ambient lighting is warm, soft, and soothing, creating a peaceful, cocooning light-mode atmosphere. Delicate peach, blush pink, and pure white tones anchor the frame in pure visual tenderness." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4QM7qc93uxAlZPl5SbYUJ4S_FI_XHsaf1QQHtXHN8x7jfuwSigZHhj_JR_wbJ2EDtK_4Fv1WiGilqjgtR54MDjXXvpzSSTs8wb842ULZUTbGebI-zpaiRR23-qcvqpWGl_qMXrySuWVYECDUYggr5I31Ntb0RKda_BEvUee6BtBTO2phqLFoLTX6NM1TrLpJV63ICj_8eULGpHXYdCJN5tbRlRI8JNsWjB19LpeDGbMprYLe_nMHKdq6BLSQYeWwfU7UpATuVJg"/>
+</div>
+<div class="flex flex-col">
+<span class="text-caption font-caption text-charcoal-soft">Good evening</span>
+<h1 class="text-headline-md font-headline-md text-deep-charcoal tracking-tight">Luna · 5 months</h1>
+</div>
+</div>
+<!-- Right Notifications Button -->
+<button aria-label="Notifications" class="relative w-10 h-10 rounded-full flex items-center justify-center hover:bg-pink-tint active:scale-95 transition-all text-deep-charcoal border border-hairline bg-cotton-white" type="button">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<!-- Berry Alert Indicator Dot -->
+<span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-active-berry border-2 border-cotton-white"></span>
+</button>
+</header>
+<!-- Content Spacer for Fixed TopAppBar -->
+<div class="h-[64px] w-full"></div>
+<!-- Body Scroll Container -->
+<div class="flex flex-col gap-6 px-space-md pt-space-md">
+<!-- 2. Today Summary Card -->
+<section class="bg-cotton-white rounded-[24px] border border-hairline p-5 shadow-[0_4px_20px_rgba(61,53,58,0.02)]">
+<div class="flex items-center justify-between mb-4">
+<span class="text-caption font-caption text-charcoal-soft tracking-wide">Today's summary</span>
+<a class="text-label font-label text-berry-ink flex items-center gap-0.5 hover:underline active:scale-95 transition-transform" href="#reports">
+<span>See reports</span>
+<span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-3 divide-x divide-hairline">
+<!-- Col 1 -->
+<div class="flex flex-col pr-2">
+<span class="text-caption font-caption text-charcoal-soft">Last feeding</span>
+<span class="text-body-lg font-headline-md text-deep-charcoal font-extrabold mt-0.5">1h 20m ago</span>
+</div>
+<!-- Col 2 -->
+<div class="flex flex-col px-3">
+<span class="text-caption font-caption text-charcoal-soft">Sleep today</span>
+<span class="text-body-lg font-headline-md text-deep-charcoal font-extrabold mt-0.5">11h 05m</span>
+</div>
+<!-- Col 3 -->
+<div class="flex flex-col pl-3">
+<span class="text-caption font-caption text-charcoal-soft">Diapers</span>
+<span class="text-body-lg font-headline-md text-deep-charcoal font-extrabold mt-0.5">6</span>
+</div>
+</div>
+</section>
+<!-- 3. Section "Quick log" -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-md font-headline-md text-deep-charcoal font-extrabold">Quick log</h2>
+</div>
+<!-- 2-column Activity Grid -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Tile 1: Nursing (Pink Tint) -->
+<div class="bg-pink-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<!-- Squircle Icon Holder -->
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<svg class="w-[22px] h-[22px] text-active-berry" fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M10 2h4a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path><path d="M7 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"></path><line x1="7" x2="17" y1="5" y2="5"></line><line x1="9" x2="12" y1="12" y2="12"></line><line x1="9" x2="12" y1="16" y2="16"></line></svg>
+</div>
+<button aria-label="Log Nursing" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Nursing</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">5 today · Last 17:40</p>
+</div>
+</div>
+<!-- Tile 2: Solids (Peach Tint) -->
+<div class="bg-peach-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-active-berry text-[22px]">soup_kitchen</span>
+</div>
+<button aria-label="Log Solids" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Solids</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">3 today · Last 14:30</p>
+</div>
+</div>
+<!-- Tile 3: Sleep (Pink Tint) -->
+<div class="bg-pink-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-active-berry text-[22px]">bedtime</span>
+</div>
+<button aria-label="Log Sleep" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Sleep</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">2 naps · Last 16:10</p>
+</div>
+</div>
+<!-- Tile 4: Diaper (Peach Tint) -->
+<div class="bg-peach-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-active-berry text-[22px]">spa</span>
+</div>
+<button aria-label="Log Diaper" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Diaper</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">6 today · Last 17:55</p>
+</div>
+</div>
+<!-- Tile 5: Pumping (Pink Tint) -->
+<div class="bg-pink-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-active-berry text-[22px]">water_drop</span>
+</div>
+<button aria-label="Log Pumping" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Pumping</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">2 sessions · Last 11:20</p>
+</div>
+</div>
+<!-- Tile 6: Medicine (Peach Tint) -->
+<div class="bg-peach-tint rounded-[24px] p-4 flex flex-col justify-between h-[126px] relative active:scale-[0.98] transition-transform">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-[16px] bg-cotton-white flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-active-berry text-[22px]">medication</span>
+</div>
+<button aria-label="Log Medicine" class="w-8 h-8 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_3px_10px_rgba(255,101,132,0.35)] active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div>
+<p class="text-body-lg font-title text-deep-charcoal leading-tight">Medicine</p>
+<p class="text-caption font-caption text-charcoal-soft mt-0.5">1 today · Last 12:00</p>
+</div>
+</div>
+</div>
+<!-- Full-width Journal Card -->
+<button class="w-full text-left bg-pink-tint rounded-[20px] p-4 flex items-center justify-between active:scale-[0.99] transition-transform" type="button">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-[14px] bg-cotton-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-active-berry text-[22px]">auto_stories</span>
+</div>
+<div>
+<h3 class="text-title font-title text-deep-charcoal">Journal</h3>
+<p class="text-caption font-caption text-charcoal-soft">Write today's little story</p>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-cotton-white flex items-center justify-center text-active-berry">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</div>
+</button>
+</section>
+<!-- 4. Section "Today" Timeline -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-md font-headline-md text-deep-charcoal font-extrabold">Today</h2>
+<a class="text-label font-label text-berry-ink flex items-center gap-0.5 hover:underline active:scale-95 transition-transform" href="#history">
+<span>View all (8)</span>
+<span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+</a>
+</div>
+<div class="bg-cotton-white rounded-[24px] border border-hairline p-4 divide-y divide-hairline shadow-[0_4px_20px_rgba(61,53,58,0.02)]">
+<!-- Event 1 -->
+<div class="flex items-center py-3 first:pt-1 last:pb-1 gap-3">
+<span class="text-caption font-caption text-charcoal-soft w-11 shrink-0 font-bold">18:40</span>
+<div class="w-8 h-8 rounded-full bg-pink-tint flex items-center justify-center shrink-0 text-active-berry">
+<svg class="w-[18px] h-[18px] text-active-berry" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M10 2h4a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path><path d="M7 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"></path><line x1="7" x2="17" y1="5" y2="5"></line><line x1="9" x2="12" y1="12" y2="12"></line><line x1="9" x2="12" y1="16" y2="16"></line></svg>
+</div>
+<div class="flex-1 truncate">
+<span class="text-body-md font-body-md text-deep-charcoal font-semibold">Nursing</span>
+<span class="text-caption font-caption text-charcoal-soft"> — Left side · 15 min</span>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="flex items-center py-3 first:pt-1 last:pb-1 gap-3">
+<span class="text-caption font-caption text-charcoal-soft w-11 shrink-0 font-bold">17:55</span>
+<div class="w-8 h-8 rounded-full bg-peach-tint flex items-center justify-center shrink-0 text-active-berry">
+<span class="material-symbols-outlined text-[18px]">spa</span>
+</div>
+<div class="flex-1 truncate">
+<span class="text-body-md font-body-md text-deep-charcoal font-semibold">Diaper</span>
+<span class="text-caption font-caption text-charcoal-soft"> — Wet</span>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="flex items-center py-3 first:pt-1 last:pb-1 gap-3">
+<span class="text-caption font-caption text-charcoal-soft w-11 shrink-0 font-bold">16:10</span>
+<div class="w-8 h-8 rounded-full bg-pink-tint flex items-center justify-center shrink-0 text-active-berry">
+<span class="material-symbols-outlined text-[18px]">bedtime</span>
+</div>
+<div class="flex-1 truncate">
+<span class="text-body-md font-body-md text-deep-charcoal font-semibold">Sleep</span>
+<span class="text-caption font-caption text-charcoal-soft"> — 1h 30m nap</span>
+</div>
+</div>
+<!-- Event 4 -->
+<div class="flex items-center py-3 first:pt-1 last:pb-1 gap-3">
+<span class="text-caption font-caption text-charcoal-soft w-11 shrink-0 font-bold">14:30</span>
+<div class="w-8 h-8 rounded-full bg-peach-tint flex items-center justify-center shrink-0 text-active-berry">
+<span class="material-symbols-outlined text-[18px]">soup_kitchen</span>
+</div>
+<div class="flex-1 truncate">
+<span class="text-body-md font-body-md text-deep-charcoal font-semibold">Solids</span>
+<span class="text-caption font-caption text-charcoal-soft"> — Banana · 60 g</span>
+</div>
+</div>
+<!-- Event 5 -->
+<div class="flex items-center py-3 last:pb-1 gap-3">
+<span class="text-caption font-caption text-charcoal-soft w-11 shrink-0 font-bold">12:00</span>
+<div class="w-8 h-8 rounded-full bg-pink-tint flex items-center justify-center shrink-0 text-active-berry">
+<span class="material-symbols-outlined text-[18px]">medication</span>
+</div>
+<div class="flex-1 truncate">
+<span class="text-body-md font-body-md text-deep-charcoal font-semibold">Medicine</span>
+<span class="text-caption font-caption text-charcoal-soft"> — Vitamin D · 2 drops</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. AI Tips for Today Card -->
+<section class="bg-peach-tint rounded-[24px] p-5 flex flex-col gap-3 relative overflow-hidden border border-hairline shadow-xs">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-active-berry text-[18px] fill-icon">auto_awesome</span>
+<span class="text-caption font-label tracking-widest text-berry-ink uppercase">AI TIP FOR TODAY</span>
+</div>
+<div>
+<h3 class="text-title font-title text-deep-charcoal font-bold">Wake windows at 5 months</h3>
+<p class="text-body-md font-body-md text-deep-charcoal/85 mt-1 leading-relaxed">
+            Luna's ideal wake window right now is around 2 to 2.5 hours. Look for eye rubbing around 19:30 for bedtime.
+          </p>
+</div>
+<div class="pt-1">
+<button class="inline-flex items-center gap-2 h-10 px-4 rounded-full bg-cotton-white text-berry-ink text-label font-label border border-hairline shadow-xs hover:bg-pink-tint active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px] text-active-berry">chat_bubble</span>
+<span>Ask Meow</span>
+</button>
+</div>
+</section>
+</div>
+<!-- 6. Bottom Navigation Bar (Fixed bottom according to Shared Components JSON) -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-space-sm py-space-xs max-w-[390px] mx-auto w-full pb-safe bg-cotton-white border-t border-hairline shadow-[0_-4px_24px_rgba(61,53,58,0.08)]">
+<!-- Nav Item 1: My Baby (Active) -->
+<a class="flex flex-col items-center justify-center bg-pink-tint text-berry-ink rounded-full px-space-md py-space-xs transition-colors duration-200" href="#mybaby">
+<span class="material-symbols-outlined text-[22px] text-active-berry">child_care</span>
+<span class="text-caption font-caption mt-0.5 font-bold">My Baby</span>
+</a>
+<!-- Nav Item 2: Ask Meow (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-sm py-space-xs hover:bg-peach-tint rounded-full transition-colors duration-200" href="#askmeow">
+<span class="material-symbols-outlined text-[22px]">chat_bubble</span>
+<span class="text-caption font-caption mt-0.5">Ask Meow</span>
+</a>
+<!-- Nav Item 3: Learn (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-sm py-space-xs hover:bg-peach-tint rounded-full transition-colors duration-200" href="#learn">
+<span class="material-symbols-outlined text-[22px]">menu_book</span>
+<span class="text-caption font-caption mt-0.5">Learn</span>
+</a>
+<!-- Nav Item 4: Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-space-sm py-space-xs hover:bg-peach-tint rounded-full transition-colors duration-200" href="#profile">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="text-caption font-caption mt-0.5">Profile</span>
+</a>
+</nav>
+</main>
+<script>
+    // Lightweight tactile micro-interactions for buttons
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('touchstart', function() {
+        this.classList.add('opacity-90');
+      }, { passive: true });
+      btn.addEventListener('touchend', function() {
+        this.classList.remove('opacity-90');
+      }, { passive: true });
+    });
+  </script>
+</body></html>

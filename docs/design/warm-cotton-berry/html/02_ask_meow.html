@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ask Meow - Coo Care Baby Tracker</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Nunito Sans Font Family -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800;1,6..12,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config verbatim matching Design Tokens -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-highest": "#e7e1e2",
+            "peach-tint": "#FFF0E8",
+            "active-berry": "#FF6584",
+            "surface-container-high": "#ede7e8",
+            "tertiary-fixed-dim": "#eabda6",
+            "primary-container": "#ff6584",
+            "on-error": "#ffffff",
+            "on-tertiary-container": "#472b1b",
+            "inverse-surface": "#323031",
+            "surface-bright": "#fff8f9",
+            "on-primary": "#ffffff",
+            "surface-tint": "#b0284b",
+            "primary": "#b0284b",
+            "cosy-ivory": "#FFF8F9",
+            "charcoal-soft": "#6E6369",
+            "surface-variant": "#e7e1e2",
+            "on-tertiary-fixed-variant": "#5f3f2e",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#733240",
+            "error-container": "#ffdad6",
+            "outline": "#8c7073",
+            "inverse-on-surface": "#f6eff0",
+            "on-tertiary-fixed": "#2d1507",
+            "on-primary-fixed-variant": "#8f0935",
+            "primary-fixed": "#ffd9dd",
+            "pink-tint": "#FFE3E9",
+            "on-primary-container": "#6a0024",
+            "warm-pink": "#FFA6B5",
+            "cotton-white": "#FFFFFF",
+            "on-secondary-container": "#7a3846",
+            "surface-container": "#f3eced",
+            "tertiary": "#795744",
+            "on-tertiary": "#ffffff",
+            "on-surface": "#1d1b1c",
+            "surface-container-low": "#f9f2f3",
+            "on-secondary": "#ffffff",
+            "on-background": "#1d1b1c",
+            "secondary-fixed-dim": "#ffb2be",
+            "surface-dim": "#dfd8d9",
+            "background": "#fff8f9",
+            "peach-pastel": "#FFD0B8",
+            "on-surface-variant": "#584143",
+            "on-primary-fixed": "#400012",
+            "secondary-container": "#fea5b4",
+            "deep-charcoal": "#3D353A",
+            "hairline": "#F5E3E7",
+            "tertiary-container": "#ba917b",
+            "outline-variant": "#dfbfc2",
+            "secondary-fixed": "#ffd9de",
+            "tertiary-fixed": "#ffdbca",
+            "secondary": "#8f4957",
+            "surface": "#fff8f9",
+            "on-secondary-fixed": "#3b0616",
+            "berry-ink": "#C7365A",
+            "error": "#C7365A",
+            "surface-container-lowest": "#ffffff",
+            "inverse-primary": "#ffb2bc",
+            "primary-fixed-dim": "#ffb2bc"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "8px",
+            "space-xs": "4px",
+            "space-xl": "32px",
+            "gutter": "12px",
+            "space-md": "16px",
+            "space-lg": "24px",
+            "margin": "20px"
+          },
+          "fontFamily": {
+            "title": ["Nunito Sans"],
+            "stat-number": ["Nunito Sans"],
+            "caption": ["Nunito Sans"],
+            "headline-md": ["Nunito Sans"],
+            "headline-lg": ["Nunito Sans"],
+            "body-md": ["Nunito Sans"],
+            "display": ["Nunito Sans"],
+            "body-lg": ["Nunito Sans"],
+            "label": ["Nunito Sans"]
+          },
+          "fontSize": {
+            "title": ["17px", { "lineHeight": "24px", "fontWeight": "700" }],
+            "stat-number": ["28px", { "lineHeight": "32px", "fontWeight": "800" }],
+            "caption": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "fontWeight": "800" }],
+            "headline-lg": ["24px", { "lineHeight": "30px", "fontWeight": "800" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "display": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label": ["13px", { "lineHeight": "16px", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #FFF8F9;
+      font-family: 'Nunito Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Hide scrollbar for clean chip rail */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-cosy-ivory text-deep-charcoal flex justify-center min-h-screen">
+<!-- Mobile Frame Container (Strict 390px Width Target) -->
+<div class="w-full max-w-[390px] min-h-screen bg-cosy-ivory flex flex-col relative shadow-sm border-x border-hairline/60">
+<!-- 1. Header (Sticky Top App Bar from Shared Components) -->
+<header class="sticky top-0 z-40 bg-cosy-ivory/95 backdrop-blur-sm border-b border-hairline transition-colors duration-150">
+<div class="flex justify-between items-center w-full px-5 py-3 max-w-[390px] mx-auto">
+<!-- Leading: Sleepy cat mascot avatar inside warm peach circle -->
+<div class="flex items-center space-x-3">
+<div class="w-11 h-11 rounded-full bg-peach-pastel flex items-center justify-center p-1.5 shadow-[0_2px_8px_rgba(255,208,184,0.4)]">
+<svg class="w-7 h-7 text-deep-charcoal" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 32 32">
+<!-- Stylized Sleepy Cat Mascot Illustration -->
+<path d="M7 13 L6 6 L12 9 C14 8 18 8 20 9 L26 6 L25 13 C27.5 16.5 27.5 21 24.5 24.5 C21.5 28 10.5 28 7.5 24.5 C4.5 21 4.5 16.5 7 13 Z" fill="#FFE3E9" fill-opacity="0.5"></path>
+<!-- Closed Sleepy Eyes -->
+<path d="M10 17 Q12.5 19.5 15 17" stroke="#3D353A" stroke-width="2"></path>
+<path d="M17 17 Q19.5 19.5 22 17" stroke="#3D353A" stroke-width="2"></path>
+<!-- Tiny Nose -->
+<path d="M15.5 20 L16.5 20" stroke="#FF6584" stroke-width="2.5"></path>
+<!-- Whisker strokes -->
+<path d="M8 20 L5 19.5" stroke="#FFA6B5" stroke-width="1.5"></path>
+<path d="M24 20 L27 19.5" stroke="#FFA6B5" stroke-width="1.5"></path>
+</svg>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-deep-charcoal font-extrabold tracking-tight">Ask Meow</h1>
+<p class="font-caption text-caption text-charcoal-soft font-semibold">Your Baby's AI Cat Companion</p>
+</div>
+</div>
+<!-- Trailing History Button -->
+<button aria-label="Chat History" class="w-10 h-10 rounded-full bg-cotton-white border border-hairline flex items-center justify-center text-charcoal-soft hover:bg-pink-tint hover:text-active-berry transition-colors duration-150 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px]">history</span>
+</button>
+</div>
+</header>
+<!-- Main Scrollable Chat Canvas -->
+<main class="flex-1 px-5 pt-4 pb-36 space-y-5 overflow-y-auto no-scrollbar">
+<!-- 2. Quick Questions Card -->
+<section class="bg-cotton-white rounded-[24px] border border-hairline p-4 shadow-[0_4px_16px_rgba(61,53,58,0.03)] space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-active-berry text-[20px] fill">auto_awesome</span>
+<h2 class="font-title text-title text-deep-charcoal">Quick questions</h2>
+</div>
+<button aria-label="Shuffle questions" class="w-8 h-8 rounded-full flex items-center justify-center text-charcoal-soft hover:text-active-berry hover:bg-pink-tint transition-colors active:scale-90" type="button">
+<span class="material-symbols-outlined text-[19px]">shuffle</span>
+</button>
+</div>
+<!-- Pill Chips (Horizontal scroll or wrap) -->
+<div class="flex flex-col gap-2">
+<button class="w-full text-left bg-pink-tint hover:bg-peach-tint text-deep-charcoal font-label text-label px-4 py-2.5 rounded-full transition-all duration-150 border border-hairline flex items-center justify-between group active:scale-[0.99]" type="button">
+<span>Is my baby's poop color normal?</span>
+<span class="material-symbols-outlined text-charcoal-soft group-hover:text-active-berry text-[18px] transition-colors">north_east</span>
+</button>
+<button class="w-full text-left bg-pink-tint hover:bg-peach-tint text-deep-charcoal font-label text-label px-4 py-2.5 rounded-full transition-all duration-150 border border-hairline flex items-center justify-between group active:scale-[0.99]" type="button">
+<span>How much should a 4-month-old sleep?</span>
+<span class="material-symbols-outlined text-charcoal-soft group-hover:text-active-berry text-[18px] transition-colors">north_east</span>
+</button>
+<button class="w-full text-left bg-pink-tint hover:bg-peach-tint text-deep-charcoal font-label text-label px-4 py-2.5 rounded-full transition-all duration-150 border border-hairline flex items-center justify-between group active:scale-[0.99]" type="button">
+<span>When can I start solids?</span>
+<span class="material-symbols-outlined text-charcoal-soft group-hover:text-active-berry text-[18px] transition-colors">north_east</span>
+</button>
+</div>
+</section>
+<!-- 3. Conversation Area -->
+<section class="space-y-4">
+<!-- Timestamp Divider -->
+<div class="flex items-center justify-center space-x-2 my-2">
+<span class="h-px bg-hairline flex-1"></span>
+<span class="font-caption text-caption text-charcoal-soft px-2">Today, 14:05</span>
+<span class="h-px bg-hairline flex-1"></span>
+</div>
+<!-- User Message Bubble (Right aligned) -->
+<div class="flex flex-col items-end pl-8">
+<div class="bg-pink-tint border border-hairline rounded-[20px] rounded-br-[4px] p-3.5 shadow-sm max-w-[90%]">
+<p class="font-body-md text-body-md text-deep-charcoal leading-relaxed">
+              My 5-month-old wakes up every 2 hours at night. Is that normal?
+            </p>
+</div>
+<span class="font-caption text-caption text-charcoal-soft mt-1 mr-1 text-[11px]">14:05</span>
+</div>
+<!-- Meow Answer Card (Left aligned with mascot chip) -->
+<div class="flex items-start space-x-2.5 pt-1">
+<!-- Small 28px circular cat avatar -->
+<div class="w-7 h-7 rounded-full bg-peach-tint border border-hairline flex-shrink-0 flex items-center justify-center text-berry-ink mt-0.5">
+<span class="material-symbols-outlined text-[17px]">pets</span>
+</div>
+<!-- White Response Surface -->
+<div class="flex-1 bg-cotton-white rounded-[24px] border border-hairline p-4 space-y-3.5 shadow-[0_4px_20px_rgba(61,53,58,0.04)]">
+<!-- Header row: Meow identity + Sparkle + Timestamp -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-1.5">
+<span class="font-label text-label text-berry-ink font-bold">Meow</span>
+<span class="material-symbols-outlined text-active-berry text-[15px] fill">auto_awesome</span>
+</div>
+<span class="font-caption text-caption text-charcoal-soft text-[11px]">Just now</span>
+</div>
+<!-- Short Answer Paragraph -->
+<p class="font-body-md text-body-md text-deep-charcoal leading-[21px]">
+              At 5 months, waking every 2 hours is very common and usually linked to the 4-to-6 month sleep regression, emerging developmental leaps, or hunger spurts.
+            </p>
+<!-- 3 Practical Tips List with Active Berry bullet indicators -->
+<div class="space-y-2 bg-peach-tint/40 p-3 rounded-[16px] border border-hairline/80">
+<div class="flex items-start space-x-2.5">
+<div class="w-2 h-2 rounded-full bg-active-berry flex-shrink-0 mt-1.5"></div>
+<p class="font-body-md text-body-md text-deep-charcoal text-[13px] leading-snug">
+                  Evaluate wake windows: aim for 2 to 2.5 hours before bedtime.
+                </p>
+</div>
+<div class="flex items-start space-x-2.5">
+<div class="w-2 h-2 rounded-full bg-active-berry flex-shrink-0 mt-1.5"></div>
+<p class="font-body-md text-body-md text-deep-charcoal text-[13px] leading-snug">
+                  Ensure full feeds during daytime to reduce nighttime nutritional waking.
+                </p>
+</div>
+<div class="flex items-start space-x-2.5">
+<div class="w-2 h-2 rounded-full bg-active-berry flex-shrink-0 mt-1.5"></div>
+<p class="font-body-md text-body-md text-deep-charcoal text-[13px] leading-snug">
+                  Establish a soothing, consistent 15-minute wind-down routine.
+                </p>
+</div>
+</div>
+<!-- "Detailed Info" Expandable Row -->
+<div class="border-t border-hairline pt-2.5">
+<button class="w-full flex items-center justify-between py-1 text-left group" type="button">
+<span class="font-title text-[14px] text-deep-charcoal font-bold group-hover:text-berry-ink transition-colors">Detailed Info</span>
+<span class="material-symbols-outlined text-charcoal-soft group-hover:text-berry-ink text-[20px] transition-transform">expand_more</span>
+</button>
+</div>
+<!-- "Sources" Row -->
+<div class="space-y-2 pt-1 border-t border-hairline/60">
+<span class="font-caption text-caption text-charcoal-soft font-semibold block">Sources</span>
+<div class="flex flex-wrap gap-1.5">
+<a class="inline-flex items-center space-x-1 bg-peach-tint text-berry-ink font-caption text-[11px] font-bold px-2.5 py-1 rounded-full border border-hairline hover:bg-pink-tint transition-colors" href="#aap">
+<span>AAP Sleep Guidelines</span>
+<span class="material-symbols-outlined text-[13px]">open_in_new</span>
+</a>
+<a class="inline-flex items-center space-x-1 bg-peach-tint text-berry-ink font-caption text-[11px] font-bold px-2.5 py-1 rounded-full border border-hairline hover:bg-pink-tint transition-colors" href="#psc">
+<span>Pediatric Sleep Council</span>
+<span class="material-symbols-outlined text-[13px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Footer Action Row (Share Tertiary Button) -->
+<div class="flex justify-end pt-1">
+<button class="inline-flex items-center space-x-1.5 text-berry-ink font-label text-label hover:opacity-80 transition-opacity active:scale-95 py-1 px-2" type="button">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span>Share</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 4. Follow-up Suggestions Chips (under answer) -->
+<div class="pl-9 space-y-2 pt-1">
+<p class="font-caption text-caption text-charcoal-soft">Suggested follow-ups</p>
+<div class="flex flex-wrap gap-2">
+<button class="bg-pink-tint border border-hairline hover:bg-peach-tint text-deep-charcoal font-label text-label px-3.5 py-2 rounded-full flex items-center space-x-1.5 transition-colors active:scale-95 shadow-sm" type="button">
+<span class="material-symbols-outlined text-active-berry text-[15px]">add</span>
+<span>How do I stretch wake windows?</span>
+</button>
+<button class="bg-pink-tint border border-hairline hover:bg-peach-tint text-deep-charcoal font-label text-label px-3.5 py-2 rounded-full flex items-center space-x-1.5 transition-colors active:scale-95 shadow-sm" type="button">
+<span class="material-symbols-outlined text-active-berry text-[15px]">add</span>
+<span>Is sleep regression normal?</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- 5. Fixed Input Bar (Positioned above bottom nav) -->
+<div class="fixed bottom-[60px] left-0 right-0 w-full max-w-[390px] mx-auto bg-cotton-white/95 backdrop-blur-md border-t border-hairline px-4 py-2.5 z-40">
+<div class="flex items-center space-x-2">
+<!-- Photo/Attachment action -->
+<button aria-label="Add photo" class="w-10 h-10 rounded-full flex items-center justify-center text-charcoal-soft hover:bg-pink-tint hover:text-active-berry transition-colors active:scale-90 flex-shrink-0" type="button">
+<span class="material-symbols-outlined text-[22px]">photo_camera</span>
+</button>
+<!-- Voice / Mic action -->
+<button aria-label="Voice input" class="w-10 h-10 rounded-full flex items-center justify-center text-charcoal-soft hover:bg-pink-tint hover:text-active-berry transition-colors active:scale-90 flex-shrink-0" type="button">
+<span class="material-symbols-outlined text-[22px]">mic</span>
+</button>
+<!-- Text Input Field Pill -->
+<div class="flex-1 relative flex items-center">
+<input class="w-full h-11 bg-cotton-white rounded-full border border-hairline pl-4 pr-3 text-body-md text-deep-charcoal placeholder-charcoal-soft focus:outline-none focus:border-active-berry focus:ring-1 focus:ring-active-berry transition-all text-[14px]" placeholder="Ask anything about your baby…" type="text"/>
+</div>
+<!-- Primary Berry Send Button -->
+<button aria-label="Send message" class="w-11 h-11 rounded-full bg-active-berry text-cotton-white flex items-center justify-center shadow-[0_4px_12px_rgba(255,101,132,0.35)] hover:bg-berry-ink active:scale-90 transition-all flex-shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</div>
+</div>
+<!-- 6. Bottom Navigation Bar (Verbatim Shared Component Tokens & Logic) -->
+<!-- Active Destination: "Ask Meow" -->
+<nav class="fixed bottom-0 left-0 right-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe max-w-[390px] mx-auto bg-cotton-white border-t border-hairline shadow-[0_-4px_20px_rgba(61,53,58,0.06)]">
+<!-- Tab 1: My Baby (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-3 py-1.5 hover:text-active-berry transition-colors duration-150 active:scale-95" href="#mybaby">
+<span class="material-symbols-outlined text-[22px]" data-icon="child_care">child_care</span>
+<span class="font-caption text-caption text-[11px] mt-0.5">My Baby</span>
+</a>
+<!-- Tab 2: Ask Meow (Active Navigation) -->
+<a class="flex flex-col items-center justify-center bg-pink-tint text-active-berry rounded-full px-3.5 py-1.5 font-bold transition-transform duration-150 active:scale-95" href="#askmeow">
+<span class="material-symbols-outlined text-[22px] fill" data-icon="pets">pets</span>
+<span class="font-caption text-caption text-[11px] text-berry-ink mt-0.5">Ask Meow</span>
+</a>
+<!-- Tab 3: Learn (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-3 py-1.5 hover:text-active-berry transition-colors duration-150 active:scale-95" href="#learn">
+<span class="material-symbols-outlined text-[22px]" data-icon="menu_book">menu_book</span>
+<span class="font-caption text-caption text-[11px] mt-0.5">Learn</span>
+</a>
+<!-- Tab 4: Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-charcoal-soft px-3 py-1.5 hover:text-active-berry transition-colors duration-150 active:scale-95" href="#profile">
+<span class="material-symbols-outlined text-[22px]" data-icon="person">person</span>
+<span class="font-caption text-caption text-[11px] mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>

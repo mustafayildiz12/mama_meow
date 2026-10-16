@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Sign In - Coo Care Baby Tracker</title>
+<!-- Google Fonts: Nunito Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..900;1,6..12,300..900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with custom configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#b0284b",
+            "primary-container": "#ff6584",
+            "surface-tint": "#b0284b",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#ffd9de",
+            "peach-tint": "#FFF0E8",
+            "error-container": "#ffdad6",
+            "active-berry": "#FF6584",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed": "#400012",
+            "secondary-fixed-dim": "#ffb2be",
+            "inverse-on-surface": "#f6eff0",
+            "on-secondary-fixed": "#3b0616",
+            "secondary-container": "#fea5b4",
+            "surface-container-high": "#ede7e8",
+            "on-background": "#1d1b1c",
+            "surface-bright": "#fff8f9",
+            "on-surface": "#1d1b1c",
+            "primary-fixed": "#ffd9dd",
+            "warm-pink": "#FFA6B5",
+            "outline-variant": "#dfbfc2",
+            "on-secondary": "#ffffff",
+            "on-secondary-container": "#7a3846",
+            "inverse-primary": "#ffb2bc",
+            "charcoal-soft": "#6E6369",
+            "cosy-ivory": "#FFF8F9",
+            "tertiary-container": "#ba917b",
+            "on-tertiary-fixed": "#2d1507",
+            "on-error": "#ffffff",
+            "on-tertiary-container": "#472b1b",
+            "on-primary": "#ffffff",
+            "cotton-white": "#FFFFFF",
+            "pink-tint": "#FFE3E9",
+            "deep-charcoal": "#3D353A",
+            "surface-container-highest": "#e7e1e2",
+            "tertiary-fixed": "#ffdbca",
+            "on-primary-fixed-variant": "#8f0935",
+            "surface-variant": "#e7e1e2",
+            "peach-pastel": "#FFD0B8",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#dfd8d9",
+            "on-secondary-fixed-variant": "#733240",
+            "error": "#C7365A",
+            "berry-ink": "#C7365A",
+            "inverse-surface": "#323031",
+            "secondary": "#8f4957",
+            "on-primary-container": "#6a0024",
+            "hairline": "#F5E3E7",
+            "tertiary-fixed-dim": "#eabda6",
+            "primary-fixed-dim": "#ffb2bc",
+            "outline": "#8c7073",
+            "on-surface-variant": "#584143",
+            "on-tertiary-fixed-variant": "#5f3f2e",
+            "surface-container-low": "#f9f2f3",
+            "surface": "#fff8f9",
+            "background": "#fff8f9",
+            "tertiary": "#795744",
+            "surface-container": "#f3eced"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xs": "4px",
+            "space-sm": "8px",
+            "gutter": "12px",
+            "space-md": "16px",
+            "margin": "20px",
+            "space-lg": "24px",
+            "space-xl": "32px"
+          },
+          "fontFamily": {
+            "display": ["Nunito Sans", "sans-serif"],
+            "headline-lg": ["Nunito Sans", "sans-serif"],
+            "headline-md": ["Nunito Sans", "sans-serif"],
+            "title": ["Nunito Sans", "sans-serif"],
+            "body-lg": ["Nunito Sans", "sans-serif"],
+            "body-md": ["Nunito Sans", "sans-serif"],
+            "label": ["Nunito Sans", "sans-serif"],
+            "caption": ["Nunito Sans", "sans-serif"],
+            "stat-number": ["Nunito Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "display": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+            "headline-lg": ["24px", { "lineHeight": "30px", "fontWeight": "800" }],
+            "headline-md": ["20px", { "lineHeight": "26px", "fontWeight": "800" }],
+            "title": ["17px", { "lineHeight": "24px", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label": ["13px", { "lineHeight": "16px", "fontWeight": "700" }],
+            "caption": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+            "stat-number": ["28px", { "lineHeight": "32px", "fontWeight": "800" }]
+          },
+          "boxShadow": {
+            "berry-glow": "0 6px 16px rgba(255,101,132,0.30)",
+            "soft-card": "0 8px 24px rgba(61,53,58,0.04)"
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      user-select: none;
+    }
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset !important;
+      -webkit-text-fill-color: #3D353A !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+  </style>
+</head>
+<body class="bg-cosy-ivory text-deep-charcoal font-body-md antialiased min-h-screen flex flex-col justify-between items-center selection:bg-pink-tint selection:text-berry-ink">
+<!-- Mobile Frame Container (Max 390px, responsive adaptation) -->
+<div class="w-full max-w-[390px] min-h-screen flex flex-col justify-between px-margin py-6 relative">
+<!-- Top Action Row -->
+<header class="w-full flex items-center justify-between pt-2">
+<button aria-label="Dismiss" class="w-10 h-10 rounded-full bg-pink-tint flex items-center justify-center text-deep-charcoal border border-hairline active:scale-95 transition-transform duration-150 focus:outline-none" onclick="window.history.back()" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<div class="flex items-center space-x-1 opacity-70">
+<span class="material-symbols-outlined text-[16px] text-active-berry">favorite</span>
+<span class="text-caption font-caption text-charcoal-soft tracking-wider">COO CARE</span>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="w-full flex-1 flex flex-col justify-center my-4">
+<!-- Hero Mascot & Welcome Header -->
+<section class="flex flex-col items-center text-center mb-6">
+<div class="relative mb-3 flex items-center justify-center"><div class="w-[192px] h-[192px] rounded-full overflow-hidden bg-peach-tint mx-auto flex items-center justify-center relative shadow-soft-card"><img alt="Cute sleeping baby kitten mascot curled on a soft cloud" class="w-full h-full object-cover object-center pointer-events-none select-none" src="https://lh3.googleusercontent.com/aida/AEtjO1UgcS3EqZ6McF6-7oZzcPL8xr5gArZkES9T8zztH-a5T60vKC8QCpz3kFNFyKO3TQqrgjKW8LwnvzGbmDQWrLn-k12CRnDXol-isJQekaJPRxxhf7VJH5-lfTNNknKTe4UILyedM3ZQ9vCfhlP0tx3c9HALhQoKNFDqF1LJLRwxfyihsrf5iXBwDnjNgtsHSmTPEYFQFK_Qr9DwqMnF7eCUX5vS9SRq4pGjbDseeetvgsFD0QZl0QhO" style="mix-blend-mode: multiply;"/></div></div>
+<h1 class="text-stat-number font-stat-number text-deep-charcoal mb-1">
+          Welcome Back!
+        </h1>
+<p class="text-body-md font-body-md text-charcoal-soft max-w-[270px]">
+          Sign in to keep your baby's logs safe across devices.
+        </p>
+</section>
+<!-- Form Section -->
+<form class="space-y-4" onsubmit="event.preventDefault();">
+<!-- Email Input -->
+<div class="space-y-1.5 text-left">
+<label class="block text-label font-label text-deep-charcoal px-1" for="email">
+            Email Address
+          </label>
+<div class="relative flex items-center">
+<span class="absolute left-4 material-symbols-outlined text-[20px] text-charcoal-soft pointer-events-none">mail</span>
+<input autocomplete="email" class="w-full h-14 pl-12 pr-4 bg-cotton-white text-deep-charcoal placeholder:text-charcoal-soft text-body-md font-body-md rounded-[16px] border border-hairline focus:border-active-berry focus:ring-2 focus:ring-active-berry/20 transition-all outline-none" id="email" inputmode="email" placeholder="Enter your email" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div class="space-y-1.5 text-left">
+<label class="block text-label font-label text-deep-charcoal px-1" for="password">
+            Password
+          </label>
+<div class="relative flex items-center">
+<span class="absolute left-4 material-symbols-outlined text-[20px] text-charcoal-soft pointer-events-none">lock</span>
+<input autocomplete="current-password" class="w-full h-14 pl-12 pr-12 bg-cotton-white text-deep-charcoal placeholder:text-charcoal-soft text-body-md font-body-md rounded-[16px] border border-hairline focus:border-active-berry focus:ring-2 focus:ring-active-berry/20 transition-all outline-none" id="password" placeholder="Enter your password" required="" type="password"/>
+<button aria-label="Toggle password visibility" class="absolute right-3.5 w-8 h-8 flex items-center justify-center text-charcoal-soft hover:text-deep-charcoal active:scale-90 transition-transform" id="togglePassword" type="button">
+<span class="material-symbols-outlined text-[20px]" id="eyeIcon">visibility</span>
+</button>
+</div>
+<!-- Forgot Password Link -->
+<div class="flex justify-end pt-1 px-1">
+<a class="text-label font-label text-berry-ink hover:underline active:opacity-80 transition-opacity" href="#">
+              Forgot password?
+            </a>
+</div>
+</div>
+<!-- Primary Action Button -->
+<div class="pt-2">
+<button class="w-full h-14 bg-active-berry text-cotton-white rounded-full text-title font-title flex items-center justify-center shadow-berry-glow active:scale-[0.98] transition-transform duration-150" type="submit">
+            Sign In
+          </button>
+</div>
+</form>
+<!-- Elegant Divider -->
+<div class="relative flex items-center justify-center my-6">
+<div class="w-full border-t border-hairline absolute"></div>
+<span class="relative bg-cosy-ivory px-3 text-caption font-caption text-charcoal-soft">
+          or continue with
+        </span>
+</div>
+<!-- Social Logins (Dual Buttons) -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Apple Login Button -->
+<button class="h-[52px] bg-cotton-white border border-hairline rounded-full flex items-center justify-center space-x-2 text-deep-charcoal active:scale-95 transition-transform duration-150 shadow-soft-card" type="button">
+<!-- Monochrome Apple SVG -->
+<svg class="w-5 h-5 fill-current text-deep-charcoal" viewbox="0 0 24 24">
+<path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.63-.77 1.06-1.85.94-2.92-1 .04-2.19.67-2.88 1.48-.6.69-1.13 1.79-.99 2.85 1.12.09 2.29-.59 2.93-1.41z"></path>
+</svg>
+<span class="text-title font-title text-[15px]">Apple</span>
+</button>
+<!-- Google Login Button -->
+<button class="h-[52px] bg-cotton-white border border-hairline rounded-full flex items-center justify-center space-x-2 text-deep-charcoal active:scale-95 transition-transform duration-150 shadow-soft-card" type="button">
+<!-- Monochrome Deep Charcoal Google SVG -->
+<svg class="w-4 h-4 fill-current text-deep-charcoal" viewbox="0 0 24 24">
+<path d="M21.35 11.1H12v3.6h5.35C16.8 17.15 14.7 18.9 12 18.9c-3.8 0-6.9-3.1-6.9-6.9s3.1-6.9 6.9-6.9c1.7 0 3.25.65 4.45 1.75l2.6-2.6C17.4 2.6 14.85 1.7 12 1.7 6.3 1.7 1.7 6.3 1.7 12s4.6 10.3 10.3 10.3c5.95 0 9.9-4.2 9.9-10.1 0-.75-.05-1.3-.15-1.8z"></path>
+</svg>
+<span class="text-title font-title text-[15px]">Google</span>
+</button>
+</div>
+</main>
+<!-- Footer Area -->
+<footer class="w-full text-center py-3">
+<p class="text-body-md font-body-md text-charcoal-soft">
+        Don't have an account? 
+        <a class="text-berry-ink font-title underline ml-1 active:opacity-75 transition-opacity" href="#">
+          Sign Up
+        </a>
+</p>
+</footer>
+</div>
+<!-- Interactive Logic for Password Visibility -->
+<script>
+    const toggleBtn = document.getElementById('togglePassword');
+    const pwdInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    if (toggleBtn && pwdInput && eyeIcon) {
+      toggleBtn.addEventListener('click', () => {
+        const isPassword = pwdInput.type === 'password';
+        pwdInput.type = isPassword ? 'text' : 'password';
+        eyeIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+      });
+    }
+  </script>
+</body></html>
