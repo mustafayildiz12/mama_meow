@@ -10,7 +10,7 @@ class CustomSnackBar {
 
   // Snackbar sabitleri
   final Duration _duration = const Duration(seconds: 4, milliseconds: 500);
-  final double _borderRadius = 8.0;
+  final double _borderRadius = 16.0;
   final EdgeInsets _margin = const EdgeInsets.symmetric(
     horizontal: 12,
     vertical: 12,
@@ -20,24 +20,23 @@ class CustomSnackBar {
     vertical: 12,
   );
 
-  final TextStyle _titleStyle = const TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w600,
-    color: Colors.white,
-  );
-
-  final TextStyle _messageStyle = const TextStyle(
-    fontSize: 13,
-    color: Colors.white,
-    height: 1.2,
-  );
-
   void _showSnackbar({
     required String title,
     required String message,
     required Color backgroundColor,
+    required Color foregroundColor,
     required Icon icon,
   }) {
+    final titleStyle = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w800,
+      color: foregroundColor,
+    );
+    final messageStyle = TextStyle(
+      fontSize: 13,
+      color: foregroundColor,
+      height: 1.3,
+    );
     final messenger = rootScaffoldMessengerKey.currentState;
     if (messenger == null) return;
 
@@ -55,6 +54,7 @@ class CustomSnackBar {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(_borderRadius),
+            boxShadow: AppColors.floatShadow,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,21 +66,21 @@ class CustomSnackBar {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(title, style: _titleStyle),
+                    Text(title, style: titleStyle),
                     const SizedBox(height: 4),
-                    Text(message, style: _messageStyle),
+                    Text(message, style: messageStyle),
                   ],
                 ),
               ),
               InkWell(
                 onTap: messenger.hideCurrentSnackBar,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
                   child: Text(
                     "Ok",
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      color: foregroundColor,
+                      fontWeight: FontWeight.w800,
                       fontSize: 12,
                     ),
                   ),
@@ -99,10 +99,11 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Success",
       message: message,
-      backgroundColor: Colors.blue.shade500,
+      backgroundColor: AppColors.deepCharcoal,
+      foregroundColor: AppColors.cottonWhite,
       icon: const Icon(
         Icons.check_circle_outline,
-        color: Colors.white,
+        color: AppColors.warmPink,
         size: 20,
       ),
     );
@@ -112,10 +113,11 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Error",
       message: message,
-      backgroundColor: Colors.red.withValues(alpha: 0.9),
+      backgroundColor: AppColors.berryInk,
+      foregroundColor: AppColors.cottonWhite,
       icon: const Icon(
         Icons.error_outline_rounded,
-        color: Colors.white,
+        color: AppColors.cottonWhite,
         size: 20,
       ),
     );
@@ -125,10 +127,11 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Warning",
       message: message,
-      backgroundColor: Colors.orange.withValues(alpha: 0.75),
+      backgroundColor: AppColors.peachPastel,
+      foregroundColor: AppColors.deepCharcoal,
       icon: const Icon(
         Icons.warning_amber_rounded,
-        color: Colors.white,
+        color: AppColors.deepCharcoal,
         size: 20,
       ),
     );
@@ -138,8 +141,13 @@ class CustomSnackBar {
     _showSnackbar(
       title: "Tips",
       message: message,
-      backgroundColor: AppColors.pink500.withValues(alpha: 0.75),
-      icon: const Icon(Icons.info, color: Colors.white, size: 20),
+      backgroundColor: AppColors.pinkTint,
+      foregroundColor: AppColors.deepCharcoal,
+      icon: const Icon(
+        Icons.lightbulb_outline,
+        color: AppColors.activeBerry,
+        size: 20,
+      ),
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/platform_info.dart';
 
 /// Aktivite ekleme sheet'ini standart ayarlarla açar.
@@ -10,8 +12,11 @@ Future<T?> showActivitySheet<T>(BuildContext context, WidgetBuilder builder) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: AppColors.scrim,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppTheme.radiusSheet),
+      ),
     ),
     builder: builder,
   );
@@ -45,23 +50,24 @@ void showSaveError(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
       content: Text("Couldn't save. Please try again."),
-      backgroundColor: Colors.red,
+      backgroundColor: AppColors.berryInk,
     ),
   );
 }
 
-/// Sheet zemin dekorasyonu (degrade + üst köşeler yuvarlak).
-BoxDecoration sheetDecoration(
-  List<Color> colors, {
-  double radius = 16,
+/// Sheet zemini: beyaz, üst köşeler 32 px, yumuşak gölge.
+/// [colors] eski degrade parametresidir, tasarım gereği yok sayılır.
+BoxDecoration sheetDecoration([
+  List<Color>? colors,
+  double radius = AppTheme.radiusSheet,
   bool shadow = true,
-}) {
+]) {
   return BoxDecoration(
-    gradient: LinearGradient(colors: colors),
-    borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
-    boxShadow: shadow
-        ? const [BoxShadow(blurRadius: 16, color: Colors.black12)]
-        : null,
+    color: AppColors.cottonWhite,
+    borderRadius: const BorderRadius.vertical(
+      top: Radius.circular(AppTheme.radiusSheet),
+    ),
+    boxShadow: shadow ? AppColors.floatShadow : null,
   );
 }
 
@@ -102,29 +108,116 @@ class ActivitySheetFrame extends StatelessWidget {
   }
 }
 
-/// Ekleme sheet'lerinin ortak iskeleti: kaydırılabilir içerik + Back/Save
+/// Sheet'in standart başlığı: tutamaç, aktivite ikonu, başlık, alt başlık,
+/// kapatma butonu.
+class ActivitySheetHeader extends StatelessWidget {
+  const ActivitySheetHeader({
+    super.key,
+    required this.title,
+    this.kind,
+    this.subtitle,
+    this.showClose = true,
+  });
+
+  final String title;
+  final ActivityKind? kind;
+  final String? subtitle;
+  final bool showClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final kind = this.kind;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 16, 8),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.outline,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              if (kind != null) ...[
+                IconSquircle(
+                  background: kind.tileColor,
+                  size: 48,
+                  child: ActivityIcon(kind: kind),
+                ),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: textTheme.headlineMedium),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.charcoalSoft,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (showClose)
+                IconButton(
+                  tooltip: 'Close',
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.pinkTint,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.deepCharcoal),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ekleme sheet'lerinin ortak iskeleti: kaydırılabilir içerik + Cancel/Save
 /// butonları. Kaydetme sürerken Save pasif olur (çift kayıt engeli).
 class ActivitySheetScaffold extends StatelessWidget {
   const ActivitySheetScaffold({
     super.key,
-    required this.gradient,
     required this.child,
     required this.onSave,
-    this.radius = 16,
+    this.kind,
+    this.title,
+    this.subtitle,
+    this.gradient,
+    this.radius = AppTheme.radiusSheet,
     this.header,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.fromLTRB(20, 8, 20, 20),
     this.attachScrollController = false,
-    this.backLabel = 'Back',
+    this.backLabel = 'Cancel',
     this.saveColor,
     this.initialChildSize = 0.85,
     this.minChildSize = 0.5,
     this.maxChildSize = 0.96,
   });
 
-  final List<Color> gradient;
+  /// Başlıktaki aktivite ikonu.
+  final ActivityKind? kind;
+
+  /// null değilse standart [ActivitySheetHeader] gösterilir.
+  final String? title;
+  final String? subtitle;
+
+  /// Eski degrade/köşe parametreleri; tasarım gereği yok sayılır.
+  final List<Color>? gradient;
   final double radius;
 
-  /// Kaydırma alanının üstünde sabit kalan kısım.
+  /// Kaydırma alanının üstünde sabit kalan ek kısım.
   final Widget? header;
   final Widget child;
   final EdgeInsets padding;
@@ -136,7 +229,7 @@ class ActivitySheetScaffold extends StatelessWidget {
   /// null → Save pasif (form geçersiz).
   final Future<void> Function()? onSave;
 
-  /// null → OutlinedButton, aksi halde bu renkte ElevatedButton.
+  /// Eski parametre; Save her zaman berry'dir.
   final Color? saveColor;
   final double initialChildSize;
   final double minChildSize;
@@ -148,9 +241,11 @@ class ActivitySheetScaffold extends StatelessWidget {
       initialChildSize: initialChildSize,
       minChildSize: minChildSize,
       maxChildSize: maxChildSize,
-      decoration: sheetDecoration(gradient, radius: radius),
+      decoration: sheetDecoration(),
       builder: (context, controller) => Column(
         children: [
+          if (title != null)
+            ActivitySheetHeader(title: title!, kind: kind, subtitle: subtitle),
           ?header,
           Expanded(
             child: SingleChildScrollView(
@@ -159,11 +254,7 @@ class ActivitySheetScaffold extends StatelessWidget {
               child: child,
             ),
           ),
-          SheetActionBar(
-            backLabel: backLabel,
-            onSave: onSave,
-            saveColor: saveColor,
-          ),
+          SheetActionBar(backLabel: backLabel, onSave: onSave),
         ],
       ),
     );
@@ -174,12 +265,14 @@ class SheetActionBar extends StatefulWidget {
   const SheetActionBar({
     super.key,
     required this.onSave,
-    this.backLabel = 'Back',
+    this.backLabel = 'Cancel',
     this.saveColor,
   });
 
   final Future<void> Function()? onSave;
   final String backLabel;
+
+  /// Eski parametre; Save her zaman berry'dir.
   final Color? saveColor;
 
   @override
@@ -202,48 +295,35 @@ class _SheetActionBarState extends State<SheetActionBar> {
 
   @override
   Widget build(BuildContext context) {
-    final canSave = widget.onSave != null && !_saving;
-    final color = widget.saveColor;
-
-    Widget label(Color? fg) => _saving
-        ? SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-          )
-        : Text('Save', style: fg == null ? null : TextStyle(color: fg));
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(Colors.grey.shade200),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.cottonWhite,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: FilledButton.tonal(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(widget.backLabel),
+                ),
               ),
-              onPressed: () => Navigator.pop(context),
-              child: Text(widget.backLabel),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: color == null
-                ? OutlinedButton(
-                    onPressed: canSave ? _handleSave : null,
-                    child: label(null),
-                  )
-                : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.onSave != null
-                          ? color
-                          : Colors.grey,
-                    ),
-                    onPressed: canSave ? _handleSave : null,
-                    child: label(Colors.white),
-                  ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryPillButton(
+                label: 'Save',
+                height: 52,
+                loading: _saving,
+                onPressed: widget.onSave == null ? null : _handleSave,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -261,22 +341,18 @@ class SheetSectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
-        ],
+        color: AppColors.cottonWhite,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontSize: 15,
+              color: AppColors.deepCharcoal,
             ),
           ),
           const SizedBox(height: 12),
@@ -304,19 +380,29 @@ class TimeField extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppTheme.radiusInput),
       child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: InputDecoration(labelText: label),
         child: Row(
           children: [
-            const Icon(Icons.access_time, size: 18),
+            const Icon(
+              Icons.schedule_outlined,
+              size: 20,
+              color: AppColors.activeBerry,
+            ),
             const SizedBox(width: 8),
-            Text(value),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
             const Spacer(),
-            const Icon(Icons.edit_outlined, size: 18),
+            const Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: AppColors.charcoalSoft,
+            ),
           ],
         ),
       ),
@@ -324,22 +410,23 @@ class TimeField extends StatelessWidget {
   }
 }
 
-/// Seçim kartlarının görünümü.
+/// Seçim kartlarının görünümü. Tüm hazır stiller Berry'dir; adlar eski
+/// çağrılar bozulmasın diye korunuyor.
 class ChipTileStyle {
   const ChipTileStyle({
     required this.width,
     required this.height,
-    required this.background,
-    required this.selectedBackground,
-    required this.selectedBorder,
-    required this.selectedIcon,
+    this.background = AppColors.pinkTint,
+    this.selectedBackground = AppColors.cottonWhite,
+    this.selectedBorder = AppColors.activeBerry,
+    this.selectedIcon = AppColors.activeBerry,
     this.padding = 10,
-    this.selectedBorderWidth = 1.5,
+    this.selectedBorderWidth = 2,
     this.iconGap = 8,
     this.labelMaxLines = 3,
-    this.labelFontSize = 11,
+    this.labelFontSize = 12,
     this.labelHeight = 1.15,
-    this.shadow = true,
+    this.shadow = false,
     this.itemGap = 10,
   });
 
@@ -358,71 +445,41 @@ class ChipTileStyle {
   final bool shadow;
   final double itemGap;
 
-  /// Turuncu kare kartlar (diaper, solid tepkileri).
-  static const orange = ChipTileStyle(
-    width: 96,
-    height: 96,
-    background: AppColors.kLightOrange,
-    selectedBackground: AppColors.kOrange,
-    selectedBorder: AppColors.kDeepOrange,
-    selectedIcon: AppColors.kDeepOrange,
-  );
+  /// Kare kartlar (diaper, solid tepkileri).
+  static const orange = ChipTileStyle(width: 96, height: 96);
 
-  /// Büyük turuncu kartlar (pumping taraf seçimi).
-  static const orangeLarge = ChipTileStyle(
-    width: 120,
-    height: 120,
-    background: AppColors.kLightOrange,
-    selectedBackground: AppColors.kOrange,
-    selectedBorder: AppColors.kDeepOrange,
-    selectedIcon: AppColors.kDeepOrange,
-  );
+  /// Büyük kartlar (pumping taraf seçimi).
+  static const orangeLarge = ChipTileStyle(width: 120, height: 120);
 
   /// Sleep seçenekleri (2 satır etiket).
   static const orangeCompact = ChipTileStyle(
     width: 96,
     height: 96,
-    background: AppColors.kLightOrange,
-    selectedBackground: AppColors.kOrange,
-    selectedBorder: AppColors.kDeepOrange,
-    selectedIcon: AppColors.kDeepOrange,
     iconGap: 6,
     labelMaxLines: 2,
   );
 
-  /// Küçük turuncu kartlar (ilaç adları).
+  /// Küçük kartlar (ilaç adları).
   static const orangeSmall = ChipTileStyle(
     width: 100,
     height: 80,
     padding: 8,
-    background: AppColors.kLightOrange,
-    selectedBackground: AppColors.kOrange,
-    selectedBorder: AppColors.kDeepOrange,
-    selectedBorderWidth: 2,
-    selectedIcon: AppColors.kDeepOrange,
     iconGap: 4,
     labelMaxLines: 2,
-    labelFontSize: 10,
+    labelFontSize: 11,
     labelHeight: null,
-    shadow: false,
     itemGap: 8,
   );
 
   /// Nursing kartları.
-  static final teal = ChipTileStyle(
+  static const teal = ChipTileStyle(
     width: 100,
     height: 80,
     padding: 8,
-    background: Colors.white,
-    selectedBackground: Colors.teal.shade100,
-    selectedBorder: Colors.teal,
-    selectedBorderWidth: 2,
-    selectedIcon: Colors.teal,
     iconGap: 4,
     labelMaxLines: 2,
-    labelFontSize: 10,
+    labelFontSize: 11,
     labelHeight: null,
-    shadow: false,
     itemGap: 8,
   );
 }
@@ -454,6 +511,7 @@ class ChipPickerSection<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final row = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
       child: Row(
         children: [
           for (final it in items)
@@ -476,12 +534,12 @@ class ChipPickerSection<T> extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Text(
             title!,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              fontSize: 15,
+              color: AppColors.deepCharcoal,
             ),
           ),
         ),
@@ -509,61 +567,83 @@ class _ChipTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = style;
+    final radius = BorderRadius.circular(16);
     return Semantics(
       button: true,
       selected: selected,
       label: label,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radius,
         onTap: onTap,
-        child: Container(
-          width: s.width,
-          height: s.height,
-          padding: EdgeInsets.all(s.padding),
-          decoration: BoxDecoration(
-            color: selected ? s.selectedBackground : s.background,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? s.selectedBorder : Colors.black12,
-              width: selected ? s.selectedBorderWidth : 1,
-            ),
-            boxShadow: s.shadow
-                ? const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 6,
-                      offset: Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 24,
-                  color: selected ? s.selectedIcon : Colors.black54,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: s.width,
+              height: s.height,
+              padding: EdgeInsets.all(s.padding),
+              decoration: BoxDecoration(
+                color: selected ? s.selectedBackground : s.background,
+                borderRadius: radius,
+                border: Border.all(
+                  color: selected ? s.selectedBorder : Colors.transparent,
+                  width: s.selectedBorderWidth,
                 ),
-                SizedBox(height: s.iconGap),
-              ],
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: s.labelMaxLines,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: s.labelFontSize,
-                  height: s.labelHeight,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: Colors.black87,
-                ),
+                boxShadow: s.shadow && selected ? AppColors.berryGlow : null,
               ),
-            ],
-          ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 24,
+                      color: selected ? s.selectedIcon : AppColors.charcoalSoft,
+                    ),
+                    SizedBox(height: s.iconGap),
+                  ],
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: s.labelMaxLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: s.labelFontSize,
+                      height: s.labelHeight,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: AppColors.deepCharcoal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Positioned(
+                top: 6,
+                right: 6,
+                child: _CheckBadge(),
+              ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _CheckBadge extends StatelessWidget {
+  const _CheckBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: const BoxDecoration(
+        color: AppColors.activeBerry,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(Icons.check, size: 12, color: AppColors.cottonWhite),
     );
   }
 }

@@ -1,17 +1,18 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/date_range.dart';
 
-/// Aktivite raporlarının renk paleti. Her rapor sayfası kendi paletini
-/// [ReportPaletteScope] ile verir; kartlar renkleri buradan okur.
+/// Aktivite raporlarının renk paleti. Tüm raporlar [ReportPalette.berry]
+/// kullanır; kartlar renkleri [ReportPaletteScope] üzerinden okur.
 class ReportPalette {
   const ReportPalette({
     required this.tint,
     required this.segmentFill,
     this.badge,
-    this.segmentBackground = Colors.white,
-    this.segmentActiveForeground = Colors.white,
+    this.segmentBackground = AppColors.pinkTint,
+    this.segmentActiveForeground = AppColors.berryInk,
   });
 
   /// [ReportSectionCard] degradesinin başlangıç rengi.
@@ -25,10 +26,14 @@ class ReportPalette {
   final Color segmentBackground;
   final Color segmentActiveForeground;
 
-  static const fallback = ReportPalette(
-    tint: Color(0xFFE2E8F0),
-    segmentFill: Color(0xFF94A3B8),
+  /// Warm Cotton & Berry rapor paleti.
+  static const berry = ReportPalette(
+    tint: AppColors.pinkTint,
+    badge: AppColors.peachTint,
+    segmentFill: AppColors.cottonWhite,
   );
+
+  static const fallback = berry;
 
   static ReportPalette of(BuildContext context) =>
       context
@@ -67,21 +72,17 @@ List<ChartEntry> sortedEntries(Map<String, num> map) =>
 List<ChartEntry> orderedEntries(Map<String, num> map) =>
     map.entries.map((e) => ChartEntry(e.key, e.value)).toList();
 
-/// Raporlarda kullanılan 4 kademeli renk skalası.
+/// Raporlarda kullanılan 4 kademeli renk skalası (berry → pink → peach → çizgi).
 Color tierColor(
   num value, {
   required num high,
   required num mid,
   required num low,
 }) {
-  if (value >= high) return const Color(0xFF2ECC71);
-  if (value >= mid) return const Color(0xFFFF7F50);
-  if (value >= low) {
-    // Biraz daha parlak sarı
-    final hsl = HSLColor.fromColor(const Color(0xFFF1C40F));
-    return hsl.withLightness((hsl.lightness * 1.10).clamp(0, 1)).toColor();
-  }
-  return const Color(0xFF3498DB);
+  if (value >= high) return AppColors.activeBerry;
+  if (value >= mid) return AppColors.warmPink;
+  if (value >= low) return AppColors.peachPastel;
+  return AppColors.outline;
 }
 
 /// Dakikayı "1h 5m" biçiminde yazar.
@@ -94,7 +95,7 @@ String formatMinutes(int minutes) {
   return "${h}h ${m}m";
 }
 
-/// Daily / Weekly / Monthly cam efektli seçici.
+/// Daily / Weekly / Monthly seçici: pembe hap zemin üzerinde beyaz kayan seçim.
 class RangeSegmented extends StatelessWidget {
   const RangeSegmented({
     super.key,
@@ -114,43 +115,30 @@ class RangeSegmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = ReportPalette.of(context);
-    final inactiveFg = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: palette.segmentBackground,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: palette.segmentBackground,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          for (final p in ReportPeriod.values) ...[
+            if (p != ReportPeriod.values.first) const SizedBox(width: 4),
+            Expanded(
+              child: _SegmentButton(
+                label: _labels[p]!,
+                selected: value == p,
+                onTap: () => onChanged(p),
+                activeFill: palette.segmentFill,
+                activeFg: palette.segmentActiveForeground,
+                inactiveFg: AppColors.deepCharcoal,
               ),
             ),
-            padding: const EdgeInsets.all(4),
-            child: Row(
-              children: [
-                for (final p in ReportPeriod.values) ...[
-                  if (p != ReportPeriod.values.first) const SizedBox(width: 4),
-                  Expanded(
-                    child: _SegmentButton(
-                      label: _labels[p]!,
-                      selected: value == p,
-                      onTap: () => onChanged(p),
-                      activeFill: palette.segmentFill,
-                      activeFg: palette.segmentActiveForeground,
-                      inactiveFg: inactiveFg,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }
@@ -180,30 +168,22 @@ class _SegmentButton extends StatelessWidget {
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: selected ? activeFill : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                  color: Colors.black.withValues(alpha: 0.06),
-                ),
-              ]
-            : const [],
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: selected ? AppColors.floatShadow : const [],
       ),
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(999),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(vertical: 11),
             child: Center(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
                   color: selected ? activeFg : inactiveFg,
                 ),
               ),
@@ -278,17 +258,21 @@ class CenteredMessage extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.black54,
+                          color: AppColors.charcoalSoft,
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                     if (actionLabel != null && onAction != null) ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: onAction,
-                        icon: const Icon(Icons.add),
-                        label: Text(actionLabel!),
+                      const SizedBox(height: 20),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        child: PrimaryPillButton(
+                          label: actionLabel!,
+                          icon: Icons.add,
+                          height: 52,
+                          onPressed: onAction,
+                        ),
                       ),
                     ],
                   ],
@@ -302,7 +286,7 @@ class CenteredMessage extends StatelessWidget {
   }
 }
 
-/// Paletin rengiyle degrade zeminli rapor kartı.
+/// Beyaz, ince çizgili rapor kartı.
 class ReportSectionCard extends StatelessWidget {
   const ReportSectionCard({
     super.key,
@@ -316,58 +300,32 @@ class ReportSectionCard extends StatelessWidget {
   final String title;
   final String? subtitle;
 
-  /// Sağ üstteki emoji rozeti (null → rozet yok).
+  /// Eski emoji rozeti; tasarım gereği gösterilmez.
   final String? leading;
   final EdgeInsets padding;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final palette = ReportPalette.of(context);
     final theme = Theme.of(context);
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [palette.tint, Colors.white.withValues(alpha: 0.9)],
-          stops: const [0.2, 1.0],
-        ),
+        color: AppColors.cottonWhite,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (leading != null)
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: palette.badge ?? palette.tint,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(leading!, style: const TextStyle(fontSize: 24)),
-                ),
-            ],
-          ),
+          Text(title, style: theme.textTheme.headlineSmall),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.charcoalSoft,
+              ),
             ),
           ],
           const SizedBox(height: 12),
@@ -386,7 +344,7 @@ class ReportHeaderCard extends StatelessWidget {
     required this.stats,
     this.subtitle,
     this.leading,
-    this.padding = const EdgeInsets.fromLTRB(16, 18, 16, 16),
+    this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 16),
     this.gap = 8,
     this.tileHeight = 86,
     this.valueFontSize = 14,
@@ -415,7 +373,13 @@ class ReportHeaderCard extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 0; i < stats.length; i++) ...[
-            if (i > 0) SizedBox(width: gap),
+            if (i > 0)
+              Container(
+                width: 1,
+                height: tileHeight * 0.6,
+                margin: EdgeInsets.symmetric(horizontal: gap / 2),
+                color: AppColors.hairline,
+              ),
             Expanded(
               child: StatTile(
                 title: stats[i].$1,
@@ -450,26 +414,36 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleMedium = Theme.of(context).textTheme.titleMedium;
+    final textTheme = Theme.of(context).textTheme;
+    // Değer büyük ve tek satır; sığmazsa küçülür.
+    final valueSize = (valueFontSize ?? 14) < 20 ? 24.0 : valueFontSize!;
     return Container(
       height: height,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             title,
-            style: titleMedium?.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelMedium?.copyWith(
+              color: AppColors.charcoalSoft,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            maxLines: valueMaxLines,
-            style: titleMedium?.copyWith(
-              fontSize: valueFontSize,
-              fontWeight: FontWeight.w500,
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: valueMaxLines ?? 1,
+              textAlign: TextAlign.center,
+              style: textTheme.headlineMedium?.copyWith(
+                fontSize: valueSize,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -504,11 +478,11 @@ class RatioBarTile extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.cottonWhite,
+        border: Border.all(color: AppColors.hairline),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -529,7 +503,7 @@ class RatioBarTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.isFinite ? ratio.clamp(0, 1) : 0,
                     minHeight: 8,
-                    backgroundColor: trackColor ?? color.withValues(alpha: 0.1),
+                    backgroundColor: trackColor ?? AppColors.pinkTint,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),
@@ -562,6 +536,8 @@ class ReportTipsCard extends StatelessWidget {
 
   final String title;
   final String leading;
+
+  /// Eski parametre; rozetler her zaman şeftalidir.
   final Color badgeColor;
 
   /// (emoji, metin) çiftleri.
@@ -578,17 +554,13 @@ class ReportTipsCard extends StatelessWidget {
             if (i > 0) const SizedBox(height: 16),
             Row(
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(tips[i].$1, style: const TextStyle(fontSize: 20)),
+                IconSquircle(
+                  background: AppColors.peachTint,
+                  size: 36,
+                  radius: 12,
+                  child: Text(tips[i].$1, style: const TextStyle(fontSize: 18)),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(child: Text(tips[i].$2)),
               ],
             ),

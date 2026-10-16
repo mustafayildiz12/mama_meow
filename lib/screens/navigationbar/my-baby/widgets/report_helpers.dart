@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_widgets.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
@@ -79,7 +80,7 @@ mixin ReportPageMixin<W extends StatefulWidget, T, C> on State<W> {
     analyticService.screenView(screenName);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFF8FAFC),
+        statusBarColor: AppColors.cosyIvory,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
@@ -185,8 +186,8 @@ class ReportScaffold<T> extends StatelessWidget {
   const ReportScaffold({
     super.key,
     required this.title,
-    required this.palette,
-    required this.pdfIconColor,
+    this.palette = ReportPalette.berry,
+    this.pdfIconColor,
     required this.isLoading,
     required this.onExportPdf,
     required this.onRefresh,
@@ -200,7 +201,9 @@ class ReportScaffold<T> extends StatelessWidget {
 
   final String title;
   final ReportPalette palette;
-  final Color pdfIconColor;
+
+  /// Eski parametre; paylaşım ikonu her zaman koyu kömür rengindedir.
+  final Color? pdfIconColor;
   final bool isLoading;
 
   /// PDF butonu yalnızca giriş yapmış kullanıcıya gösterilir.
@@ -224,10 +227,8 @@ class ReportScaffold<T> extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Center(
-              child: RangeSegmented(value: period, onChanged: onPeriodChanged),
-            ),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
+            child: RangeSegmented(value: period, onChanged: onPeriodChanged),
           ),
           Expanded(
             child: FutureBuilder<List<T>>(
@@ -251,51 +252,33 @@ class ReportScaffold<T> extends StatelessWidget {
 
     return CustomLoader(
       inAsyncCall: isLoading,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-          ),
-        ),
-        child: ReportPaletteScope(
-          palette: palette,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              centerTitle: true,
-              leading: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.arrow_back_ios),
-                  ),
-                ),
+      child: ReportPaletteScope(
+        palette: palette,
+        child: Scaffold(
+          backgroundColor: AppColors.cosyIvory,
+          appBar: AppBar(
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: IconButton(
+                tooltip: 'Back',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
               ),
-              title: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                if (user != null)
-                  Builder(
-                    builder: (anchor) => IconButton(
-                      icon: Icon(Icons.picture_as_pdf, color: pdfIconColor),
-                      onPressed: () => onExportPdf(anchor),
-                    ),
-                  ),
-              ],
             ),
-            body: bottomSafeArea ? SafeArea(top: false, child: body) : body,
+            title: Text(title),
+            actions: [
+              if (user != null)
+                Builder(
+                  builder: (anchor) => IconButton(
+                    tooltip: 'Export PDF',
+                    icon: const Icon(Icons.ios_share),
+                    onPressed: () => onExportPdf(anchor),
+                  ),
+                ),
+              const SizedBox(width: 8),
+            ],
           ),
+          body: bottomSafeArea ? SafeArea(top: false, child: body) : body,
         ),
       ),
     );

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 
 class CustomLoader extends StatelessWidget {
   const CustomLoader({
     required this.child,
     required this.inAsyncCall,
     super.key,
-    this.opacity = 0.3,
-    this.color = Colors.black,
+    this.opacity = 0.4,
+    this.color = AppColors.deepCharcoal,
   });
   final Widget child;
   final bool inAsyncCall;
@@ -38,48 +39,33 @@ class CustomLoader extends StatelessWidget {
                   vertical: 24,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: AppColors.cottonWhite,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: AppColors.floatShadow,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: const [0, 0.5, 0.8],
-                          colors: [
-                            Colors.pink.shade100,
-                            Colors.pink.shade400,
-                            Colors.pink.shade100,
-                          ],
-                        ),
+                      width: 56,
+                      height: 56,
+                      padding: const EdgeInsets.all(14),
+                      decoration: const BoxDecoration(
+                        color: AppColors.pinkTint,
                         shape: BoxShape.circle,
                       ),
                       child: const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        color: AppColors.activeBerry,
                         strokeWidth: 3,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       "Loading",
                       style: TextStyle(
-                        color: Colors.pink.shade400,
+                        color: AppColors.deepCharcoal,
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
