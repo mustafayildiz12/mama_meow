@@ -34,19 +34,15 @@ class _AddDiaperBottomSheetState extends State<AddDiaperBottomSheet> {
       initialChildSize: 0.6,
       minChildSize: 0.4,
       onSave: _selectedDiaper != null ? _save : null,
-      // Hatırlatıcı butonu standart başlığın altında sağda durur.
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            tooltip: 'Reminders',
-            onPressed: () => openReminders(context, 'diaperReminders'),
-            style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
-            icon: const Icon(Icons.alarm_add, color: AppColors.deepCharcoal),
-          ),
+      // Hatırlatıcı butonu başlıkta, kapatma butonunun yanında durur.
+      actions: [
+        IconButton(
+          tooltip: 'Reminders',
+          onPressed: () => openReminders(context, 'diaperReminders'),
+          style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
+          icon: const Icon(Icons.alarm_add, color: AppColors.deepCharcoal),
         ),
-      ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -180,24 +180,20 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
       maxChildSize: 0.95,
       attachScrollController: true,
       onSave: _isFormValid() ? _saveNursing : null,
-      // Hatırlatıcı butonu standart başlığın altında sağda durur.
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            tooltip: 'Reminders',
-            onPressed: _openReminders,
-            style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
-            icon: Icon(
-              Icons.alarm_add,
-              color: _hasReminder
-                  ? AppColors.activeBerry
-                  : AppColors.deepCharcoal,
-            ),
+      // Hatırlatıcı butonu başlıkta, kapatma butonunun yanında durur.
+      actions: [
+        IconButton(
+          tooltip: 'Reminders',
+          onPressed: _openReminders,
+          style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
+          icon: Icon(
+            Icons.alarm_add,
+            color: _hasReminder
+                ? AppColors.activeBerry
+                : AppColors.deepCharcoal,
           ),
         ),
-      ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

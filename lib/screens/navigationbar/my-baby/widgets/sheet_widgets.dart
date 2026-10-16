@@ -116,12 +116,16 @@ class ActivitySheetHeader extends StatelessWidget {
     required this.title,
     this.kind,
     this.subtitle,
+    this.actions = const [],
     this.showClose = true,
   });
 
   final String title;
   final ActivityKind? kind;
   final String? subtitle;
+
+  /// Kapatma butonunun solundaki ek ikon butonları (ör. hatırlatıcı).
+  final List<Widget> actions;
   final bool showClose;
 
   @override
@@ -167,6 +171,10 @@ class ActivitySheetHeader extends StatelessWidget {
                   ],
                 ),
               ),
+              for (final action in actions) ...[
+                action,
+                const SizedBox(width: 8),
+              ],
               if (showClose)
                 IconButton(
                   tooltip: 'Close',
@@ -194,6 +202,7 @@ class ActivitySheetScaffold extends StatelessWidget {
     this.kind,
     this.title,
     this.subtitle,
+    this.actions = const [],
     this.gradient,
     this.radius = AppTheme.radiusSheet,
     this.header,
@@ -212,6 +221,9 @@ class ActivitySheetScaffold extends StatelessWidget {
   /// null değilse standart [ActivitySheetHeader] gösterilir.
   final String? title;
   final String? subtitle;
+
+  /// Başlıktaki ek ikon butonları (ör. hatırlatıcı).
+  final List<Widget> actions;
 
   /// Eski degrade/köşe parametreleri; tasarım gereği yok sayılır.
   final List<Color>? gradient;
@@ -245,7 +257,12 @@ class ActivitySheetScaffold extends StatelessWidget {
       builder: (context, controller) => Column(
         children: [
           if (title != null)
-            ActivitySheetHeader(title: title!, kind: kind, subtitle: subtitle),
+            ActivitySheetHeader(
+              title: title!,
+              kind: kind,
+              subtitle: subtitle,
+              actions: actions,
+            ),
           ?header,
           Expanded(
             child: SingleChildScrollView(
@@ -619,11 +636,7 @@ class _ChipTile extends StatelessWidget {
               ),
             ),
             if (selected)
-              const Positioned(
-                top: 6,
-                right: 6,
-                child: _CheckBadge(),
-              ),
+              const Positioned(top: 6, right: 6, child: _CheckBadge()),
           ],
         ),
       ),
