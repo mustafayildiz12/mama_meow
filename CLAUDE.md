@@ -1,5 +1,5 @@
 # CLAUDE.md
-
+claude --resume 148a6f21-dd40-4d9e-be3f-1e2fe257a275
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project
