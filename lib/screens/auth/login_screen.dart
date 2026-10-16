@@ -37,6 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
 
+  /// Başka bir sayfanın üstüne açıldıysa true. Çıkış / hesap silme sonrası
+  /// giriş ekranı kök sayfadır: kapatma butonu gösterilmez, kullanıcı
+  /// uygulamaya ancak giriş yaparak döner. İlk build'de sabitlenir ki kapanış
+  /// animasyonunda buton kaybolup içerik kaymasın.
+  late final bool _canClose = context.canPop();
+
   @override
   void initState() {
     super.initState();
@@ -64,16 +70,22 @@ class _LoginScreenState extends State<LoginScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: CircleCloseButton(onPressed: _close),
+                if (_canClose)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: CircleCloseButton(onPressed: () => context.pop()),
+                    ),
                   ),
-                ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      _canClose ? 8 : 24,
+                      20,
+                      24,
+                    ),
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 480),
@@ -216,16 +228,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ],
     );
-  }
-
-  /// Ekranı kapatır: üstüne açıldığı sayfaya döner, yoksa misafir olarak
-  /// uygulamaya devam eder.
-  void _close() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.goNamed('myBaby');
-    }
   }
 
   /// Başarılı giriş sonrası yönlendirme.
