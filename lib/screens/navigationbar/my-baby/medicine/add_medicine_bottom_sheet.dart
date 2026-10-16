@@ -214,7 +214,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Listeden seç / özel ad: iki seçenekli hap geçiş.
-                _PillToggle(
+                SheetPillToggle(
                   options: const ['Select from list', 'Custom'],
                   value: _isCustomMedicine ? 'Custom' : 'Select from list',
                   onChanged: (option) => _setCustom(option == 'Custom'),
@@ -236,7 +236,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                   ChipPickerSection<String>(
                     items: CommonMedicines.names,
                     value: _selectedMedicineName,
-                    style: ChipTileStyle.orangeSmall,
+                    style: ChipTileStyle.small,
                     iconBuilder: _getIconForMedicine,
                     onChanged: (medicine) =>
                         setState(() => _selectedMedicineName = medicine),
@@ -299,93 +299,6 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Pembe hap zemin üzerinde berry seçili dilimli iki seçenekli geçiş.
-class _PillToggle extends StatelessWidget {
-  const _PillToggle({
-    required this.options,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final List<String> options;
-  final String? value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.pinkTint,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        children: [
-          for (final option in options)
-            Expanded(
-              child: _PillSegment(
-                label: option,
-                selected: option == value,
-                onTap: () => onChanged(option),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PillSegment extends StatelessWidget {
-  const _PillSegment({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(999);
-    return Semantics(
-      button: true,
-      selected: selected,
-      inMutuallyExclusiveGroup: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.activeBerry : Colors.transparent,
-          borderRadius: radius,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: radius,
-            onTap: onTap,
-            child: Center(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                  color: selected
-                      ? AppColors.cottonWhite
-                      : AppColors.deepCharcoal,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

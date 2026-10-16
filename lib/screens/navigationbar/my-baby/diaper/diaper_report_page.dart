@@ -4,6 +4,7 @@ import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_pdf_builder.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_charts.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_helpers.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_widgets.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
@@ -130,9 +131,9 @@ class _DiaperReportPageState extends State<DiaperReportPage>
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
               plotAreaBorderWidth: 0,
-              primaryXAxis: _categoryAxis(),
-              primaryYAxis: _valueAxis(),
-              tooltipBehavior: _tooltip(),
+              primaryXAxis: ReportChartStyle.categoryAxis(),
+              primaryYAxis: ReportChartStyle.valueAxis(),
+              tooltipBehavior: ReportChartStyle.tooltip(),
               enableAxisAnimation: true,
               series: [
                 ColumnSeries<ChartEntry, String>(
@@ -140,8 +141,8 @@ class _DiaperReportPageState extends State<DiaperReportPage>
                   xValueMapper: (e, _) => e.label,
                   yValueMapper: (e, _) => e.value,
                   color: AppColors.activeBerry,
-                  borderRadius: _columnRadius,
-                  dataLabelSettings: _barDataLabels,
+                  borderRadius: ReportChartStyle.columnRadius,
+                  dataLabelSettings: ReportChartStyle.barDataLabels,
                   name: 'Count',
                 ),
               ],
@@ -155,7 +156,7 @@ class _DiaperReportPageState extends State<DiaperReportPage>
           subtitle: "wet / dirty / mixed / pee / poop",
           child: SizedBox(
             height: 240,
-            child: _DistributionDoughnut(data: byTypeList),
+            child: DistributionDoughnut(data: byTypeList),
           ),
         ),
         const SizedBox(height: 16),
@@ -219,112 +220,3 @@ class _TimelineTile extends StatelessWidget {
     );
   }
 }
-
-/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
-class _DistributionDoughnut extends StatelessWidget {
-  final List<ChartEntry> data;
-  const _DistributionDoughnut({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return SfCircularChart(
-      backgroundColor: Colors.transparent,
-      legend: _legend,
-      series: <CircularSeries<ChartEntry, String>>[
-        DoughnutSeries<ChartEntry, String>(
-          dataSource: data,
-          xValueMapper: (e, _) => e.label,
-          yValueMapper: (e, _) => e.value,
-          pointColorMapper: (_, i) => _seriesColor(i),
-          innerRadius: '58%',
-          radius: '78%',
-          strokeColor: AppColors.cottonWhite,
-          strokeWidth: 2,
-          legendIconType: LegendIconType.circle,
-          dataLabelSettings: _pieDataLabels,
-          explode: true,
-          explodeIndex: 0,
-        ),
-      ],
-    );
-  }
-}
-
-// =========================
-// GRAFİK STİLİ (Warm Cotton & Berry)
-// =========================
-
-const _axisLabelStyle = TextStyle(
-  fontSize: 11,
-  fontWeight: FontWeight.w600,
-  color: AppColors.charcoalSoft,
-);
-
-/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
-const _barDataLabels = DataLabelSettings(
-  isVisible: true,
-  labelAlignment: ChartDataLabelAlignment.outer,
-  textStyle: TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w800,
-    color: AppColors.berryInk,
-  ),
-);
-
-/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
-const _pieDataLabels = DataLabelSettings(
-  isVisible: true,
-  labelPosition: ChartDataLabelPosition.outside,
-  textStyle: TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: AppColors.deepCharcoal,
-  ),
-  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
-);
-
-const _legend = Legend(
-  isVisible: true,
-  overflowMode: LegendItemOverflowMode.wrap,
-  iconHeight: 10,
-  iconWidth: 10,
-  textStyle: TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    color: AppColors.deepCharcoal,
-  ),
-);
-
-/// Sütunların üst köşeleri yuvarlak.
-const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
-
-/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
-CategoryAxis _categoryAxis() => const CategoryAxis(
-  majorGridLines: MajorGridLines(width: 0),
-  majorTickLines: MajorTickLines(width: 0),
-  axisLine: AxisLine(width: 0),
-  labelStyle: _axisLabelStyle,
-);
-
-/// Değer ekseni: ince pembe (hairline) ızgara.
-NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
-  labelFormat: labelFormat,
-  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
-  majorTickLines: const MajorTickLines(width: 0),
-  axisLine: const AxisLine(width: 0),
-  labelStyle: _axisLabelStyle,
-);
-
-TooltipBehavior _tooltip() => TooltipBehavior(
-  enable: true,
-  color: AppColors.deepCharcoal,
-  textStyle: const TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: AppColors.cottonWhite,
-  ),
-);
-
-/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
-Color _seriesColor(int index) =>
-    AppColors.chartSeries[index % AppColors.chartSeries.length];

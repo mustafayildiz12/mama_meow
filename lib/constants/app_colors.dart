@@ -44,19 +44,4 @@ class AppColors {
   static const List<BoxShadow> floatShadow = [
     BoxShadow(color: Color(0x143D353A), blurRadius: 24, offset: Offset(0, 8)),
   ];
-
-  // ---- Eski adlar (geçiş bitince kaldırılacak) ----
-  static const Color pink50 = pinkTint;
-  static const Color pink100 = pinkTint;
-  static const Color pink200 = warmPink;
-  static const Color pink300 = warmPink;
-  static const Color pink400 = activeBerry;
-  static const Color pink500 = activeBerry;
-  static const Color purple50 = peachTint;
-  static const Color purple200 = warmPink;
-  static const Color purple500 = berryInk;
-  static const Color blue100 = peachTint;
-  static const Color kDeepOrange = activeBerry;
-  static const Color kOrange = pinkTint;
-  static const Color kLightOrange = cosyIvory;
 }

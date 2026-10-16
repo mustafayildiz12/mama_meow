@@ -3,6 +3,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/add_sleep_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/sleep/sleep_report_pdf_builder.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_charts.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_helpers.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/report_widgets.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
@@ -166,7 +167,6 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportHeaderCard(
           title: "Sleep Overview",
           subtitle: rangeLabel,
-          leading: "🌙",
           tileHeight: 78,
           valueMaxLines: 2,
           stats: [
@@ -180,7 +180,6 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportSectionCard(
           title: "Distribution by start hour",
           subtitle: "When sleep started (sum of minutes per hour)",
-          leading: "📊",
           child: SizedBox(
             height: 220,
             child: _MinutesByHourChart(
@@ -193,10 +192,9 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportSectionCard(
           title: "How it happened",
           subtitle: "Sleep method distribution",
-          leading: "📊",
           child: SizedBox(
             height: 240,
-            child: _DistributionDoughnut(
+            child: DistributionDoughnut(
               data: sortedEntries(computed.howCounts),
             ),
           ),
@@ -206,7 +204,6 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportSectionCard(
           title: "Start of sleep",
           subtitle: "upset, crying, content, under 10 min, 10–30 min, >30 min",
-          leading: "🌊",
           child: _countBarChart(sortedEntries(computed.startMoodCounts)),
         ),
         const SizedBox(height: 16),
@@ -214,7 +211,6 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportSectionCard(
           title: "End of sleep",
           subtitle: "woke up child, upset, content, crying",
-          leading: "🌊",
           child: _countBarChart(sortedEntries(computed.endMoodCounts)),
         ),
         const SizedBox(height: 16),
@@ -222,7 +218,6 @@ class _SleepReportPageState extends State<SleepReportPage>
         ReportSectionCard(
           title: "Longest sleeps",
           subtitle: "Top 5 by duration",
-          leading: "⭐",
           child: Column(
             children: [
               for (final e in longest.take(5))
@@ -245,17 +240,17 @@ class _SleepReportPageState extends State<SleepReportPage>
       child: SfCartesianChart(
         backgroundColor: Colors.transparent,
         plotAreaBorderWidth: 0,
-        primaryXAxis: _categoryAxis(),
-        primaryYAxis: _valueAxis(),
-        tooltipBehavior: _tooltip(),
+        primaryXAxis: ReportChartStyle.categoryAxis(),
+        primaryYAxis: ReportChartStyle.valueAxis(),
+        tooltipBehavior: ReportChartStyle.tooltip(),
         series: [
           BarSeries<ChartEntry, String>(
             dataSource: data,
             xValueMapper: (e, _) => e.label,
             yValueMapper: (e, _) => e.value,
             color: AppColors.activeBerry,
-            borderRadius: _barRadius,
-            dataLabelSettings: _barDataLabels,
+            borderRadius: ReportChartStyle.barRadius,
+            dataLabelSettings: ReportChartStyle.barDataLabels,
             name: 'Count',
           ),
         ],
@@ -305,9 +300,9 @@ class _MinutesByHourChart extends StatelessWidget {
         backgroundColor: Colors.transparent,
         plotAreaBackgroundColor: Colors.transparent,
         plotAreaBorderWidth: 0,
-        primaryXAxis: _categoryAxis(),
-        primaryYAxis: _valueAxis(labelFormat: '{value}m'),
-        tooltipBehavior: _tooltip(),
+        primaryXAxis: ReportChartStyle.categoryAxis(),
+        primaryYAxis: ReportChartStyle.valueAxis(labelFormat: '{value}m'),
+        tooltipBehavior: ReportChartStyle.tooltip(),
         enableAxisAnimation: true,
         series: <CartesianSeries<ChartEntry, String>>[
           ColumnSeries<ChartEntry, String>(
@@ -317,7 +312,7 @@ class _MinutesByHourChart extends StatelessWidget {
             color: AppColors.activeBerry,
             width: 0.85,
             spacing: 0.10,
-            borderRadius: _columnRadius,
+            borderRadius: ReportChartStyle.columnRadius,
             dataLabelSettings: const DataLabelSettings(isVisible: false),
             name: 'Amount',
           ),
@@ -326,115 +321,3 @@ class _MinutesByHourChart extends StatelessWidget {
     );
   }
 }
-
-/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
-class _DistributionDoughnut extends StatelessWidget {
-  final List<ChartEntry> data;
-  const _DistributionDoughnut({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return SfCircularChart(
-      backgroundColor: Colors.transparent,
-      legend: _legend,
-      series: <CircularSeries<ChartEntry, String>>[
-        DoughnutSeries<ChartEntry, String>(
-          dataSource: data,
-          xValueMapper: (e, _) => e.label,
-          yValueMapper: (e, _) => e.value,
-          pointColorMapper: (_, i) => _seriesColor(i),
-          innerRadius: '58%',
-          radius: '78%',
-          strokeColor: AppColors.cottonWhite,
-          strokeWidth: 2,
-          legendIconType: LegendIconType.circle,
-          dataLabelSettings: _pieDataLabels,
-          explode: true,
-          explodeIndex: 0,
-        ),
-      ],
-    );
-  }
-}
-
-// =========================
-// GRAFİK STİLİ (Warm Cotton & Berry)
-// =========================
-
-const _axisLabelStyle = TextStyle(
-  fontSize: 11,
-  fontWeight: FontWeight.w600,
-  color: AppColors.charcoalSoft,
-);
-
-/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
-const _barDataLabels = DataLabelSettings(
-  isVisible: true,
-  labelAlignment: ChartDataLabelAlignment.outer,
-  textStyle: TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w800,
-    color: AppColors.berryInk,
-  ),
-);
-
-/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
-const _pieDataLabels = DataLabelSettings(
-  isVisible: true,
-  labelPosition: ChartDataLabelPosition.outside,
-  textStyle: TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: AppColors.deepCharcoal,
-  ),
-  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
-);
-
-const _legend = Legend(
-  isVisible: true,
-  overflowMode: LegendItemOverflowMode.wrap,
-  iconHeight: 10,
-  iconWidth: 10,
-  textStyle: TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    color: AppColors.deepCharcoal,
-  ),
-);
-
-/// Sütunların üst köşeleri yuvarlak.
-const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
-
-/// Yatay çubukların değer ucu (sağ) yuvarlak.
-const _barRadius = BorderRadius.horizontal(right: Radius.circular(8));
-
-/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
-CategoryAxis _categoryAxis() => const CategoryAxis(
-  majorGridLines: MajorGridLines(width: 0),
-  majorTickLines: MajorTickLines(width: 0),
-  axisLine: AxisLine(width: 0),
-  labelStyle: _axisLabelStyle,
-);
-
-/// Değer ekseni: ince pembe (hairline) ızgara.
-NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
-  labelFormat: labelFormat,
-  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
-  majorTickLines: const MajorTickLines(width: 0),
-  axisLine: const AxisLine(width: 0),
-  labelStyle: _axisLabelStyle,
-);
-
-TooltipBehavior _tooltip() => TooltipBehavior(
-  enable: true,
-  color: AppColors.deepCharcoal,
-  textStyle: const TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-    color: AppColors.cottonWhite,
-  ),
-);
-
-/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
-Color _seriesColor(int index) =>
-    AppColors.chartSeries[index % AppColors.chartSeries.length];

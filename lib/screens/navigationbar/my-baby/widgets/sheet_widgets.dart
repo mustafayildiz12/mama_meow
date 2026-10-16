@@ -56,12 +56,7 @@ void showSaveError(BuildContext context) {
 }
 
 /// Sheet zemini: beyaz, üst köşeler 32 px, yumuşak gölge.
-/// [colors] eski degrade parametresidir, tasarım gereği yok sayılır.
-BoxDecoration sheetDecoration([
-  List<Color>? colors,
-  double radius = AppTheme.radiusSheet,
-  bool shadow = true,
-]) {
+BoxDecoration sheetDecoration({bool shadow = true}) {
   return BoxDecoration(
     color: AppColors.cottonWhite,
     borderRadius: const BorderRadius.vertical(
@@ -203,13 +198,10 @@ class ActivitySheetScaffold extends StatelessWidget {
     this.title,
     this.subtitle,
     this.actions = const [],
-    this.gradient,
-    this.radius = AppTheme.radiusSheet,
     this.header,
     this.padding = const EdgeInsets.fromLTRB(20, 8, 20, 20),
     this.attachScrollController = false,
     this.backLabel = 'Cancel',
-    this.saveColor,
     this.initialChildSize = 0.85,
     this.minChildSize = 0.5,
     this.maxChildSize = 0.96,
@@ -225,10 +217,6 @@ class ActivitySheetScaffold extends StatelessWidget {
   /// Başlıktaki ek ikon butonları (ör. hatırlatıcı).
   final List<Widget> actions;
 
-  /// Eski degrade/köşe parametreleri; tasarım gereği yok sayılır.
-  final List<Color>? gradient;
-  final double radius;
-
   /// Kaydırma alanının üstünde sabit kalan ek kısım.
   final Widget? header;
   final Widget child;
@@ -240,9 +228,6 @@ class ActivitySheetScaffold extends StatelessWidget {
 
   /// null → Save pasif (form geçersiz).
   final Future<void> Function()? onSave;
-
-  /// Eski parametre; Save her zaman berry'dir.
-  final Color? saveColor;
   final double initialChildSize;
   final double minChildSize;
   final double maxChildSize;
@@ -283,14 +268,10 @@ class SheetActionBar extends StatefulWidget {
     super.key,
     required this.onSave,
     this.backLabel = 'Cancel',
-    this.saveColor,
   });
 
   final Future<void> Function()? onSave;
   final String backLabel;
-
-  /// Eski parametre; Save her zaman berry'dir.
-  final Color? saveColor;
 
   @override
   State<SheetActionBar> createState() => _SheetActionBarState();
@@ -427,8 +408,7 @@ class TimeField extends StatelessWidget {
   }
 }
 
-/// Seçim kartlarının görünümü. Tüm hazır stiller Berry'dir; adlar eski
-/// çağrılar bozulmasın diye korunuyor.
+/// Seçim kartlarının görünümü (pembe zemin; seçiliyken beyaz + berry çerçeve).
 class ChipTileStyle {
   const ChipTileStyle({
     required this.width,
@@ -463,13 +443,10 @@ class ChipTileStyle {
   final double itemGap;
 
   /// Kare kartlar (diaper, solid tepkileri).
-  static const orange = ChipTileStyle(width: 96, height: 96);
-
-  /// Büyük kartlar (pumping taraf seçimi).
-  static const orangeLarge = ChipTileStyle(width: 120, height: 120);
+  static const standard = ChipTileStyle(width: 96, height: 96);
 
   /// Sleep seçenekleri (2 satır etiket).
-  static const orangeCompact = ChipTileStyle(
+  static const compact = ChipTileStyle(
     width: 96,
     height: 96,
     iconGap: 6,
@@ -477,19 +454,7 @@ class ChipTileStyle {
   );
 
   /// Küçük kartlar (ilaç adları).
-  static const orangeSmall = ChipTileStyle(
-    width: 100,
-    height: 80,
-    padding: 8,
-    iconGap: 4,
-    labelMaxLines: 2,
-    labelFontSize: 11,
-    labelHeight: null,
-    itemGap: 8,
-  );
-
-  /// Nursing kartları.
-  static const teal = ChipTileStyle(
+  static const small = ChipTileStyle(
     width: 100,
     height: 80,
     padding: 8,
@@ -511,7 +476,7 @@ class ChipPickerSection<T> extends StatelessWidget {
     this.title,
     this.labelBuilder,
     this.iconBuilder,
-    this.style = ChipTileStyle.orange,
+    this.style = ChipTileStyle.standard,
   });
 
   final String? title;
@@ -645,18 +610,198 @@ class _ChipTile extends StatelessWidget {
 }
 
 class _CheckBadge extends StatelessWidget {
-  const _CheckBadge();
+  const _CheckBadge({this.size = 18});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 18,
-      height: 18,
+      width: size,
+      height: size,
       decoration: const BoxDecoration(
         color: AppColors.activeBerry,
         shape: BoxShape.circle,
       ),
-      child: const Icon(Icons.check, size: 12, color: AppColors.cottonWhite),
+      child: Icon(Icons.check, size: size * 0.68, color: AppColors.cottonWhite),
+    );
+  }
+}
+
+/// Sheet bölüm başlığı (15/w700, koyu kömür).
+class SheetSectionLabel extends StatelessWidget {
+  const SheetSectionLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontSize: 15,
+          color: AppColors.deepCharcoal,
+        ),
+      ),
+    );
+  }
+}
+
+/// Pembe hap zemin üzerinde berry seçili dilimli seçim (Nursing/Bottle, oz/ml).
+/// Her dokunuşta [onChanged] çağrılır (eski açılır listeyle aynı davranış).
+class SheetPillToggle extends StatelessWidget {
+  const SheetPillToggle({
+    super.key,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<String> options;
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.pinkTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          for (final option in options)
+            Expanded(
+              child: _PillSegment(
+                label: option,
+                selected: option == value,
+                onTap: () => onChanged(option),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillSegment extends StatelessWidget {
+  const _PillSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(999);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.activeBerry : Colors.transparent,
+          borderRadius: radius,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                  color: selected
+                      ? AppColors.cottonWhite
+                      : AppColors.deepCharcoal,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Büyük taraf kartı: seçiliyken beyaz + 2 px berry çerçeve + onay rozeti,
+/// değilken pembe zemin.
+class SideChoiceCard extends StatelessWidget {
+  const SideChoiceCard({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppTheme.radiusCard);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.cottonWhite : AppColors.pinkTint,
+                borderRadius: radius,
+                border: Border.all(
+                  color: selected ? AppColors.activeBerry : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    size: 24,
+                    color: selected
+                        ? AppColors.activeBerry
+                        : AppColors.charcoalSoft,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(label, style: Theme.of(context).textTheme.headlineSmall),
+                ],
+              ),
+            ),
+            if (selected)
+              const Positioned(
+                top: 12,
+                right: 12,
+                child: _CheckBadge(size: 20),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

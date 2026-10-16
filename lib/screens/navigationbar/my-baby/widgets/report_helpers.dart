@@ -186,8 +186,6 @@ class ReportScaffold<T> extends StatelessWidget {
   const ReportScaffold({
     super.key,
     required this.title,
-    this.palette = ReportPalette.berry,
-    this.pdfIconColor,
     required this.isLoading,
     required this.onExportPdf,
     required this.onRefresh,
@@ -200,10 +198,6 @@ class ReportScaffold<T> extends StatelessWidget {
   });
 
   final String title;
-  final ReportPalette palette;
-
-  /// Eski parametre; paylaşım ikonu her zaman koyu kömür rengindedir.
-  final Color? pdfIconColor;
   final bool isLoading;
 
   /// PDF butonu yalnızca giriş yapmış kullanıcıya gösterilir.
@@ -253,7 +247,7 @@ class ReportScaffold<T> extends StatelessWidget {
     return CustomLoader(
       inAsyncCall: isLoading,
       child: ReportPaletteScope(
-        palette: palette,
+        palette: ReportPalette.berry,
         child: Scaffold(
           backgroundColor: AppColors.cosyIvory,
           appBar: AppBar(

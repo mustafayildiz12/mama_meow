@@ -197,8 +197,8 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel('Feeding type'),
-          _PillToggle(
+          const SheetSectionLabel('Feeding type'),
+          SheetPillToggle(
             options: FeedingTypes.types,
             value: _selectedFeedingType,
             onChanged: _onFeedingTypeChanged,
@@ -206,14 +206,14 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
           const SizedBox(height: 24),
 
           if (_selectedFeedingType == 'Nursing') ...[
-            const _SectionLabel('Side'),
+            const SheetSectionLabel('Side'),
             Row(
               children: [
                 for (final side in NursingSides.sides) ...[
                   if (side != NursingSides.sides.first)
                     const SizedBox(width: 12),
                   Expanded(
-                    child: _SideCard(
+                    child: SideChoiceCard(
                       label: side,
                       icon: _getIconForSide(side),
                       selected: _selectedSide == side,
@@ -227,7 +227,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
           ],
 
           if (_isBottle) ...[
-            const _SectionLabel('Milk type'),
+            const SheetSectionLabel('Milk type'),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -332,7 +332,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
                 children: [
                   Text('Unit', style: textTheme.bodySmall),
                   const SizedBox(height: 6),
-                  _PillToggle(
+                  SheetPillToggle(
                     options: AmountTypes.types,
                     value: _selectedAmountType,
                     onChanged: _onAmountTypeChanged,
@@ -361,195 +361,6 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// Sheet bölüm başlığı (15/w700, koyu kömür).
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontSize: 15,
-          color: AppColors.deepCharcoal,
-        ),
-      ),
-    );
-  }
-}
-
-/// Pembe hap zemin üzerinde berry seçili dilimli seçim (Nursing/Bottle, oz/ml).
-/// Her dokunuşta [onChanged] çağrılır (eski açılır listeyle aynı davranış).
-class _PillToggle extends StatelessWidget {
-  const _PillToggle({
-    required this.options,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final List<String> options;
-  final String? value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.pinkTint,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        children: [
-          for (final option in options)
-            Expanded(
-              child: _PillSegment(
-                label: option,
-                selected: option == value,
-                onTap: () => onChanged(option),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PillSegment extends StatelessWidget {
-  const _PillSegment({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(999);
-    return Semantics(
-      button: true,
-      selected: selected,
-      inMutuallyExclusiveGroup: true,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.activeBerry : Colors.transparent,
-          borderRadius: radius,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: radius,
-            onTap: onTap,
-            child: Center(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                  color: selected
-                      ? AppColors.cottonWhite
-                      : AppColors.deepCharcoal,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Büyük taraf kartı: seçiliyken beyaz + 2 px berry çerçeve + onay rozeti,
-/// değilken pembe zemin.
-class _SideCard extends StatelessWidget {
-  const _SideCard({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(AppTheme.radiusCard);
-    return Semantics(
-      button: true,
-      selected: selected,
-      inMutuallyExclusiveGroup: true,
-      child: InkWell(
-        borderRadius: radius,
-        onTap: onTap,
-        child: Stack(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.cottonWhite : AppColors.pinkTint,
-                borderRadius: radius,
-                border: Border.all(
-                  color: selected ? AppColors.activeBerry : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    icon,
-                    size: 24,
-                    color: selected
-                        ? AppColors.activeBerry
-                        : AppColors.charcoalSoft,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(label, style: Theme.of(context).textTheme.headlineSmall),
-                ],
-              ),
-            ),
-            if (selected)
-              const Positioned(top: 12, right: 12, child: _CheckBadge()),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CheckBadge extends StatelessWidget {
-  const _CheckBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: const BoxDecoration(
-        color: AppColors.activeBerry,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(Icons.check, size: 14, color: AppColors.cottonWhite),
     );
   }
 }

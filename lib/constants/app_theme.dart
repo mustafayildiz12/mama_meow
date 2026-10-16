@@ -52,8 +52,16 @@ class AppTheme {
   static TextTheme _textTheme() {
     const c = AppColors.deepCharcoal;
     return const TextTheme(
-      displayLarge: TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: c),
-      displayMedium: TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: c),
+      displayLarge: TextStyle(
+        fontSize: 48,
+        fontWeight: FontWeight.w800,
+        color: c,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 40,
+        fontWeight: FontWeight.w800,
+        color: c,
+      ),
       displaySmall: TextStyle(
         fontSize: 32,
         height: 38 / 32,
@@ -61,7 +69,11 @@ class AppTheme {
         letterSpacing: -0.3,
         color: c,
       ),
-      headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: c),
+      headlineLarge: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        color: c,
+      ),
       headlineMedium: TextStyle(
         fontSize: 24,
         height: 30 / 24,
@@ -74,14 +86,22 @@ class AppTheme {
         fontWeight: FontWeight.w800,
         color: c,
       ),
-      titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: c),
+      titleLarge: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        color: c,
+      ),
       titleMedium: TextStyle(
         fontSize: 17,
         height: 24 / 17,
         fontWeight: FontWeight.w700,
         color: c,
       ),
-      titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c),
+      titleSmall: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: c,
+      ),
       bodyLarge: TextStyle(
         fontSize: 16,
         height: 24 / 16,
@@ -100,9 +120,21 @@ class AppTheme {
         fontWeight: FontWeight.w600,
         color: AppColors.charcoalSoft,
       ),
-      labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c),
-      labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c),
-      labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c),
+      labelLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: c,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: c,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: c,
+      ),
     );
   }
 
@@ -177,9 +209,14 @@ class AppTheme {
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
         fillColor: AppColors.cottonWhite,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
         hintStyle: textTheme.bodyLarge?.copyWith(color: AppColors.charcoalSoft),
-        labelStyle: textTheme.bodyMedium?.copyWith(color: AppColors.charcoalSoft),
+        labelStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.charcoalSoft,
+        ),
         floatingLabelStyle: textTheme.bodyMedium?.copyWith(
           color: AppColors.berryInk,
           fontWeight: FontWeight.w700,
@@ -241,7 +278,9 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         dragHandleColor: AppColors.outline,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusSheet)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(radiusSheet),
+          ),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -251,7 +290,9 @@ class AppTheme {
           borderRadius: BorderRadius.circular(radiusCard),
         ),
         titleTextStyle: textTheme.titleLarge?.copyWith(fontFamily: fontFamily),
-        contentTextStyle: textTheme.bodyMedium?.copyWith(fontFamily: fontFamily),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          fontFamily: fontFamily,
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -320,7 +361,9 @@ class AppTheme {
         iconColor: AppColors.charcoalSoft,
         textColor: AppColors.deepCharcoal,
         titleTextStyle: textTheme.titleMedium?.copyWith(fontFamily: fontFamily),
-        subtitleTextStyle: textTheme.bodySmall?.copyWith(fontFamily: fontFamily),
+        subtitleTextStyle: textTheme.bodySmall?.copyWith(
+          fontFamily: fontFamily,
+        ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(

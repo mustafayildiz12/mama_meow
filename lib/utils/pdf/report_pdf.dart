@@ -288,11 +288,7 @@ pw.Widget pdfAiBlock(
       .where((l) => l.isNotEmpty)
       .toList();
 
-  final small = pw.TextStyle(
-    font: t.regular,
-    fontSize: 10,
-    color: t.textSoft,
-  );
+  final small = pw.TextStyle(font: t.regular, fontSize: 10, color: t.textSoft);
   pw.Widget heading(String text) => pw.Text(
     text,
     style: pw.TextStyle(font: t.semiBold, fontSize: 11, color: t.accentText),

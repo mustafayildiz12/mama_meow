@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
-import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/pumping_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/pumping_service.dart';
@@ -65,13 +64,13 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel("Pick side"),
+          const SheetSectionLabel("Pick side"),
           Row(
             children: [
               for (final side in _sides) ...[
                 if (side != _sides.first) const SizedBox(width: 12),
                 Expanded(
-                  child: _SideCard(
+                  child: SideChoiceCard(
                     label: side,
                     icon: side == "Left"
                         ? Icons.keyboard_arrow_left
@@ -151,106 +150,5 @@ class _AddPumpingBottomSheetState extends State<AddPumpingBottomSheet> {
       if (!mounted) return;
       showSaveError(context);
     }
-  }
-}
-
-/// Sheet bölüm başlığı (15/w700, koyu kömür).
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontSize: 15,
-          color: AppColors.deepCharcoal,
-        ),
-      ),
-    );
-  }
-}
-
-/// Büyük taraf kartı: seçiliyken beyaz + 2 px berry çerçeve + onay rozeti,
-/// değilken pembe zemin.
-class _SideCard extends StatelessWidget {
-  const _SideCard({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(AppTheme.radiusCard);
-    return Semantics(
-      button: true,
-      selected: selected,
-      inMutuallyExclusiveGroup: true,
-      child: InkWell(
-        borderRadius: radius,
-        onTap: onTap,
-        child: Stack(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.cottonWhite : AppColors.pinkTint,
-                borderRadius: radius,
-                border: Border.all(
-                  color: selected ? AppColors.activeBerry : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    icon,
-                    size: 24,
-                    color: selected
-                        ? AppColors.activeBerry
-                        : AppColors.charcoalSoft,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(label, style: Theme.of(context).textTheme.headlineSmall),
-                ],
-              ),
-            ),
-            if (selected)
-              const Positioned(top: 12, right: 12, child: _CheckBadge()),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CheckBadge extends StatelessWidget {
-  const _CheckBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: const BoxDecoration(
-        color: AppColors.activeBerry,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(Icons.check, size: 14, color: AppColors.cottonWhite),
-    );
   }
 }

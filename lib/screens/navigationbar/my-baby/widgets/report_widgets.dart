@@ -72,19 +72,6 @@ List<ChartEntry> sortedEntries(Map<String, num> map) =>
 List<ChartEntry> orderedEntries(Map<String, num> map) =>
     map.entries.map((e) => ChartEntry(e.key, e.value)).toList();
 
-/// Raporlarda kullanılan 4 kademeli renk skalası (berry → pink → peach → çizgi).
-Color tierColor(
-  num value, {
-  required num high,
-  required num mid,
-  required num low,
-}) {
-  if (value >= high) return AppColors.activeBerry;
-  if (value >= mid) return AppColors.warmPink;
-  if (value >= low) return AppColors.peachPastel;
-  return AppColors.outline;
-}
-
 /// Dakikayı "1h 5m" biçiminde yazar.
 String formatMinutes(int minutes) {
   final h = minutes ~/ 60;
@@ -293,15 +280,12 @@ class ReportSectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
-    this.leading,
     this.padding = const EdgeInsets.all(16),
   });
 
   final String title;
   final String? subtitle;
 
-  /// Eski emoji rozeti; tasarım gereği gösterilmez.
-  final String? leading;
   final EdgeInsets padding;
   final Widget child;
 
@@ -343,7 +327,6 @@ class ReportHeaderCard extends StatelessWidget {
     required this.title,
     required this.stats,
     this.subtitle,
-    this.leading,
     this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 16),
     this.gap = 8,
     this.tileHeight = 86,
@@ -353,7 +336,6 @@ class ReportHeaderCard extends StatelessWidget {
 
   final String title;
   final String? subtitle;
-  final String? leading;
   final EdgeInsets padding;
 
   /// (başlık, değer) çiftleri.
@@ -369,7 +351,6 @@ class ReportHeaderCard extends StatelessWidget {
       padding: padding,
       title: title,
       subtitle: subtitle,
-      leading: leading,
       child: Row(
         children: [
           for (var i = 0; i < stats.length; i++) ...[
@@ -526,19 +507,9 @@ class RatioBarTile extends StatelessWidget {
 
 /// Sabit ipuçları kartı (emoji rozeti + metin satırları).
 class ReportTipsCard extends StatelessWidget {
-  const ReportTipsCard({
-    super.key,
-    required this.title,
-    required this.leading,
-    required this.badgeColor,
-    required this.tips,
-  });
+  const ReportTipsCard({super.key, required this.title, required this.tips});
 
   final String title;
-  final String leading;
-
-  /// Eski parametre; rozetler her zaman şeftalidir.
-  final Color badgeColor;
 
   /// (emoji, metin) çiftleri.
   final List<(String, String)> tips;
@@ -547,7 +518,6 @@ class ReportTipsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReportSectionCard(
       title: title,
-      leading: leading,
       child: Column(
         children: [
           for (var i = 0; i < tips.length; i++) ...[

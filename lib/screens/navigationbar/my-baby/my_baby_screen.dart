@@ -386,9 +386,7 @@ class _JournalTile extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          const IconSquircle(
-            child: ActivityIcon(kind: ActivityKind.journal),
-          ),
+          const IconSquircle(child: ActivityIcon(kind: ActivityKind.journal)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -396,9 +394,9 @@ class _JournalTile extends StatelessWidget {
               children: [
                 Text(
                   ActivityKind.journal.label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const Text("Write today's little story", style: _metaStyle),
               ],
