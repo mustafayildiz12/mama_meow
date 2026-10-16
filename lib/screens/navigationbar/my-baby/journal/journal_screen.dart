@@ -22,6 +22,7 @@ import 'package:mama_meow/service/activities/journal_service.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/add_journal_note_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 class JournalDiaryPage extends StatefulWidget {
   const JournalDiaryPage({super.key});
@@ -110,17 +111,7 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
     return ActivitySheetFrame(
       initialChildSize: 0.92,
       maxChildSize: 0.95,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-        ),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
+      decoration: sheetDecoration(),
       builder: (context, _) => _sheetBody(context, theme),
     );
   }
@@ -128,279 +119,263 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
   Widget _sheetBody(BuildContext context, ThemeData theme) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.arrow_back_ios),
+      body: Column(
+        children: [
+          const ActivitySheetHeader(
+            title: 'Journal',
+            kind: ActivityKind.journal,
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: FutureBuilder<_TodayBundle>(
+                future: _future,
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+                  if (snap.hasError) {
+                    debugPrint('Journal load failed: ${snap.error}');
+                    return _errorBox(
+                      "We couldn't load this day. Pull to refresh and try again.",
+                    );
+                  }
+                  return _dayList(context, theme, snap.data!);
+                },
+              ),
             ),
           ),
-        ),
-        title: const Text(
-          "📓 Journal",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: FutureBuilder<_TodayBundle>(
-          future: _future,
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
+    );
+  }
+
+  Widget _dayList(BuildContext context, ThemeData theme, _TodayBundle data) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      children: [
+        Row(
+          children: [
+            // Geri (önceki gün)
+            _dayButton(
+              tooltip: 'Previous day',
+              icon: Icons.chevron_left,
+              onPressed: () => _selectDay(
+                DateTime(
+                  _selectedDay.year,
+                  _selectedDay.month,
+                  _selectedDay.day - 1,
                 ),
-              );
-            }
-            if (snap.hasError) {
-              debugPrint('Journal load failed: ${snap.error}');
-              return _errorBox(
-                "We couldn't load this day. Pull to refresh and try again.",
-              );
-            }
-            final data = snap.data!;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              children: [
-                Row(
-                  children: [
-                    // Geri (önceki gün)
-                    IconButton(
-                      tooltip: 'Previous day',
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () => _selectDay(
-                        DateTime(
-                          _selectedDay.year,
-                          _selectedDay.month,
-                          _selectedDay.day - 1,
-                        ),
+              ),
+            ),
+
+            // Ortada tarih
+            Expanded(
+              child: Text(
+                _headerFor(_selectedDay),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge,
+              ),
+            ),
+
+            // İleri (sonraki gün)
+            _dayButton(
+              tooltip: 'Next day',
+              icon: Icons.chevron_right,
+              onPressed: _isToday
+                  ? null
+                  : () => _selectDay(
+                      DateTime(
+                        _selectedDay.year,
+                        _selectedDay.month,
+                        _selectedDay.day + 1,
                       ),
                     ),
+            ),
+            const SizedBox(width: 4),
 
-                    // Ortada tarih
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          _headerFor(_selectedDay),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // İleri (sonraki gün)
-                    IconButton(
-                      tooltip: 'Next day',
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: _isToday
-                          ? null
-                          : () => _selectDay(
-                              DateTime(
-                                _selectedDay.year,
-                                _selectedDay.month,
-                                _selectedDay.day + 1,
-                              ),
-                            ),
-                    ),
-
-                    // Takvim aç
-                    IconButton(
-                      tooltip: 'Pick a date',
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDay,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                        );
-                        if (picked != null && mounted) _selectDay(picked);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // SOLID
-                _CategoryCard(
-                  title: "Solid",
-                  icon: Icons.restaurant,
-                  color: Colors.orange.shade200,
-                  emptyText: "No solid record for today.",
-                  children: [
-                    for (int i = 0; i < data.solids.length; i++)
-                      _NumberedEntry(
-                        index: i + 1,
-                        title: data.solids[i].solidName,
-                        bullets: [
-                          "Amount: ${data.solids[i].solidAmount}",
-                          _clockLine(data.solids[i].eatTime),
-                          if (data.solids[i].reactions != null)
-                            "Reaction: ${data.solids[i].reactions!.name}",
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // SLEEP
-                _CategoryCard(
-                  title: "Sleep",
-                  icon: Icons.nightlight_round,
-                  color: Colors.blue.shade200,
-                  emptyText: "No sleep record for today.",
-                  children: [..._sleepEntries(data.sleeps)],
-                ),
-                const SizedBox(height: 12),
-
-                // NURSING
-                _CategoryCard(
-                  title: "Nursing",
-                  icon: Icons.child_care,
-                  color: Colors.teal.shade200,
-                  emptyText: "No nursing record for today.",
-                  children: [
-                    for (int i = 0; i < data.nursings.length; i++)
-                      _NumberedEntry(
-                        index: i + 1,
-                        title:
-                            "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
-                        bullets: [
-                          if (data.nursings[i].duration > 0)
-                            "Time: ${_fmtMin(data.nursings[i].duration)}",
-                          if ((data.nursings[i].amountType).isNotEmpty &&
-                              data.nursings[i].amount > 0)
-                            "Amount: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
-                          if ((data.nursings[i].milkType ?? '').isNotEmpty)
-                            "Milk Type: ${data.nursings[i].milkType}",
-                          _clockLine(data.nursings[i].startTime),
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // DIAPER
-                _CategoryCard(
-                  title: "Diaper",
-                  icon: Icons.baby_changing_station,
-                  color: Colors.green.shade200,
-                  emptyText: "No diaper record for today.",
-                  children: [
-                    for (int i = 0; i < data.diapers.length; i++)
-                      _NumberedEntry(
-                        index: i + 1,
-                        title: data.diapers[i].diaperName,
-                        bullets: [_clockLine(data.diapers[i].diaperTime)],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // PUMPING
-                _CategoryCard(
-                  title: "Pumping",
-                  icon: Icons.published_with_changes,
-                  color: Colors.pink.shade200,
-                  emptyText: "No pumping record for today.",
-                  children: [
-                    for (int i = 0; i < data.pumpings.length; i++)
-                      _NumberedEntry(
-                        index: i + 1,
-                        title: data.pumpings[i].isLeft ? "Left" : "Right",
-                        bullets: [
-                          "Time: ${_fmtMin(data.pumpings[i].duration)}",
-                          _clockLine(data.pumpings[i].startTime),
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // MEDICINE
-                _CategoryCard(
-                  title: "Medicine",
-                  icon: Icons.medication,
-                  color: Colors.red.shade200,
-                  emptyText: "No medicine record for today.",
-                  children: [
-                    for (int i = 0; i < data.medicines.length; i++)
-                      _NumberedEntry(
-                        index: i + 1,
-                        title: data.medicines[i].medicineName,
-                        bullets: [
-                          "Amount: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
-                          _clockLine(data.medicines[i].startTime),
-                        ],
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-                Divider(color: Colors.grey.shade300),
-                const SizedBox(height: 12),
-
-                _isToday
-                    ? Text(
-                        "Daily Note",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.purple.shade700,
-                        ),
-                      )
-                    : Text(
-                        '${_headerFor(_selectedDay)} Daily Note',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.purple.shade700,
-                        ),
-                      ),
-                const SizedBox(height: 8),
-                if (data.note != null)
-                  _NotePreview(note: data.note!)
-                else
-                  _EmptyNoteHint(),
-
-                const SizedBox(height: 12),
-                if (_isToday)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final changed = await showActivitySheet<bool>(
-                          context,
-                          (_) => const AddJournalNoteBottomSheet(),
-                        );
-                        // not eklenmiş/silinmiş olabilir → yenile
-                        if (changed == true && mounted) _refresh();
-                      },
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(data.note == null ? "Add Note" : "Edit Note"),
-                    ),
-                  ),
-              ],
-            );
-          },
+            // Takvim aç
+            _dayButton(
+              tooltip: 'Pick a date',
+              icon: Icons.calendar_today_outlined,
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDay,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null && mounted) _selectDay(picked);
+              },
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
+
+        // SOLID
+        _CategoryCard(
+          title: "Solid",
+          kind: ActivityKind.solid,
+          emptyText: "No solid record for today.",
+          children: [
+            for (int i = 0; i < data.solids.length; i++)
+              _NumberedEntry(
+                index: i + 1,
+                title: data.solids[i].solidName,
+                bullets: [
+                  "Amount: ${data.solids[i].solidAmount}",
+                  _clockLine(data.solids[i].eatTime),
+                  if (data.solids[i].reactions != null)
+                    "Reaction: ${data.solids[i].reactions!.name}",
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // SLEEP
+        _CategoryCard(
+          title: "Sleep",
+          kind: ActivityKind.sleep,
+          emptyText: "No sleep record for today.",
+          children: [..._sleepEntries(data.sleeps)],
+        ),
+        const SizedBox(height: 12),
+
+        // NURSING
+        _CategoryCard(
+          title: "Nursing",
+          kind: ActivityKind.nursing,
+          emptyText: "No nursing record for today.",
+          children: [
+            for (int i = 0; i < data.nursings.length; i++)
+              _NumberedEntry(
+                index: i + 1,
+                title:
+                    "${data.nursings[i].feedingType} • ${data.nursings[i].side}",
+                bullets: [
+                  if (data.nursings[i].duration > 0)
+                    "Time: ${_fmtMin(data.nursings[i].duration)}",
+                  if ((data.nursings[i].amountType).isNotEmpty &&
+                      data.nursings[i].amount > 0)
+                    "Amount: ${data.nursings[i].amount.toStringAsFixed(1)} ${data.nursings[i].amountType}",
+                  if ((data.nursings[i].milkType ?? '').isNotEmpty)
+                    "Milk Type: ${data.nursings[i].milkType}",
+                  _clockLine(data.nursings[i].startTime),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // DIAPER
+        _CategoryCard(
+          title: "Diaper",
+          kind: ActivityKind.diaper,
+          emptyText: "No diaper record for today.",
+          children: [
+            for (int i = 0; i < data.diapers.length; i++)
+              _NumberedEntry(
+                index: i + 1,
+                title: data.diapers[i].diaperName,
+                bullets: [_clockLine(data.diapers[i].diaperTime)],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // PUMPING
+        _CategoryCard(
+          title: "Pumping",
+          kind: ActivityKind.pumping,
+          emptyText: "No pumping record for today.",
+          children: [
+            for (int i = 0; i < data.pumpings.length; i++)
+              _NumberedEntry(
+                index: i + 1,
+                title: data.pumpings[i].isLeft ? "Left" : "Right",
+                bullets: [
+                  "Time: ${_fmtMin(data.pumpings[i].duration)}",
+                  _clockLine(data.pumpings[i].startTime),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // MEDICINE
+        _CategoryCard(
+          title: "Medicine",
+          kind: ActivityKind.medicine,
+          emptyText: "No medicine record for today.",
+          children: [
+            for (int i = 0; i < data.medicines.length; i++)
+              _NumberedEntry(
+                index: i + 1,
+                title: data.medicines[i].medicineName,
+                bullets: [
+                  "Amount: ${data.medicines[i].amount} ${data.medicines[i].amountType}",
+                  _clockLine(data.medicines[i].startTime),
+                ],
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+        const Divider(),
+        const SizedBox(height: 16),
+
+        Text(
+          _isToday ? "Daily note" : '${_headerFor(_selectedDay)} daily note',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (data.note != null)
+          _NotePreview(note: data.note!)
+        else
+          _EmptyNoteHint(),
+
+        const SizedBox(height: 16),
+        if (_isToday)
+          PrimaryPillButton(
+            label: data.note == null ? "Add note" : "Edit note",
+            icon: Icons.edit_note,
+            onPressed: () async {
+              final changed = await showActivitySheet<bool>(
+                context,
+                (_) => const AddJournalNoteBottomSheet(),
+              );
+              // not eklenmiş/silinmiş olabilir → yenile
+              if (changed == true && mounted) _refresh();
+            },
+          ),
+      ],
+    );
+  }
+
+  /// Gün gezinme butonu (pembe yuvarlak zemin; pasifken zeminsiz).
+  Widget _dayButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.pinkTint,
+        foregroundColor: AppColors.deepCharcoal,
+        disabledBackgroundColor: Colors.transparent,
+        disabledForegroundColor: AppColors.outline,
       ),
+      icon: Icon(icon, size: 22),
     );
   }
 
@@ -476,21 +451,23 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
   Widget _errorBox(String msg) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(20),
       children: [
-        Container(
-          margin: const EdgeInsets.all(16),
+        TintCard(
+          color: AppColors.pinkTint,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade200),
-          ),
           child: Row(
             children: [
-              Icon(Icons.error_outline, color: Colors.red.shade600),
-              const SizedBox(width: 8),
+              const Icon(Icons.error_outline, color: AppColors.berryInk),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(msg, style: TextStyle(color: Colors.red.shade700)),
+                child: Text(
+                  msg,
+                  style: const TextStyle(
+                    color: AppColors.berryInk,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -504,15 +481,13 @@ class _JournalDiaryPageState extends State<JournalDiaryPage> {
 
 class _CategoryCard extends StatelessWidget {
   final String title;
-  final IconData icon;
-  final Color color;
+  final ActivityKind kind;
   final String emptyText;
   final List<Widget> children;
 
   const _CategoryCard({
     required this.title,
-    required this.icon,
-    required this.color,
+    required this.kind,
     required this.emptyText,
     required this.children,
   });
@@ -520,49 +495,29 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white70,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 20),
+              IconSquircle(
+                background: kind.tileColor,
+                size: 36,
+                radius: 12,
+                child: ActivityIcon(kind: kind, size: 20),
               ),
               const SizedBox(width: 10),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              Text(title, style: theme.textTheme.titleMedium),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (children.isEmpty)
             Text(
               emptyText,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
+                color: AppColors.charcoalSoft,
               ),
             )
           else
@@ -591,28 +546,28 @@ class _NumberedEntry extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        color: AppColors.cosyIvory,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // index badge
+          // sıra rozeti
           Container(
             width: 28,
             height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.kLightOrange,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: AppColors.kDeepOrange.withValues(alpha: 0.2),
-              ),
+            decoration: const BoxDecoration(
+              color: AppColors.pinkTint,
+              shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
             child: Text(
               "$index",
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppColors.berryInk,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -632,8 +587,10 @@ class _NumberedEntry extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Text(
                       "• $b",
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.black87,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        height: 18 / 13,
+                        color: AppColors.charcoalSoft,
                       ),
                     ),
                   ),
@@ -653,25 +610,19 @@ class _NotePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.shade200),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Last Note • ${note.formattedTime}",
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: Colors.purple.shade700,
-              fontWeight: FontWeight.w700,
+            "Last note • ${note.formattedTime}",
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: AppColors.berryInk,
             ),
           ),
           const SizedBox(height: 6),
-          Text(note.noteText, style: theme.textTheme.bodyMedium),
+          Text(note.noteText, style: theme.textTheme.bodyLarge),
         ],
       ),
     );
@@ -682,22 +633,17 @@ class _EmptyNoteHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.shade200),
-      ),
       child: Row(
         children: [
-          Icon(Icons.note_add_outlined, color: Colors.purple.shade400),
-          const SizedBox(width: 8),
+          const Icon(Icons.note_add_outlined, color: AppColors.activeBerry),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              "There are no notes for today yet. You can write something using ‘Add Note’.",
+              "There are no notes for today yet. You can write something using ‘Add note’.",
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.purple.shade700,
+                color: AppColors.charcoalSoft,
               ),
             ),
           ),

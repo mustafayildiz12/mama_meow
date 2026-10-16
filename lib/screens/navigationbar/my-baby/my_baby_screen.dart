@@ -1,7 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_constants.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/journal/journal_screen.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/medicine/add_medicine_bottom_sheet.dart';
@@ -19,23 +22,19 @@ import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/permissions/alarm_policy.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 /// My Baby ekranındaki bir aktivite kartının tanımı.
 class _ActivitySpec {
   const _ActivitySpec({
-    required this.emoji,
-    required this.title,
-    required this.colors,
-    required this.textColor,
+    required this.kind,
     required this.reportRoute,
     required this.countStream,
     required this.sheetBuilder,
   });
 
-  final String emoji;
-  final String title;
-  final List<Color> colors;
-  final Color textColor;
+  /// Başlık, ikon ve kart zemini buradan gelir.
+  final ActivityKind kind;
   final String reportRoute;
 
   /// Bugünkü kayıt sayısı (servis oturum ve gün değişimini kendisi izler).
@@ -45,28 +44,19 @@ class _ActivitySpec {
 
 final List<_ActivitySpec> _activities = [
   _ActivitySpec(
-    emoji: '🍼',
-    title: 'Nursing',
-    colors: const [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
-    textColor: Colors.green.shade700,
+    kind: ActivityKind.nursing,
     reportRoute: 'nursingReport',
     countStream: nursingService.todayNursingCountStream,
     sheetBuilder: (_) => const AddNursingBottomSheet(),
   ),
   _ActivitySpec(
-    emoji: '🍛',
-    title: 'Solid',
-    colors: const [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
-    textColor: Colors.orange.shade700,
+    kind: ActivityKind.solid,
     reportRoute: 'solidReport',
     countStream: solidService.todaySolidCountStream,
     sheetBuilder: (_) => const AddSolidBottomSheet(),
   ),
   _ActivitySpec(
-    emoji: '😴',
-    title: 'Sleep',
-    colors: [Colors.blue.shade200, Colors.purple.shade200],
-    textColor: Colors.blue.shade700,
+    kind: ActivityKind.sleep,
     reportRoute: 'sleepReport',
     countStream: sleepService.todaySleepCountStream,
     sheetBuilder: (_) => SleepExtendedMultiSliderBottomSheet(
@@ -75,33 +65,32 @@ final List<_ActivitySpec> _activities = [
     ),
   ),
   _ActivitySpec(
-    emoji: '👶',
-    title: 'Diaper',
-    colors: [Colors.green.shade200, Colors.tealAccent.shade200],
-    textColor: Colors.green.shade700,
+    kind: ActivityKind.diaper,
     reportRoute: 'diaperReport',
     countStream: diaperService.todayDiaperCountStream,
     sheetBuilder: (_) => const AddDiaperBottomSheet(),
   ),
   _ActivitySpec(
-    emoji: '👩‍🍼',
-    title: 'Pumping',
-    colors: const [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
-    textColor: Colors.pink.shade700,
+    kind: ActivityKind.pumping,
     reportRoute: 'pumpingReport',
     countStream: pumpingService.todayPumpingCountStream,
     sheetBuilder: (_) => const AddPumpingBottomSheet(),
   ),
   _ActivitySpec(
-    emoji: '💊',
-    title: 'Medicine',
-    colors: const [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
-    textColor: Colors.red.shade700,
+    kind: ActivityKind.medicine,
     reportRoute: 'medicineReport',
     countStream: medicineService.todayMedicineCountStream,
     sheetBuilder: (_) => AddMedicineBottomSheet(selectedDate: DateTime.now()),
   ),
 ];
+
+/// Kart içi küçük ikincil metin (sayaç, açıklama).
+const TextStyle _metaStyle = TextStyle(
+  fontSize: 13,
+  height: 18 / 13,
+  fontWeight: FontWeight.w600,
+  color: AppColors.charcoalSoft,
+);
 
 class MyBabyScreen extends StatefulWidget {
   const MyBabyScreen({super.key});
@@ -157,54 +146,153 @@ class _MyBabyScreenState extends State<MyBabyScreen>
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                SvgPicture.asset("assets/baby.svg", width: 64, height: 64),
-                const SizedBox(height: 8),
-                const Text(
-                  "My Baby 👶",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "I may be small, but my stories are big! Don't miss a meowment! 🐾✨",
-                  style: TextStyle(color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-          for (final spec in _activities) ...[
-            _ActivityCard(spec: spec),
-            const SizedBox(height: 16),
+    return ColoredBox(
+      color: AppColors.cosyIvory,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          children: [
+            const _BabyHeader(),
+            const SizedBox(height: 24),
+            const SectionHeader(title: 'Quick log'),
+            const SizedBox(height: 12),
+            const _ActivityGrid(),
+            const SizedBox(height: 12),
+            _JournalTile(onTap: _openJournal),
+            const SizedBox(height: 24),
+            const _TipOfTheDay(),
           ],
-          _JournalCard(onTap: _openJournal),
-          const SizedBox(height: 32),
-          const _TipOfTheDay(),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Bugünkü sayaçlı aktivite kartı (rapor + ekle butonları).
-class _ActivityCard extends StatefulWidget {
-  const _ActivityCard({required this.spec});
+/// Bebek fotoğrafı, günün saatine göre selamlama ve "ad · yaş aralığı" başlığı.
+class _BabyHeader extends StatelessWidget {
+  const _BabyHeader();
+
+  static String _greeting(DateTime now) {
+    if (now.hour < 12) return 'Good morning';
+    if (now.hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  static String _title() {
+    final name = currentMeowUser?.babyName?.trim() ?? '';
+    final age = currentMeowUser?.ageRange?.trim() ?? '';
+    if (name.isEmpty) return 'My Baby';
+    return age.isEmpty ? name : '$name · $age';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // currentMeowUser bir global (dinlenebilir değil). Sekme ya da üstteki
+    // sayfa (ör. login) değişip ekran yeniden görünür olduğunda TickerMode
+    // değişir; bu bağımlılık sayesinde başlık güncel bilgiyle yeniden çizilir.
+    TickerMode.valuesOf(context);
+
+    return Row(
+      children: [
+        _BabyAvatar(url: currentMeowUser?.babyPicture?.trim() ?? ''),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_greeting(DateTime.now()), style: _metaStyle),
+              const SizedBox(height: 2),
+              Text(
+                _title(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 56 px yuvarlak bebek fotoğrafı (şeftali halkalı); yoksa ikon.
+class _BabyAvatar extends StatelessWidget {
+  const _BabyAvatar({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    const fallback = IconSquircle(
+      background: AppColors.pinkTint,
+      size: 50,
+      radius: 25,
+      child: Icon(Icons.child_care, size: 28, color: AppColors.activeBerry),
+    );
+
+    return Container(
+      width: 56,
+      height: 56,
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(
+        color: AppColors.peachPastel,
+        shape: BoxShape.circle,
+      ),
+      child: ClipOval(
+        child: url.isEmpty
+            ? fallback
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => fallback,
+                errorWidget: (_, _, _) => fallback,
+              ),
+      ),
+    );
+  }
+}
+
+/// Altı aktivite kartı, iki sütun. Satırlar Row ile kurulur; böylece kart
+/// yüksekliği yazı boyutuna göre büyür ve taşma olmaz.
+class _ActivityGrid extends StatelessWidget {
+  const _ActivityGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < _activities.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _ActivityTile(spec: _activities[i])),
+              const SizedBox(width: 12),
+              Expanded(
+                child: i + 1 < _activities.length
+                    ? _ActivityTile(spec: _activities[i + 1])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Bugünkü sayaçlı aktivite kartı: gövde rapora, "+" ekleme sheet'ine gider.
+class _ActivityTile extends StatefulWidget {
+  const _ActivityTile({required this.spec});
 
   final _ActivitySpec spec;
 
   @override
-  State<_ActivityCard> createState() => _ActivityCardState();
+  State<_ActivityTile> createState() => _ActivityTileState();
 }
 
-class _ActivityCardState extends State<_ActivityCard> {
+class _ActivityTileState extends State<_ActivityTile> {
   // Kart her oluşturulduğunda taze stream; ListView kartı yeniden
   // oluşturduğunda tek-abonelik stream'i iki kez dinleme hatası olmaz.
   late final Stream<int> _count = widget.spec.countStream();
@@ -212,75 +300,41 @@ class _ActivityCardState extends State<_ActivityCard> {
   @override
   Widget build(BuildContext context) {
     final spec = widget.spec;
-    final textColor = spec.textColor;
+    final kind = spec.kind;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: spec.colors),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white, width: 4),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return TintCard(
+      color: kind.tileColor,
+      padding: const EdgeInsets.all(16),
+      onTap: () => context.pushNamed(spec.reportRoute),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(spec.emoji, style: const TextStyle(fontSize: 32)),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    spec.title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  StreamBuilder<int>(
-                    stream: _count,
-                    builder: (context, snapshot) => Text(
-                      'Today: ${snapshot.data ?? 0} times',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: textColor.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                ],
+              IconSquircle(child: ActivityIcon(kind: kind)),
+              const Spacer(),
+              _RoundAddButton(
+                tooltip: 'Add ${kind.label.toLowerCase()}',
+                onPressed: () => showActivitySheet(context, spec.sheetBuilder),
               ),
             ],
           ),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  onPressed: () => context.pushNamed(spec.reportRoute),
-                  icon: Icon(Icons.bar_chart, color: textColor),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  onPressed: () =>
-                      showActivitySheet(context, spec.sheetBuilder),
-                  icon: Icon(Icons.add, color: textColor, size: 28),
-                ),
-              ),
-            ],
+          const SizedBox(height: 14),
+          Text(
+            kind.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          StreamBuilder<int>(
+            stream: _count,
+            builder: (context, snapshot) => Text(
+              '${snapshot.data ?? 0} today',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _metaStyle,
+            ),
           ),
         ],
       ),
@@ -288,40 +342,75 @@ class _ActivityCardState extends State<_ActivityCard> {
   }
 }
 
-class _JournalCard extends StatelessWidget {
-  const _JournalCard({required this.onTap});
+/// 40 px yuvarlak "+" butonu (dokunma alanı 48 px).
+class _RoundAddButton extends StatelessWidget {
+  const _RoundAddButton({
+    required this.tooltip,
+    required this.onPressed,
+    this.background = AppColors.activeBerry,
+    this.foreground = AppColors.cottonWhite,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        fixedSize: const Size.square(40),
+        minimumSize: const Size.square(40),
+        padding: EdgeInsets.zero,
+      ),
+      icon: const Icon(Icons.add, size: 22),
+    );
+  }
+}
+
+class _JournalTile extends StatelessWidget {
+  const _JournalTile({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return TintCard(
+      color: ActivityKind.journal.tileColor,
+      padding: const EdgeInsets.all(16),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.purple.shade100, Colors.indigo.shade200],
+      child: Row(
+        children: [
+          const IconSquircle(
+            child: ActivityIcon(kind: ActivityKind.journal),
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white, width: 4),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('📔', style: TextStyle(fontSize: 32)),
-            const SizedBox(width: 12),
-            Text(
-              'Journal',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple.shade600,
-              ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ActivityKind.journal.label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const Text("Write today's little story", style: _metaStyle),
+              ],
             ),
-          ],
-        ),
+          ),
+          _RoundAddButton(
+            tooltip: 'Open journal',
+            onPressed: onTap,
+            background: AppColors.cottonWhite,
+            foreground: AppColors.activeBerry,
+          ),
+        ],
       ),
     );
   }
@@ -332,42 +421,63 @@ class _TipOfTheDay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.yellow.shade100, Colors.orange.shade100],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.amber, width: 2),
-      ),
-      padding: const EdgeInsets.all(16),
+    return TintCard(
+      color: AppColors.peachTint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.auto_awesome, size: 18, color: AppColors.activeBerry),
+              SizedBox(width: 6),
               Text(
-                'AI Tips for Today',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                'AI TIP FOR TODAY',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 16 / 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: AppColors.berryInk,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white70,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amberAccent, width: 2),
+          Text(
+            'Feeding cues',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Babies typically need 8-12 feedings per day. Watch for hunger '
+            'cues like rooting or sucking motions!',
+            style: TextStyle(
+              fontSize: 15,
+              height: 22 / 15,
+              color: AppColors.deepCharcoal,
             ),
-            child: const Text(
-              '💡 Tip of the day: Babies typically need 8-12 feedings per day. Watch for hunger cues like rooting or sucking motions!',
-              style: TextStyle(color: Colors.black87, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => context.goNamed('askMeow'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.cottonWhite,
+              foregroundColor: AppColors.berryInk,
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              side: const BorderSide(color: AppColors.hairline),
+              textStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            icon: const Icon(
+              Icons.chat_bubble_outline,
+              size: 18,
+              color: AppColors.activeBerry,
+            ),
+            label: const Text('Ask Meow'),
           ),
         ],
       ),

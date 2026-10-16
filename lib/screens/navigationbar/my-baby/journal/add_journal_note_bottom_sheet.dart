@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/journal_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/journal_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 class AddJournalNoteBottomSheet extends StatefulWidget {
   const AddJournalNoteBottomSheet({super.key});
@@ -138,10 +141,7 @@ class _AddJournalNoteBottomSheetState extends State<AddJournalNoteBottomSheet> {
     return ActivitySheetFrame(
       initialChildSize: 0.9,
       maxChildSize: 0.95,
-      decoration: sheetDecoration([
-        Colors.purple.shade100,
-        Colors.indigo.shade200,
-      ]),
+      decoration: sheetDecoration(),
       builder: (context, _) => _sheetBody(theme, context),
     );
   }
@@ -150,43 +150,15 @@ class _AddJournalNoteBottomSheetState extends State<AddJournalNoteBottomSheet> {
     final savedAt = DateTime.tryParse(_existingTodayNote?.createdAt ?? '');
     return Column(
       children: [
-        // Handle bar
-        Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.only(top: 12, bottom: 8),
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-
-        // Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.edit_note, color: Colors.purple, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                _existingTodayNote == null
-                    ? 'Add Journal Note'
-                    : 'Edit Today\'s Note',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple.shade700,
-                ),
-              ),
-              const Spacer(),
-              if (savedAt != null)
-                Text(
-                  DateFormat('HH:mm').format(savedAt),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-            ],
-          ),
+        // Başlık (tutamaç + journal ikonu + kapat)
+        ActivitySheetHeader(
+          title: _existingTodayNote == null
+              ? 'Add journal note'
+              : 'Edit today\'s note',
+          kind: ActivityKind.journal,
+          subtitle: savedAt == null
+              ? null
+              : 'Last saved ${DateFormat('HH:mm').format(savedAt)}',
         ),
 
         const Divider(height: 1),
@@ -194,153 +166,140 @@ class _AddJournalNoteBottomSheetState extends State<AddJournalNoteBottomSheet> {
         // Content
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'What happened today?',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.purple.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _isValid
-                                  ? Colors.purple.shade300
-                                  : (_characterCount > 500
-                                        ? Colors.red
-                                        : Colors.grey.shade300),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _noteController,
-                            focusNode: _focusNode,
-                            onTapOutside: (event) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                            maxLines: null,
-                            expands: true,
-                            textAlignVertical: TextAlignVertical.top,
-                            decoration: InputDecoration(
-                              hintText:
-                                  'Share your thoughts, observations, or special moments...',
-                              hintStyle: TextStyle(color: Colors.grey.shade500),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.all(16),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Error & char count
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_errorMessage != null)
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.red.shade700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          Text(
-                            '$_characterCount/500',
-                            style: TextStyle(
-                              color: _characterCount > 500
-                                  ? Colors.red
-                                  : Colors.grey.shade600,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                : _editor(theme),
           ),
         ),
 
-        // Action buttons
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.8),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
+        _actionBar(),
+      ],
+    );
+  }
+
+  Widget _editor(ThemeData theme) {
+    final tooLong = _characterCount > 500;
+    // Geçerli → warmPink, 500'ü aştı → berryInk, boş → nötr çizgi.
+    final borderColor = tooLong
+        ? AppColors.berryInk
+        : (_isValid ? AppColors.warmPink : AppColors.outline);
+    final radius = BorderRadius.circular(AppTheme.radiusInput);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('What happened today?', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+
+        Expanded(
+          child: TextField(
+            controller: _noteController,
+            focusNode: _focusNode,
+            onTapOutside: (event) {
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+            decoration: InputDecoration(
+              hintText:
+                  'Share your thoughts, observations, or special moments...',
+              contentPadding: const EdgeInsets.all(16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(color: borderColor, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(
+                  color: tooLong ? AppColors.berryInk : AppColors.activeBerry,
+                  width: 2,
+                ),
+              ),
             ),
+            onChanged: (_) => setState(() {}),
           ),
-          child: Row(
-            children: [
-              if (_existingTodayNote != null) // Delete only when editing
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.delete_outline),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
-                      side: BorderSide(color: Colors.red.shade200),
-                    ),
-                    onPressed: _isSaving ? null : _delete,
-                    label: const Text('Delete'),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Error & char count
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_errorMessage != null)
+              Expanded(
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(
+                    color: AppColors.berryInk,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              if (_existingTodayNote != null) const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade200,
-                    side: BorderSide(color: Colors.grey.shade400),
-                  ),
+              ),
+            Text(
+              '$_characterCount/500',
+              style: TextStyle(
+                color: tooLong ? AppColors.berryInk : AppColors.charcoalSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Alt butonlar: (düzenlemede) Delete, Cancel, Save/Update.
+  Widget _actionBar() {
+    final editing = _existingTodayNote != null;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.cottonWhite,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Row(
+          children: [
+            if (editing) ...[
+              // Yer kazanmak için ikon buton; "Delete" etiketi tooltip'te.
+              IconButton.outlined(
+                tooltip: 'Delete',
+                onPressed: _isSaving ? null : _delete,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size.square(52),
+                  foregroundColor: AppColors.berryInk,
+                  side: const BorderSide(color: AppColors.outline, width: 1.5),
+                ),
+                icon: const Icon(Icons.delete_outline),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: FilledButton.tonal(
                   onPressed: _isSaving ? null : () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.shade600,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                  ),
-                  onPressed: (_isValid && !_isSaving) ? _save : null,
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : Text(
-                          _existingTodayNote == null ? 'Save Note' : 'Update',
-                        ),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryPillButton(
+                label: editing ? 'Update' : 'Save note',
+                height: 52,
+                loading: _isSaving,
+                onPressed: _isValid ? _save : null,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
