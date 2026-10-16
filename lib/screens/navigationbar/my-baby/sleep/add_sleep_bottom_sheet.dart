@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/sleep_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/sleep_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 /// ---- Sabitler ----
 const int kDayMinutes = 24 * 60; // 1440
@@ -266,65 +268,70 @@ class _SleepExtendedMultiSliderBottomSheetState
     final hasOverlap = _hasOverlapAfterSplit();
 
     return ActivitySheetScaffold(
+      kind: ActivityKind.sleep,
+      title: 'Add Sleep',
       initialChildSize: 0.85,
-      radius: 20,
-      gradient: [Colors.blue.shade200, Colors.purple.shade200],
       onSave: (_ranges.isEmpty || hasOverlap) ? null : _save,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            onTap: () => Navigator.pop(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          ),
           if (hasOverlap)
-            const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 18),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "The intervals overlap or are too short. Adjust the times before saving.",
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.pinkTint,
+                borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: AppColors.berryInk,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "The intervals overlap or are too short. Adjust the times before saving.",
+                      style: TextStyle(
+                        color: AppColors.berryInk,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     "Total: ${_fmtDuration(_totalAll())}",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Reminders',
                   onPressed: () => openReminders(context, 'sleepReminders'),
-                  icon: const Icon(Icons.alarm_add),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.pinkTint,
+                  ),
+                  icon: const Icon(
+                    Icons.alarm_add,
+                    color: AppColors.deepCharcoal,
+                  ),
                 ),
               ],
             ),
           ),
           _intervalCard(_ranges.first),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           ChipPickerSection<String>(
             title: "Start of sleep",
@@ -334,7 +341,7 @@ class _SleepExtendedMultiSliderBottomSheetState
             onChanged: (v) => setState(() => _startOfSleep = v),
             iconBuilder: _iconForStartOfSleep,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           ChipPickerSection<String>(
             title: "End of sleep",
@@ -344,7 +351,7 @@ class _SleepExtendedMultiSliderBottomSheetState
             onChanged: (v) => setState(() => _endOfSleep = v),
             iconBuilder: _iconForEndOfSleep,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           ChipPickerSection<String>(
             title: "How it happened",
@@ -354,17 +361,14 @@ class _SleepExtendedMultiSliderBottomSheetState
             onChanged: (v) => setState(() => _howItHappened = v),
             iconBuilder: _iconForHowItHappened,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           TextField(
             controller: _noteCtrl,
             maxLines: 2,
             onTapOutside: (event) {
               FocusManager.instance.primaryFocus?.unfocus();
             },
-            decoration: const InputDecoration(
-              labelText: "Note",
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(labelText: "Note"),
           ),
         ],
       ),
@@ -375,108 +379,82 @@ class _SleepExtendedMultiSliderBottomSheetState
     final startLabel = _label(r.start.round());
     final endLabel = _label(r.end.round());
     final crossesMidnight = r.end > kDayMinutes;
+    const tickStyle = TextStyle(fontSize: 11, color: AppColors.charcoalSoft);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 2),
+    return SheetSectionCard(
+      title: "Sleep interval",
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _InfoChip(
+                  title: "Start time",
+                  value: startLabel,
+                  leading: Icons.nightlight_round,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _InfoChip(
+                  title: "End time",
+                  value: endLabel,
+                  leading: Icons.bedtime,
+                ),
+              ),
+            ],
           ),
-        ],
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-        child: Column(
-          children: [
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Text("00:00", style: tickStyle),
+              Spacer(),
+              Text(
+                "24:00 | +1",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.charcoalSoft,
+                ),
+              ),
+              Spacer(),
+              Text("36:00", style: tickStyle),
+            ],
+          ),
+          // Renkler temadan: aktif berry, pasif pembe, berry tutamaçlar.
+          RangeSlider(
+            min: 0,
+            max: kMaxMinutes.toDouble(),
+            divisions: kMaxMinutes ~/ kStepMinutes,
+            values: r,
+            labels: RangeLabels(startLabel, endLabel),
+            onChanged: (v) {
+              setState(() {
+                final s = v.start;
+                var e = v.end;
+                if (e - s < kMinDuration) {
+                  e = (s + kMinDuration).clamp(0, kMaxMinutes.toDouble());
+                }
+                _ranges.first = RangeValues(s, e);
+              });
+            },
+          ),
+          if (crossesMidnight)
             const Align(
               alignment: Alignment.centerLeft,
               child: Padding(
-                padding: EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(top: 2),
                 child: Text(
-                  "Sleep Interval",
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: _InfoChip(
-                    title: "Start time",
-                    value: startLabel,
-                    leading: Icons.nightlight_round,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _InfoChip(
-                    title: "End Time",
-                    value: endLabel,
-                    leading: Icons.bedtime,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Row(
-              children: [
-                Text(
-                  "00:00",
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                Spacer(),
-                Text(
-                  "24:00 | +1",
-                  style: TextStyle(fontSize: 11, color: Colors.black87),
-                ),
-                Spacer(),
-                Text(
-                  "36:00",
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-              ],
-            ),
-            RangeSlider(
-              min: 0,
-              max: kMaxMinutes.toDouble(),
-              activeColor: AppColors.kDeepOrange,
-              inactiveColor: AppColors.kOrange,
-              divisions: kMaxMinutes ~/ kStepMinutes,
-              values: r,
-              labels: RangeLabels(startLabel, endLabel),
-              onChanged: (v) {
-                setState(() {
-                  final s = v.start;
-                  var e = v.end;
-                  if (e - s < kMinDuration) {
-                    e = (s + kMinDuration).clamp(0, kMaxMinutes.toDouble());
-                  }
-                  _ranges.first = RangeValues(s, e);
-                });
-              },
-            ),
-            if (crossesMidnight)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    "It's past midnight",
-                    style: TextStyle(
-                      color: Colors.orange.shade800,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  "It's past midnight",
+                  style: TextStyle(
+                    color: AppColors.berryInk,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -540,6 +518,7 @@ class _SleepExtendedMultiSliderBottomSheetState
 }
 
 /// ---- Küçük UI parçaları ----
+/// Başlangıç / bitiş saati kutusu: pembe zemin, berry ikon, büyük saat.
 class _InfoChip extends StatelessWidget {
   final String title;
   final String value;
@@ -555,13 +534,12 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.kLightOrange,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        color: AppColors.pinkTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusInput),
       ),
       child: Row(
         children: [
-          Icon(leading, size: 18, color: AppColors.kDeepOrange),
+          Icon(leading, size: 18, color: AppColors.activeBerry),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -569,11 +547,24 @@ class _InfoChip extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.charcoalSoft,
+                  ),
                 ),
-                Text(
-                  value,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.deepCharcoal,
+                    ),
+                  ),
                 ),
               ],
             ),

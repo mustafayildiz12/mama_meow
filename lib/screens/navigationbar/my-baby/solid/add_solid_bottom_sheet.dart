@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/custom_solid_model.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/models/dummy/dummy_solid_list.dart';
@@ -12,6 +14,7 @@ import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/activities/solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 
 class AddSolidBottomSheet extends StatefulWidget {
@@ -199,86 +202,61 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return CustomLoader(
       inAsyncCall: isLoading,
       child: ActivitySheetScaffold(
+        kind: ActivityKind.solid,
+        title: 'Add Solids',
         initialChildSize: 0.85,
-        gradient: const [Color(0xFFA8E6CF), Color(0xFF88D8C0)],
         attachScrollController: true,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         onSave: _picked.isNotEmpty ? _save : null,
-        header: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            InkWell(
-              onTap: () => Navigator.pop(context),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
+        // Arama + hatırlatıcı (standart başlığın altında sabit kalır)
+        header: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  onTapOutside: (event) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _query = v),
+                  decoration: const InputDecoration(
+                    hintText: "Search solids...",
+                    prefixIcon: Icon(Icons.search),
                   ),
                 ),
               ),
-            ),
-            // Arama + hatırlatıcı
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      onTapOutside: (event) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                      controller: _searchCtrl,
-                      onChanged: (v) => setState(() => _query = v),
-                      decoration: InputDecoration(
-                        hintText: "Search solids...",
-                        prefixIcon: const Icon(Icons.search),
-                        filled: true,
-                        fillColor: theme.scaffoldBackgroundColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.black12.withValues(alpha: .2),
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => openReminders(context, 'solidReminders'),
-                    icon: const Icon(Icons.alarm_add),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Reminders',
+                onPressed: () => openReminders(context, 'solidReminders'),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.pinkTint,
+                ),
+                icon: const Icon(
+                  Icons.alarm_add,
+                  color: AppColors.deepCharcoal,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // (1) Recent (çoklu seçim)
-            const _SectionTitle("Recent Foods"),
-            const SizedBox(height: 8),
+            const _SectionTitle("Recent foods"),
+            const SizedBox(height: 10),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final f in _filteredRecent)
                     Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.only(right: 10),
                       child: _FoodChipTile(
                         label: f.name,
                         asset: f.asset,
@@ -289,25 +267,38 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // (2) Custom (kullanıcının ekledikleri) (çoklu seçim)
             Row(
               children: [
-                const _SectionTitle("Custom Foods"),
+                const _SectionTitle("Custom foods"),
+                const SizedBox(width: 4),
+                // Küçük, yuvarlak berry "+" (yeni yiyecek ekle)
                 IconButton(
+                  tooltip: 'Add New Food',
                   onPressed: _addCustomFood,
-                  icon: const Icon(Icons.add_box, color: Colors.white),
+                  iconSize: 20,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.activeBerry,
+                    foregroundColor: AppColors.cottonWhite,
+                    fixedSize: const Size(32, 32),
+                    minimumSize: const Size(32, 32),
+                    padding: EdgeInsets.zero,
+                  ),
+                  icon: const Icon(Icons.add),
                 ),
               ],
             ),
+            const SizedBox(height: 4),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final item in _filteredCustom)
                     Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.only(right: 10),
                       child: _CustomCard(
                         item: item,
                         selected: _isSelectedCustom(item),
@@ -317,19 +308,19 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             // (3) Seçilenler & miktarlar
             if (_picked.isNotEmpty) ...[
               const _SectionTitle("Selected"),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               for (final e in _picked.entries)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: theme.scaffoldBackgroundColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black12),
+                    color: AppColors.cottonWhite,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+                    border: Border.all(color: AppColors.hairline),
                   ),
                   child: ListTile(
                     leading: _ThumbIcon(item: e.key),
@@ -340,30 +331,43 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
                       children: [
                         IconButton(
                           onPressed: () => _dec(e.key),
-                          icon: const Icon(Icons.remove_circle_outline),
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            color: AppColors.activeBerry,
+                          ),
                         ),
                         Text(
                           "${e.value}",
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.deepCharcoal,
+                          ),
                         ),
                         IconButton(
                           onPressed: () => _inc(e.key),
-                          icon: const Icon(Icons.add_circle_outline),
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: AppColors.activeBerry,
+                          ),
                         ),
                         IconButton(
                           onPressed: () =>
                               setState(() => _picked.remove(e.key)),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppColors.charcoalSoft,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
 
             TimeField(value: formatHHmm(_time), onTap: _pickTime),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
 
             // Tepki (opsiyonel, tüm seçimlere ortak)
             ChipPickerSection<Reaction>(
@@ -381,6 +385,7 @@ class _AddSolidBottomSheetState extends State<AddSolidBottomSheet> {
   }
 }
 
+/// Sheet bölüm başlığı (15/w700, koyu kömür).
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
@@ -390,8 +395,8 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: Colors.black87,
+        fontSize: 15,
+        color: AppColors.deepCharcoal,
       ),
     );
   }
@@ -406,13 +411,14 @@ class _ThumbIcon extends StatelessWidget {
     // Recent -> SVG asset, Custom -> Network image
     if (item.isCustom) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: CachedNetworkImage(
           imageUrl: item.thumb ?? "",
           width: 40,
           height: 40,
           fit: BoxFit.cover,
-          errorWidget: (c, u, e) => const Icon(Icons.error),
+          errorWidget: (c, u, e) =>
+              const Icon(Icons.error_outline, color: AppColors.charcoalSoft),
           placeholder: (c, u) => const SizedBox(
             width: 24,
             height: 24,
@@ -442,70 +448,31 @@ class _CustomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
+    return _FoodTileFrame(
+      label: item.name,
+      selected: selected,
       onTap: onTap,
-      child: Container(
-        width: 100,
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? theme.primaryColorLight
-                : theme.dividerColor.withValues(alpha: 0.6),
-            width: selected ? 1.2 : 0.8,
+      image: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: CachedNetworkImage(
+          imageUrl: item.solidLink,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.shadowColor.withValues(
-                alpha: selected ? 0.12 : 0.06,
-              ),
-              blurRadius: selected ? 12 : 8,
-              spreadRadius: 1,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: CachedNetworkImage(
-                imageUrl: item.solidLink,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ],
+          errorWidget: (context, url, error) =>
+              const Icon(Icons.error_outline, color: AppColors.charcoalSoft),
         ),
       ),
     );
   }
 }
 
-/// (Aynı kaldı) – Recent için chip kart
+/// Recent için yiyecek kartı (SVG görsel).
 class _FoodChipTile extends StatelessWidget {
   final String label;
   final String asset;
@@ -521,57 +488,101 @@ class _FoodChipTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
+    return _FoodTileFrame(
+      label: label,
+      selected: selected,
       onTap: onTap,
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? theme.primaryColorLight
-                : theme.dividerColor.withValues(alpha: 0.6),
-            width: selected ? 1.2 : 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.shadowColor.withValues(
-                alpha: selected ? 0.12 : 0.06,
-              ),
-              blurRadius: selected ? 12 : 8,
-              spreadRadius: 1,
-              offset: const Offset(0, 2),
-            ),
-          ],
+      image: SizedBox(
+        width: 32,
+        height: 32,
+        child: SvgPicture.asset(
+          asset,
+          width: 32,
+          height: 32,
+          fit: BoxFit.contain,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      ),
+    );
+  }
+}
+
+/// Yiyecek kartı çerçevesi (ChipTileStyle görünümü): seçiliyken beyaz +
+/// 2 px berry çerçeve + onay rozeti, değilken pembe zemin.
+class _FoodTileFrame extends StatelessWidget {
+  final String label;
+  final Widget image;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FoodTileFrame({
+    required this.label,
+    required this.image,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(16);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Stack(
           children: [
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: SvgPicture.asset(
-                asset,
-                width: 32,
-                height: 32,
-                fit: BoxFit.contain,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 100,
+              padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.cottonWhite : AppColors.pinkTint,
+                borderRadius: radius,
+                border: Border.all(
+                  color: selected ? AppColors.activeBerry : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  image,
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.15,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: AppColors.deepCharcoal,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
+            if (selected)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: AppColors.activeBerry,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    size: 12,
+                    color: AppColors.cottonWhite,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

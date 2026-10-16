@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/service/activities/add_custom_solid_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 
@@ -132,85 +134,66 @@ class _AddCustomSolidBottomSheetState extends State<AddCustomSolidBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Beyaz, 24 px köşeli diyalog (renkler temadan).
     return AlertDialog(
-      content: Container(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconSquircle(
+                background: ActivityKind.solid.tileColor,
+                child: const ActivityIcon(kind: ActivityKind.solid),
               ),
-            ),
-            const Text(
-              "Add New Food",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: _nameCtrl,
-                onTapOutside: (event) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: "Food Name",
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Add New Food",
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return "Please enter a food name";
-                  }
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _nameCtrl,
+              onTapOutside: (event) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(labelText: "Food name"),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return "Please enter a food name";
+                }
 
-                  return null;
-                },
-              ),
+                return null;
+              },
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _loading ? null : _pickImage,
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text("Pick Image"),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 12),
+          // İkincil buton: pembe zeminli hap.
+          FilledButton.tonalIcon(
+            onPressed: _loading ? null : _pickImage,
+            icon: const Icon(Icons.photo_library_outlined),
+            label: const Text("Pick image"),
+          ),
+          const SizedBox(height: 12),
+          if (_xfile != null || _file != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+              child: kIsWeb ? Image.network(_xfile!.path) : Image.file(_file!),
             ),
-            const SizedBox(height: 12),
-            if (_xfile != null || _file != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: kIsWeb
-                    ? Image.network(_xfile!.path)
-                    : Image.file(_file!),
-              ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text("Upload and Save"),
-              ),
-            ),
-          ],
-        ),
+          const SizedBox(height: 16),
+          PrimaryPillButton(
+            label: "Upload and save",
+            loading: _loading,
+            onPressed: _submit,
+          ),
+        ],
       ),
     );
   }

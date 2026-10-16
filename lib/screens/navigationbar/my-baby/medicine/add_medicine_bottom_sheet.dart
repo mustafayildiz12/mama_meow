@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/medicine_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/medicine_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 /// Medicine amount types
 class MedicineAmountTypes {
@@ -121,10 +123,7 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Medicine record saved successfully'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Medicine record saved successfully')),
       );
     } catch (e) {
       debugPrint('addMedicine failed: $e');
@@ -152,83 +151,58 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final amountText = _amountController.text.trim();
 
     return ActivitySheetScaffold(
+      kind: ActivityKind.medicine,
+      title: 'Add Medicine',
+      subtitle: DateFormat('EEEE, d MMM').format(widget.selectedDate),
       initialChildSize: 0.85,
       maxChildSize: 0.95,
-      radius: 20,
-      gradient: const [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
       attachScrollController: true,
-      backLabel: 'Cancel',
-      saveColor: AppColors.kDeepOrange,
       onSave: _isFormValid() ? _saveMedicine : null,
+      // Hatırlatıcı butonu standart başlığın altında sağda durur.
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            tooltip: 'Reminders',
+            onPressed: () => openReminders(context, 'medicineReminders'),
+            style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
+            icon: const Icon(Icons.alarm_add, color: AppColors.deepCharcoal),
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Add Medicine',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => openReminders(context, 'medicineReminders'),
-                icon: const Icon(Icons.alarm_add),
-              ),
-            ],
-          ),
-          Text(
-            DateFormat('EEEE, d MMM').format(widget.selectedDate),
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
-          ),
-          const SizedBox(height: 24),
-
           // Time Selection
           SheetSectionCard(
             title: 'Time',
             child: InkWell(
               onTap: _selectTime,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.kLightOrange,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black12),
-                ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+              child: InputDecorator(
+                decoration: const InputDecoration(),
                 child: Row(
                   children: [
-                    const Icon(Icons.access_time, color: AppColors.kDeepOrange),
-                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.schedule_outlined,
+                      size: 20,
+                      color: AppColors.activeBerry,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       formatHHmm(_selectedTime),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const Spacer(),
                     const Icon(
                       Icons.keyboard_arrow_down,
-                      color: Colors.black54,
+                      color: AppColors.charcoalSoft,
                     ),
                   ],
                 ),
@@ -241,28 +215,15 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
           SheetSectionCard(
             title: 'Medicine',
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: CheckboxListTile(
-                        title: const Text('Select from list'),
-                        value: !_isCustomMedicine,
-                        onChanged: (value) => _setCustom(!(value ?? false)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                    ),
-                    Expanded(
-                      child: CheckboxListTile(
-                        title: const Text('Custom'),
-                        value: _isCustomMedicine,
-                        onChanged: (value) => _setCustom(value ?? false),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                    ),
-                  ],
+                // Listeden seç / özel ad: iki seçenekli hap geçiş.
+                _PillToggle(
+                  options: const ['Select from list', 'Custom'],
+                  value: _isCustomMedicine ? 'Custom' : 'Select from list',
+                  onChanged: (option) => _setCustom(option == 'Custom'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 if (_isCustomMedicine)
                   TextField(
                     controller: _customMedicineController,
@@ -272,7 +233,6 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                     },
                     decoration: const InputDecoration(
                       labelText: 'Medicine name',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.medication),
                     ),
                   )
@@ -309,7 +269,6 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Amount',
-                      border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.straighten),
                       errorText: amountText.isNotEmpty && _amount == null
                           ? 'Enter an amount greater than 0'
@@ -322,10 +281,10 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
                   flex: 5,
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedAmountType,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit',
-                      border: OutlineInputBorder(),
-                    ),
+                    dropdownColor: AppColors.cottonWhite,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+                    iconEnabledColor: AppColors.charcoalSoft,
+                    decoration: const InputDecoration(labelText: 'Unit'),
                     items: [
                       for (final type in MedicineAmountTypes.types)
                         DropdownMenuItem(
@@ -344,6 +303,93 @@ class _AddMedicineBottomSheetState extends State<AddMedicineBottomSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Pembe hap zemin üzerinde berry seçili dilimli iki seçenekli geçiş.
+class _PillToggle extends StatelessWidget {
+  const _PillToggle({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<String> options;
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.pinkTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          for (final option in options)
+            Expanded(
+              child: _PillSegment(
+                label: option,
+                selected: option == value,
+                onTap: () => onChanged(option),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillSegment extends StatelessWidget {
+  const _PillSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(999);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.activeBerry : Colors.transparent,
+          borderRadius: radius,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                  color: selected
+                      ? AppColors.cottonWhite
+                      : AppColors.deepCharcoal,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

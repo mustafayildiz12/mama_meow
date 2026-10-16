@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/reminders/reminders.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 /// Nursing side options
 class NursingSides {
@@ -112,6 +115,14 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
     });
   }
 
+  /// Birim değişince miktar sıfırlanır.
+  void _onAmountTypeChanged(String value) {
+    setState(() {
+      _selectedAmountType = value;
+      _amount = 0.0;
+    });
+  }
+
   Future<void> _saveNursing() async {
     final type = _selectedFeedingType;
     if (type == null || !_isFormValid()) return;
@@ -139,10 +150,7 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Nursing record saved successfully'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Nursing record saved successfully')),
       );
     } catch (e) {
       debugPrint('addNursing failed: $e');
@@ -162,138 +170,92 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
     }
   }
 
-  IconData _getIconForFeedingType(String type) =>
-      type.toLowerCase() == 'bottle' ? Icons.local_drink : Icons.child_care;
-
-  IconData _getIconForMilkType(String type) {
-    switch (type.toLowerCase()) {
-      case 'breast milk':
-        return Icons.child_care;
-      case 'formula':
-        return Icons.science;
-      case 'tube feeding':
-        return Icons.medical_services;
-      case 'cow milk':
-      case 'goat milk':
-        return Icons.pets;
-      case 'soy milk':
-        return Icons.eco;
-      default:
-        return Icons.local_drink;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return ActivitySheetScaffold(
+      kind: ActivityKind.nursing,
+      title: 'Add Nursing',
+      subtitle: DateFormat('EEEE, d MMM').format(DateTime.now()),
       initialChildSize: 0.85,
       maxChildSize: 0.95,
-      radius: 20,
-      gradient: const [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
       attachScrollController: true,
-      backLabel: 'Cancel',
-      saveColor: Colors.teal,
       onSave: _isFormValid() ? _saveNursing : null,
+      // Hatırlatıcı butonu standart başlığın altında sağda durur.
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            tooltip: 'Reminders',
+            onPressed: _openReminders,
+            style: IconButton.styleFrom(backgroundColor: AppColors.pinkTint),
+            icon: Icon(
+              Icons.alarm_add,
+              color: _hasReminder
+                  ? AppColors.activeBerry
+                  : AppColors.deepCharcoal,
+            ),
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Add Nursing',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: _openReminders,
-                icon: Icon(
-                  Icons.alarm_add,
-                  color: _hasReminder ? Colors.teal : null,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            DateFormat('EEEE, d MMM').format(DateTime.now()),
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
+          const _SectionLabel('Feeding type'),
+          _PillToggle(
+            options: FeedingTypes.types,
+            value: _selectedFeedingType,
+            onChanged: _onFeedingTypeChanged,
           ),
           const SizedBox(height: 24),
 
-          ChipPickerSection<String>(
-            title: "Feeding Type",
-            items: FeedingTypes.types,
-            value: _selectedFeedingType,
-            style: ChipTileStyle.teal,
-            onChanged: _onFeedingTypeChanged,
-            iconBuilder: _getIconForFeedingType,
-          ),
-          const SizedBox(height: 16),
-
           if (_selectedFeedingType == 'Nursing') ...[
-            ChipPickerSection<String>(
-              title: "Side",
-              items: NursingSides.sides,
-              value: _selectedSide,
-              style: ChipTileStyle.teal,
-              onChanged: (v) => setState(() => _selectedSide = v),
-              iconBuilder: _getIconForSide,
+            const _SectionLabel('Side'),
+            Row(
+              children: [
+                for (final side in NursingSides.sides) ...[
+                  if (side != NursingSides.sides.first)
+                    const SizedBox(width: 12),
+                  Expanded(
+                    child: _SideCard(
+                      label: side,
+                      icon: _getIconForSide(side),
+                      selected: _selectedSide == side,
+                      onTap: () => setState(() => _selectedSide = side),
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
 
           if (_isBottle) ...[
-            ChipPickerSection<String>(
-              title: "Milk Type",
-              items: MilkTypes.types,
-              value: _selectedMilkType,
-              style: ChipTileStyle.teal,
-              onChanged: (v) => setState(() => _selectedMilkType = v),
-              iconBuilder: _getIconForMilkType,
+            const _SectionLabel('Milk type'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final milk in MilkTypes.types)
+                  ChoiceChip(
+                    label: Text(milk),
+                    selected: _selectedMilkType == milk,
+                    showCheckmark: false,
+                    onSelected: (_) => setState(() => _selectedMilkType = milk),
+                  ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             SheetSectionCard(title: 'Amount', child: _amountPicker()),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
 
           Row(
             children: [
               Expanded(
-                child: InkWell(
+                child: TimeField(
+                  value: formatHHmm(_selectedTime),
                   onTap: _selectTime,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.access_time),
-                        const SizedBox(width: 8),
-                        Text(formatHHmm(_selectedTime)),
-                        const Spacer(),
-                        const Icon(Icons.keyboard_arrow_down),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -308,7 +270,6 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
                     labelText: 'Duration (min)',
-                    border: OutlineInputBorder(),
                   ),
                 ),
               ),
@@ -320,60 +281,279 @@ class _AddNursingBottomSheetState extends State<AddNursingBottomSheet> {
   }
 
   Widget _amountPicker() {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            // Büyük miktar göstergesi: beyaz, ince çizgili kutu.
             Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedAmountType,
-                decoration: const InputDecoration(
-                  labelText: 'Unit',
-                  border: OutlineInputBorder(),
+              child: Container(
+                height: 72,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: AppColors.cottonWhite,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+                  border: Border.all(color: AppColors.hairline),
                 ),
-                items: [
-                  for (final type in AmountTypes.types)
-                    DropdownMenuItem(value: type, child: Text(type)),
-                ],
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() {
-                    _selectedAmountType = value;
-                    _amount = 0.0; // birim değişince miktar sıfırlanır
-                  });
-                },
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: _amount.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 40,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.deepCharcoal,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' $_selectedAmountType',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.charcoalSoft,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                '${_amount.toStringAsFixed(1)} $_selectedAmountType',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+            SizedBox(
+              width: 120,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Unit', style: textTheme.bodySmall),
+                  const SizedBox(height: 6),
+                  _PillToggle(
+                    options: AmountTypes.types,
+                    value: _selectedAmountType,
+                    onChanged: _onAmountTypeChanged,
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Slider(
           value: _amount,
           min: 0.0,
           max: _maxAmount,
           divisions: (_maxAmount * 10).toInt(),
-          activeColor: Colors.teal,
           onChanged: (value) => setState(() => _amount = value),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('0 $_selectedAmountType'),
-            Text('${_maxAmount.toInt()} $_selectedAmountType'),
+            Text('0 $_selectedAmountType', style: textTheme.bodySmall),
+            Text(
+              '${_maxAmount.toInt()} $_selectedAmountType',
+              style: textTheme.bodySmall,
+            ),
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Sheet bölüm başlığı (15/w700, koyu kömür).
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontSize: 15,
+          color: AppColors.deepCharcoal,
+        ),
+      ),
+    );
+  }
+}
+
+/// Pembe hap zemin üzerinde berry seçili dilimli seçim (Nursing/Bottle, oz/ml).
+/// Her dokunuşta [onChanged] çağrılır (eski açılır listeyle aynı davranış).
+class _PillToggle extends StatelessWidget {
+  const _PillToggle({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<String> options;
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.pinkTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          for (final option in options)
+            Expanded(
+              child: _PillSegment(
+                label: option,
+                selected: option == value,
+                onTap: () => onChanged(option),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillSegment extends StatelessWidget {
+  const _PillSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(999);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.activeBerry : Colors.transparent,
+          borderRadius: radius,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                  color: selected
+                      ? AppColors.cottonWhite
+                      : AppColors.deepCharcoal,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Büyük taraf kartı: seçiliyken beyaz + 2 px berry çerçeve + onay rozeti,
+/// değilken pembe zemin.
+class _SideCard extends StatelessWidget {
+  const _SideCard({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppTheme.radiusCard);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.cottonWhite : AppColors.pinkTint,
+                borderRadius: radius,
+                border: Border.all(
+                  color: selected ? AppColors.activeBerry : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    size: 24,
+                    color: selected
+                        ? AppColors.activeBerry
+                        : AppColors.charcoalSoft,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(label, style: Theme.of(context).textTheme.headlineSmall),
+                ],
+              ),
+            ),
+            if (selected)
+              const Positioned(top: 12, right: 12, child: _CheckBadge()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckBadge extends StatelessWidget {
+  const _CheckBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: const BoxDecoration(
+        color: AppColors.activeBerry,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(Icons.check, size: 14, color: AppColors.cottonWhite),
     );
   }
 }
