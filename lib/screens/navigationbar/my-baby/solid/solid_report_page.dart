@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/solid_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/add_solid_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/solid/solid_report_compute.dart';
@@ -16,16 +17,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 
 // Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
 typedef SolidReportMode = ReportPeriod;
-
-const _solidColor = Color(0xFFA8E6CF);
-
-final _palette = ReportPalette(
-  tint: _solidColor,
-  badge: const Color(0xFF88d8c0),
-  segmentFill: _solidColor,
-  segmentBackground: Colors.white.withValues(alpha: 0.8),
-  segmentActiveForeground: Colors.white.withValues(alpha: 0.9),
-);
 
 class SolidReportPage extends StatefulWidget {
   const SolidReportPage({super.key});
@@ -102,9 +93,7 @@ class _SolidReportPageState extends State<SolidReportPage>
     };
 
     return ReportScaffold<SolidModel>(
-      title: "🥄   Food Reports",
-      palette: _palette,
-      pdfIconColor: Colors.teal,
+      title: "Food Reports",
       isLoading: exporting,
       onExportPdf: _exportPdf,
       onRefresh: refreshReport,
@@ -167,22 +156,19 @@ class _SolidReportPageState extends State<SolidReportPage>
               height: 220,
               child: SfCartesianChart(
                 backgroundColor: Colors.transparent,
-                primaryXAxis: CategoryAxis(
-                  labelRotation: 0,
-                  majorGridLines: const MajorGridLines(width: 0),
-                ),
-                primaryYAxis: NumericAxis(
-                  majorGridLines: const MajorGridLines(width: 0.4),
-                  axisLine: const AxisLine(width: 0),
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
+                plotAreaBorderWidth: 0,
+                primaryXAxis: _categoryAxis(),
+                primaryYAxis: _valueAxis(),
+                tooltipBehavior: _tooltip(),
                 enableAxisAnimation: true,
                 series: [
                   ColumnSeries<ChartEntry, String>(
                     dataSource: orderedEntries(c.distEatHourAmount),
                     xValueMapper: (e, _) => e.label,
                     yValueMapper: (e, _) => e.value,
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
+                    color: AppColors.activeBerry,
+                    borderRadius: _columnRadius,
+                    dataLabelSettings: _barDataLabels,
                     name: 'Amount',
                   ),
                 ],
@@ -218,23 +204,7 @@ class _SolidReportPageState extends State<SolidReportPage>
           leading: "🎯",
           child: SizedBox(
             height: 240,
-            child: SfCircularChart(
-              backgroundColor: Colors.transparent,
-              legend: const Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-              ),
-              series: <CircularSeries<ChartEntry, String>>[
-                PieSeries<ChartEntry, String>(
-                  dataSource: foods,
-                  xValueMapper: (e, _) => e.label,
-                  yValueMapper: (e, _) => e.value,
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  explode: true,
-                  explodeIndex: 0,
-                ),
-              ],
-            ),
+            child: _DistributionDoughnut(data: foods),
           ),
         ),
         const SizedBox(height: 16),
@@ -250,21 +220,19 @@ class _SolidReportPageState extends State<SolidReportPage>
               height: 220,
               child: SfCartesianChart(
                 backgroundColor: Colors.transparent,
-                primaryXAxis: CategoryAxis(
-                  majorGridLines: const MajorGridLines(width: 0),
-                ),
-                primaryYAxis: NumericAxis(
-                  majorGridLines: const MajorGridLines(width: 0.4),
-                  axisLine: const AxisLine(width: 0),
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
+                plotAreaBorderWidth: 0,
+                primaryXAxis: _categoryAxis(),
+                primaryYAxis: _valueAxis(),
+                tooltipBehavior: _tooltip(),
                 enableAxisAnimation: true,
                 series: [
                   BarSeries<ChartEntry, String>(
                     dataSource: sortedEntries(c.reactionCounts),
                     xValueMapper: (e, _) => e.label,
                     yValueMapper: (e, _) => e.value,
-                    dataLabelSettings: const DataLabelSettings(isVisible: true),
+                    color: AppColors.activeBerry,
+                    borderRadius: _barRadius,
+                    dataLabelSettings: _barDataLabels,
                     name: 'Count',
                   ),
                 ],
@@ -289,7 +257,7 @@ class _SolidReportPageState extends State<SolidReportPage>
                   label: e.label,
                   valueText: "${e.value}",
                   ratio: maxFood == 0 ? 0 : e.value / maxFood,
-                  color: _solidColor,
+                  color: AppColors.activeBerry,
                 ),
             ],
           ),
@@ -298,7 +266,7 @@ class _SolidReportPageState extends State<SolidReportPage>
         const ReportTipsCard(
           title: "AI Nutrition Tips",
           leading: "🤖",
-          badgeColor: Color(0xFF059669),
+          badgeColor: AppColors.peachTint,
           tips: [
             (
               "💡",
@@ -358,7 +326,7 @@ class _SolidReportPageState extends State<SolidReportPage>
   }
 }
 
-/// Gün bazlı miktar grafiği (renk kademeli sütunlar).
+/// Gün bazlı miktar grafiği (tek renk berry sütunlar).
 class _AmountChart extends StatelessWidget {
   final List<ChartEntry> series;
   const _AmountChart({required this.series});
@@ -370,27 +338,20 @@ class _AmountChart extends StatelessWidget {
       child: SfCartesianChart(
         backgroundColor: Colors.transparent,
         plotAreaBackgroundColor: Colors.transparent,
-        primaryXAxis: CategoryAxis(
-          majorGridLines: const MajorGridLines(width: 0),
-          axisLine: const AxisLine(width: 0),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        primaryYAxis: NumericAxis(
-          majorGridLines: const MajorGridLines(width: 0.4),
-          axisLine: const AxisLine(width: 0),
-        ),
-        tooltipBehavior: TooltipBehavior(enable: true),
+        plotAreaBorderWidth: 0,
+        primaryXAxis: _categoryAxis(),
+        primaryYAxis: _valueAxis(),
+        tooltipBehavior: _tooltip(),
         enableAxisAnimation: true,
         series: <CartesianSeries<ChartEntry, String>>[
           ColumnSeries<ChartEntry, String>(
             dataSource: series,
             xValueMapper: (e, _) => e.label,
             yValueMapper: (e, _) => e.value,
-            pointColorMapper: (e, _) =>
-                tierColor(e.value, high: 20, mid: 10, low: 5),
+            color: AppColors.activeBerry,
             width: 0.85,
             spacing: 0.10,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: _columnRadius,
             dataLabelSettings: const DataLabelSettings(isVisible: false),
             name: 'Amount',
           ),
@@ -399,3 +360,115 @@ class _AmountChart extends StatelessWidget {
     );
   }
 }
+
+/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
+class _DistributionDoughnut extends StatelessWidget {
+  final List<ChartEntry> data;
+  const _DistributionDoughnut({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCircularChart(
+      backgroundColor: Colors.transparent,
+      legend: _legend,
+      series: <CircularSeries<ChartEntry, String>>[
+        DoughnutSeries<ChartEntry, String>(
+          dataSource: data,
+          xValueMapper: (e, _) => e.label,
+          yValueMapper: (e, _) => e.value,
+          pointColorMapper: (_, i) => _seriesColor(i),
+          innerRadius: '58%',
+          radius: '78%',
+          strokeColor: AppColors.cottonWhite,
+          strokeWidth: 2,
+          legendIconType: LegendIconType.circle,
+          dataLabelSettings: _pieDataLabels,
+          explode: true,
+          explodeIndex: 0,
+        ),
+      ],
+    );
+  }
+}
+
+// =========================
+// GRAFİK STİLİ (Warm Cotton & Berry)
+// =========================
+
+const _axisLabelStyle = TextStyle(
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+  color: AppColors.charcoalSoft,
+);
+
+/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
+const _barDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelAlignment: ChartDataLabelAlignment.outer,
+  textStyle: TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: AppColors.berryInk,
+  ),
+);
+
+/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
+const _pieDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelPosition: ChartDataLabelPosition.outside,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.deepCharcoal,
+  ),
+  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
+);
+
+const _legend = Legend(
+  isVisible: true,
+  overflowMode: LegendItemOverflowMode.wrap,
+  iconHeight: 10,
+  iconWidth: 10,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: AppColors.deepCharcoal,
+  ),
+);
+
+/// Sütunların üst köşeleri yuvarlak.
+const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
+
+/// Yatay çubukların değer ucu (sağ) yuvarlak.
+const _barRadius = BorderRadius.horizontal(right: Radius.circular(8));
+
+/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
+CategoryAxis _categoryAxis() => const CategoryAxis(
+  majorGridLines: MajorGridLines(width: 0),
+  majorTickLines: MajorTickLines(width: 0),
+  axisLine: AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+/// Değer ekseni: ince pembe (hairline) ızgara.
+NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
+  labelFormat: labelFormat,
+  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
+  majorTickLines: const MajorTickLines(width: 0),
+  axisLine: const AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+TooltipBehavior _tooltip() => TooltipBehavior(
+  enable: true,
+  color: AppColors.deepCharcoal,
+  textStyle: const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.cottonWhite,
+  ),
+);
+
+/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
+Color _seriesColor(int index) =>
+    AppColors.chartSeries[index % AppColors.chartSeries.length];

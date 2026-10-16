@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 
 /// Hatırlatıcı kategorileri.
 ///
@@ -78,8 +79,13 @@ class ReminderConfig {
 
   final IconData cardIcon;
   final IconData editorIcon;
+
+  /// İkon zemini (ilk renk) için yumuşak tonlar. Aktiviteler renkle değil
+  /// ikonla ayrışır: zeminler pembe / şeftali dönüşümlüdür (bkz. ActivityKind).
   final List<Color> gradient;
-  final MaterialColor accent;
+
+  /// Vurgu rengi (ikon, seçili gün çipi) — tüm kategorilerde Active Berry.
+  final Color accent;
 
   final String managerScreenName;
   final String editorScreenName;
@@ -144,8 +150,8 @@ class ReminderConfig {
     nextIdKey: 'nursing_reminders_next_id_v1',
     cardIcon: Icons.access_time,
     editorIcon: Icons.access_time,
-    gradient: const [Color(0xFFFF9AA2), Color(0xFFFFB3BA)],
-    accent: Colors.teal,
+    gradient: const [AppColors.pinkTint, AppColors.peachTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'reminder_manager_page',
     editorScreenName: 'nursing_reminder_sheet',
   );
@@ -163,8 +169,8 @@ class ReminderConfig {
     nextIdKey: 'solid_reminders_next_id_v1',
     cardIcon: Icons.restaurant,
     editorIcon: Icons.access_time,
-    gradient: [Colors.teal.shade50, Colors.teal.shade100],
-    accent: Colors.teal,
+    gradient: const [AppColors.peachTint, AppColors.pinkTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'solid_reminder_manager',
     editorScreenName: 'solid_reminder_editor',
   );
@@ -182,8 +188,8 @@ class ReminderConfig {
     nextIdKey: 'sleep_reminders_next_id_v1',
     cardIcon: Icons.nightlight_round,
     editorIcon: Icons.nightlight_round,
-    gradient: [Colors.indigo.shade50, Colors.indigo.shade100],
-    accent: Colors.indigo,
+    gradient: const [AppColors.pinkTint, AppColors.peachTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'sleep_reminder_manager',
     editorScreenName: 'sleep_reminder_editor',
   );
@@ -201,8 +207,8 @@ class ReminderConfig {
     nextIdKey: 'diaper_reminders_next_id_v1',
     cardIcon: Icons.baby_changing_station,
     editorIcon: Icons.baby_changing_station,
-    gradient: [Colors.green.shade200, Colors.tealAccent.shade200],
-    accent: Colors.orange,
+    gradient: const [AppColors.peachTint, AppColors.pinkTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'diaper_reminder_manager',
     editorScreenName: 'diaper_reminder_editor',
   );
@@ -220,8 +226,8 @@ class ReminderConfig {
     nextIdKey: 'pumping_reminders_next_id_v1',
     cardIcon: Icons.health_and_safety,
     editorIcon: Icons.alarm,
-    gradient: const [Color(0xFFFFCAB0), Color(0xFFFFD3A5)],
-    accent: Colors.pink,
+    gradient: const [AppColors.pinkTint, AppColors.peachTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'pumping_reminder_manager',
     editorScreenName: 'pumping_reminder_editor',
   );
@@ -239,8 +245,8 @@ class ReminderConfig {
     nextIdKey: 'medicine_reminders_next_id_v1',
     cardIcon: Icons.medical_services,
     editorIcon: Icons.medical_services,
-    gradient: const [Color(0xFFB5E2D6), Color(0xFFA8D5BA)],
-    accent: Colors.lightBlue,
+    gradient: const [AppColors.peachTint, AppColors.pinkTint],
+    accent: AppColors.activeBerry,
     managerScreenName: 'medicine_reminder_manager',
     editorScreenName: 'medicine_reminder_editor',
   );

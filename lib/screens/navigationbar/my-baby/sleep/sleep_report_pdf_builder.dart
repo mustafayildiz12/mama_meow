@@ -7,12 +7,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class SleepReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(
-    0.7803921568627451,
-    0.807843137254902,
-    0.9176470588235294,
-  );
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -20,7 +14,7 @@ class SleepReportPdfBuilder {
     required List<SleepModel> sleeps,
     SleepAiInsight? ai,
   }) async {
-    final t = await ReportPdfTheme.load(accent: _accent);
+    final t = await ReportPdfTheme.load();
 
     // Gece yarısında bölünmüş kayıtlar tek uyku sayılır (ortalama yarıya
     // düşmesin); tablo ise kayıtları olduğu gibi listeler.

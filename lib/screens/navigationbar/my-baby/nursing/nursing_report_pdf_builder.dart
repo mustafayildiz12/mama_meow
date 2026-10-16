@@ -7,9 +7,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class NursingReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(1.0, 0.604, 0.635); // ff9aa2
-  static const PdfColor _gradientEnd = PdfColor(0.98, 0.98, 0.98);
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -17,10 +14,7 @@ class NursingReportPdfBuilder {
     required List<NursingModel> nursings,
     NursingAiInsight? ai,
   }) async {
-    final t = await ReportPdfTheme.load(
-      accent: _accent,
-      gradientEnd: _gradientEnd,
-    );
+    final t = await ReportPdfTheme.load();
 
     // Kronolojik (kullanıcının seçtiği saate göre)
     final epoch = DateTime.fromMillisecondsSinceEpoch(0);

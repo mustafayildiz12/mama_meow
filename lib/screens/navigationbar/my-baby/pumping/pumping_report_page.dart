@@ -19,13 +19,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 // Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
 typedef PumpingReportMode = ReportPeriod;
 
-final _palette = ReportPalette(
-  tint: const Color(0xFFffcab0),
-  badge: const Color(0xFFffd3a5),
-  segmentFill: const Color(0xFFffcab0),
-  segmentActiveForeground: Colors.white.withValues(alpha: 0.9),
-);
-
 class PumpingReportPage extends StatefulWidget {
   const PumpingReportPage({super.key});
 
@@ -96,9 +89,7 @@ class _PumpingReportPageState extends State<PumpingReportPage>
   @override
   Widget build(BuildContext context) {
     return ReportScaffold<PumpingModel>(
-      title: "🫗  Pumping Reports",
-      palette: _palette,
-      pdfIconColor: Colors.redAccent,
+      title: "Pumping Reports",
       isLoading: exporting,
       onExportPdf: _exportPdf,
       onRefresh: refreshReport,
@@ -165,23 +156,18 @@ class _PumpingReportPageState extends State<PumpingReportPage>
             height: 220,
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
-              primaryXAxis: CategoryAxis(
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              primaryYAxis: NumericAxis(
-                labelFormat: '{value}m',
-                majorGridLines: const MajorGridLines(width: 0.4),
-                axisLine: const AxisLine(width: 0),
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true),
+              plotAreaBorderWidth: 0,
+              primaryXAxis: _categoryAxis(),
+              primaryYAxis: _valueAxis(labelFormat: '{value}m'),
+              tooltipBehavior: _tooltip(),
               series: [
                 ColumnSeries<ChartEntry, String>(
                   dataSource: byHour,
                   xValueMapper: (e, _) => e.label,
                   yValueMapper: (e, _) => e.value,
-                  pointColorMapper: (e, _) =>
-                      tierColor(e.value, high: 120, mid: 60, low: 30),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  color: AppColors.activeBerry,
+                  borderRadius: _columnRadius,
+                  dataLabelSettings: _barDataLabels,
                   dataLabelMapper: (e, _) =>
                       e.value == 0 ? "" : formatMinutes(e.value.toInt()),
                   name: 'Minutes',
@@ -198,26 +184,11 @@ class _PumpingReportPageState extends State<PumpingReportPage>
           leading: "📊",
           child: SizedBox(
             height: 240,
-            child: SfCircularChart(
-              backgroundColor: Colors.transparent,
-              legend: const Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-              ),
-              series: <CircularSeries<ChartEntry, String>>[
-                PieSeries<ChartEntry, String>(
-                  dataSource: [
-                    ChartEntry('Left', c.leftMinutes),
-                    ChartEntry('Right', c.rightMinutes),
-                  ],
-                  xValueMapper: (e, _) => e.label,
-                  yValueMapper: (e, _) => e.value,
-                  pointColorMapper: (e, _) =>
-                      tierColor(e.value, high: 20, mid: 10, low: 5),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  explode: true,
-                  explodeIndex: 0,
-                ),
+            // Left = berry, Right = warm pink (seri sırası).
+            child: _DistributionDoughnut(
+              data: [
+                ChartEntry('Left', c.leftMinutes),
+                ChartEntry('Right', c.rightMinutes),
               ],
             ),
           ),
@@ -236,8 +207,8 @@ class _PumpingReportPageState extends State<PumpingReportPage>
                   label: hhmm.format(_eventTime(p)),
                   valueText: formatMinutes(p.duration),
                   ratio: maxMinutes == 0 ? 0 : p.duration / maxMinutes,
-                  color: AppColors.kDeepOrange,
-                  trackColor: Colors.orange.withValues(alpha: 0.1),
+                  color: AppColors.activeBerry,
+                  trackColor: AppColors.pinkTint,
                 ),
             ],
           ),
@@ -246,7 +217,7 @@ class _PumpingReportPageState extends State<PumpingReportPage>
         const ReportTipsCard(
           title: "AI Pumping Tips",
           leading: "💡",
-          badgeColor: Color(0xFFf6a192),
+          badgeColor: AppColors.peachTint,
           tips: [
             (
               "⏰",
@@ -270,24 +241,138 @@ class _PumpingReportPageState extends State<PumpingReportPage>
       reportEventTime(p.createdAt, p.startTime);
 }
 
+/// Taraf rozeti; renkler halka grafikle aynı (Left berry, Right warm pink).
 class _SidePill extends StatelessWidget {
   final bool isLeft;
   const _SidePill({required this.isLeft});
 
   @override
   Widget build(BuildContext context) {
-    final color = isLeft ? Colors.blue : Colors.purple;
+    final color = isLeft ? AppColors.activeBerry : AppColors.warmPink;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         isLeft ? "Left" : "Right",
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppColors.deepCharcoal,
+        ),
       ),
     );
   }
 }
+
+/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
+class _DistributionDoughnut extends StatelessWidget {
+  final List<ChartEntry> data;
+  const _DistributionDoughnut({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCircularChart(
+      backgroundColor: Colors.transparent,
+      legend: _legend,
+      series: <CircularSeries<ChartEntry, String>>[
+        DoughnutSeries<ChartEntry, String>(
+          dataSource: data,
+          xValueMapper: (e, _) => e.label,
+          yValueMapper: (e, _) => e.value,
+          pointColorMapper: (_, i) => _seriesColor(i),
+          innerRadius: '58%',
+          radius: '78%',
+          strokeColor: AppColors.cottonWhite,
+          strokeWidth: 2,
+          legendIconType: LegendIconType.circle,
+          dataLabelSettings: _pieDataLabels,
+          explode: true,
+          explodeIndex: 0,
+        ),
+      ],
+    );
+  }
+}
+
+// =========================
+// GRAFİK STİLİ (Warm Cotton & Berry)
+// =========================
+
+const _axisLabelStyle = TextStyle(
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+  color: AppColors.charcoalSoft,
+);
+
+/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
+const _barDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelAlignment: ChartDataLabelAlignment.outer,
+  textStyle: TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: AppColors.berryInk,
+  ),
+);
+
+/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
+const _pieDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelPosition: ChartDataLabelPosition.outside,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.deepCharcoal,
+  ),
+  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
+);
+
+const _legend = Legend(
+  isVisible: true,
+  overflowMode: LegendItemOverflowMode.wrap,
+  iconHeight: 10,
+  iconWidth: 10,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: AppColors.deepCharcoal,
+  ),
+);
+
+/// Sütunların üst köşeleri yuvarlak.
+const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
+
+/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
+CategoryAxis _categoryAxis() => const CategoryAxis(
+  majorGridLines: MajorGridLines(width: 0),
+  majorTickLines: MajorTickLines(width: 0),
+  axisLine: AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+/// Değer ekseni: ince pembe (hairline) ızgara.
+NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
+  labelFormat: labelFormat,
+  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
+  majorTickLines: const MajorTickLines(width: 0),
+  axisLine: const AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+TooltipBehavior _tooltip() => TooltipBehavior(
+  enable: true,
+  color: AppColors.deepCharcoal,
+  textStyle: const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.cottonWhite,
+  ),
+);
+
+/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
+Color _seriesColor(int index) =>
+    AppColors.chartSeries[index % AppColors.chartSeries.length];

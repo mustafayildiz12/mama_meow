@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/models/reminders/reminder_item.dart';
+import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/reminders/reminder_config.dart';
 
@@ -43,14 +46,8 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child ?? const SizedBox.shrink(),
-      ),
-    );
+    // Ortak 24 saat seçici (tema: beyaz zemin, berry vurgu).
+    final picked = await pick24hTime(context, _time);
     if (picked != null && mounted) setState(() => _time = picked);
   }
 
@@ -70,140 +67,118 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final accent = _config.accent;
-    return DraggableScrollableSheet(
+    final textTheme = Theme.of(context).textTheme;
+
+    // Beyaz sheet (32 px üst köşe) + sabit Cancel (tonal) / Save (berry).
+    return ActivitySheetScaffold(
       initialChildSize: 0.7,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, ctrl) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: _config.gradient),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16)],
-          ),
-          child: SingleChildScrollView(
-            controller: ctrl,
-            padding: const EdgeInsets.all(16),
-            child: Column(
+      attachScrollController: true,
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 12, 8),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.outline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.initial == null
-                            ? _config.newReminderTitle
-                            : _config.editReminderTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Switch(
-                      value: _enabled,
-                      onChanged: (v) => setState(() => _enabled = v),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Time
-                InkWell(
-                  onTap: _pickTime,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(_config.editorIcon),
-                        const SizedBox(width: 12),
-                        Text(
-                          '${_two(_time.hour)}:${_two(_time.minute)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        const Icon(Icons.keyboard_arrow_down),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Days
-                Align(
-                  alignment: Alignment.centerLeft,
+                Expanded(
                   child: Text(
-                    'Days',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    widget.initial == null
+                        ? _config.newReminderTitle
+                        : _config.editReminderTitle,
+                    style: textTheme.headlineSmall,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: kWeekdayShortLabels.entries.map((d) {
-                    final sel = _days.contains(d.key);
-                    return FilterChip(
-                      label: Text(d.value),
-                      selected: sel,
-                      onSelected: (_) => setState(
-                        () => sel ? _days.remove(d.key) : _days.add(d.key),
-                      ),
-                      showCheckmark: true,
-                      selectedColor: accent.shade100,
-                      side: BorderSide(color: sel ? accent : Colors.black12),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-
-                // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _days.isEmpty ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                        ),
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
+                Switch(
+                  value: _enabled,
+                  onChanged: (v) => setState(() => _enabled = v),
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+      onSave: _days.isEmpty ? null : () async => _save(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Time
+          Material(
+            color: AppColors.cottonWhite,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+              side: const BorderSide(color: AppColors.outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: _pickTime,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Icon(_config.editorIcon, color: accent, size: 22),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${_two(_time.hour)}:${_two(_time.minute)}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.deepCharcoal,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.charcoalSoft,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 24),
+
+          // Days
+          Text('Days', style: textTheme.titleSmall?.copyWith(fontSize: 15)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: kWeekdayShortLabels.entries.map((d) {
+              final sel = _days.contains(d.key);
+              return FilterChip(
+                label: Text(d.value),
+                selected: sel,
+                onSelected: (_) => setState(
+                  () => sel ? _days.remove(d.key) : _days.add(d.key),
+                ),
+                showCheckmark: true,
+                checkmarkColor: AppColors.cottonWhite,
+                backgroundColor: AppColors.pinkTint,
+                selectedColor: accent,
+                side: BorderSide.none,
+                shape: const StadiumBorder(),
+                labelStyle: TextStyle(
+                  fontWeight: sel ? FontWeight.w800 : FontWeight.w700,
+                  color: sel ? AppColors.cottonWhite : AppColors.deepCharcoal,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,8 +8,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class MedicineReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(0.7098, 0.8863, 0.8392); // b5e2d6
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -19,7 +17,7 @@ class MedicineReportPdfBuilder {
     MedicineReportComputed?
     computed, // opsiyonel: hazırsa tekrar hesaplamayalım
   }) async {
-    final t = await ReportPdfTheme.load(accent: _accent);
+    final t = await ReportPdfTheme.load();
     final c = computed ?? MedicineReportComputed.fromMedicines(medicines);
 
     // Kronolojik (kullanıcının seçtiği saate göre)

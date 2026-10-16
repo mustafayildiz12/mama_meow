@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/diaper_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/add_diaper_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/diaper/diaper_report_computed.dart';
@@ -9,19 +10,13 @@ import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.da
 import 'package:mama_meow/service/activities/diaper_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/diaper_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/date_range.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 // Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
 typedef DiaperReportMode = ReportPeriod;
-
-final _palette = ReportPalette(
-  tint: const Color(0xFFA8E6CF),
-  segmentFill: const Color(0xFFA8E6CF),
-  segmentBackground: Colors.white.withValues(alpha: 0.8),
-  segmentActiveForeground: Colors.white.withValues(alpha: 0.9),
-);
 
 class DiaperReportPage extends StatefulWidget {
   const DiaperReportPage({super.key});
@@ -86,9 +81,7 @@ class _DiaperReportPageState extends State<DiaperReportPage>
   @override
   Widget build(BuildContext context) {
     return ReportScaffold<DiaperModel>(
-      title: "🚼  Diaper Reports",
-      palette: _palette,
-      pdfIconColor: Colors.green,
+      title: "Diaper Reports",
       isLoading: exporting,
       onExportPdf: _exportPdf,
       onRefresh: refreshReport,
@@ -136,22 +129,19 @@ class _DiaperReportPageState extends State<DiaperReportPage>
             height: 220,
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
-              primaryXAxis: CategoryAxis(
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              primaryYAxis: NumericAxis(
-                majorGridLines: const MajorGridLines(width: 0.4),
-                axisLine: const AxisLine(width: 0),
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true),
+              plotAreaBorderWidth: 0,
+              primaryXAxis: _categoryAxis(),
+              primaryYAxis: _valueAxis(),
+              tooltipBehavior: _tooltip(),
               enableAxisAnimation: true,
               series: [
                 ColumnSeries<ChartEntry, String>(
                   dataSource: byHour,
                   xValueMapper: (e, _) => e.label,
                   yValueMapper: (e, _) => e.value,
-                  color: const Color(0xFF059669),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  color: AppColors.activeBerry,
+                  borderRadius: _columnRadius,
+                  dataLabelSettings: _barDataLabels,
                   name: 'Count',
                 ),
               ],
@@ -165,23 +155,7 @@ class _DiaperReportPageState extends State<DiaperReportPage>
           subtitle: "wet / dirty / mixed / pee / poop",
           child: SizedBox(
             height: 240,
-            child: SfCircularChart(
-              backgroundColor: Colors.transparent,
-              legend: const Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-              ),
-              series: <CircularSeries<ChartEntry, String>>[
-                PieSeries<ChartEntry, String>(
-                  dataSource: byTypeList,
-                  xValueMapper: (e, _) => e.label,
-                  yValueMapper: (e, _) => e.value,
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  explode: true,
-                  explodeIndex: 0,
-                ),
-              ],
-            ),
+            child: _DistributionDoughnut(data: byTypeList),
           ),
         ),
         const SizedBox(height: 16),
@@ -209,34 +183,148 @@ class _TimelineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Text(
-            time,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFFA8E6CF),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Saat rozeti: pembe tint zemin, berry ink metin.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.pinkTint,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                time,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.berryInk,
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
+class _DistributionDoughnut extends StatelessWidget {
+  final List<ChartEntry> data;
+  const _DistributionDoughnut({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCircularChart(
+      backgroundColor: Colors.transparent,
+      legend: _legend,
+      series: <CircularSeries<ChartEntry, String>>[
+        DoughnutSeries<ChartEntry, String>(
+          dataSource: data,
+          xValueMapper: (e, _) => e.label,
+          yValueMapper: (e, _) => e.value,
+          pointColorMapper: (_, i) => _seriesColor(i),
+          innerRadius: '58%',
+          radius: '78%',
+          strokeColor: AppColors.cottonWhite,
+          strokeWidth: 2,
+          legendIconType: LegendIconType.circle,
+          dataLabelSettings: _pieDataLabels,
+          explode: true,
+          explodeIndex: 0,
+        ),
+      ],
+    );
+  }
+}
+
+// =========================
+// GRAFİK STİLİ (Warm Cotton & Berry)
+// =========================
+
+const _axisLabelStyle = TextStyle(
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+  color: AppColors.charcoalSoft,
+);
+
+/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
+const _barDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelAlignment: ChartDataLabelAlignment.outer,
+  textStyle: TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: AppColors.berryInk,
+  ),
+);
+
+/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
+const _pieDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelPosition: ChartDataLabelPosition.outside,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.deepCharcoal,
+  ),
+  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
+);
+
+const _legend = Legend(
+  isVisible: true,
+  overflowMode: LegendItemOverflowMode.wrap,
+  iconHeight: 10,
+  iconWidth: 10,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: AppColors.deepCharcoal,
+  ),
+);
+
+/// Sütunların üst köşeleri yuvarlak.
+const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
+
+/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
+CategoryAxis _categoryAxis() => const CategoryAxis(
+  majorGridLines: MajorGridLines(width: 0),
+  majorTickLines: MajorTickLines(width: 0),
+  axisLine: AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+/// Değer ekseni: ince pembe (hairline) ızgara.
+NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
+  labelFormat: labelFormat,
+  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
+  majorTickLines: const MajorTickLines(width: 0),
+  axisLine: const AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+TooltipBehavior _tooltip() => TooltipBehavior(
+  enable: true,
+  color: AppColors.deepCharcoal,
+  textStyle: const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.cottonWhite,
+  ),
+);
+
+/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
+Color _seriesColor(int index) =>
+    AppColors.chartSeries[index % AppColors.chartSeries.length];

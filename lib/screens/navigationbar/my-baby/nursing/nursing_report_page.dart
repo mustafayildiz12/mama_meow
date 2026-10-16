@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/models/activities/nursing_model.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/add_nursing_bottom_sheet.dart';
 import 'package:mama_meow/screens/navigationbar/my-baby/nursing/nursing_report_computed.dart';
@@ -9,16 +10,13 @@ import 'package:mama_meow/screens/navigationbar/my-baby/widgets/sheet_widgets.da
 import 'package:mama_meow/service/activities/nursing_service.dart';
 import 'package:mama_meow/service/global_functions.dart';
 import 'package:mama_meow/service/gpt_service/nursing_ai_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/date_range.dart';
 import 'package:pdf/pdf.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 // Eski ad korunuyor; yeni kodda doğrudan ReportPeriod kullanın.
 typedef NursingReportMode = ReportPeriod;
-
-const _nursingColor = Color(0xFFff9aa2);
-
-const _palette = ReportPalette(tint: _nursingColor, segmentFill: _nursingColor);
 
 class NursingReportPage extends StatefulWidget {
   const NursingReportPage({super.key});
@@ -86,9 +84,7 @@ class _NursingReportPageState extends State<NursingReportPage>
   @override
   Widget build(BuildContext context) {
     return ReportScaffold<NursingModel>(
-      title: "🍼  Nursing Reports",
-      palette: _palette,
-      pdfIconColor: _nursingColor,
+      title: "Nursing Reports",
       isLoading: exporting,
       onExportPdf: _exportPdf,
       onRefresh: refreshReport,
@@ -144,15 +140,10 @@ class _NursingReportPageState extends State<NursingReportPage>
             height: 220,
             child: SfCartesianChart(
               backgroundColor: Colors.transparent,
-              primaryXAxis: CategoryAxis(
-                majorGridLines: const MajorGridLines(width: 0),
-              ),
-              primaryYAxis: NumericAxis(
-                majorGridLines: const MajorGridLines(width: 0.4),
-                axisLine: const AxisLine(width: 0),
-                labelFormat: '{value}',
-              ),
-              tooltipBehavior: TooltipBehavior(enable: true),
+              plotAreaBorderWidth: 0,
+              primaryXAxis: _categoryAxis(),
+              primaryYAxis: _valueAxis(labelFormat: '{value}'),
+              tooltipBehavior: _tooltip(),
               enableAxisAnimation: true,
               series: [
                 ColumnSeries<ChartEntry, String>(
@@ -161,9 +152,9 @@ class _NursingReportPageState extends State<NursingReportPage>
                   yValueMapper: (e, _) => e.value,
                   dataLabelMapper: (e, _) =>
                       e.value == 0 ? "" : e.value.toString(),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  pointColorMapper: (e, _) =>
-                      tierColor(e.value, high: 2, mid: 1, low: 0.5),
+                  dataLabelSettings: _barDataLabels,
+                  color: AppColors.activeBerry,
+                  borderRadius: _columnRadius,
                   name: 'Count',
                 ),
               ],
@@ -178,25 +169,7 @@ class _NursingReportPageState extends State<NursingReportPage>
           leading: "⏱️",
           child: SizedBox(
             height: 240,
-            child: SfCircularChart(
-              backgroundColor: Colors.transparent,
-              legend: const Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-              ),
-              series: <CircularSeries<ChartEntry, String>>[
-                PieSeries<ChartEntry, String>(
-                  dataSource: sideList,
-                  xValueMapper: (e, _) => e.label,
-                  yValueMapper: (e, _) => e.value,
-                  pointColorMapper: (e, _) =>
-                      tierColor(e.value, high: 20, mid: 10, low: 5),
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
-                  explode: true,
-                  explodeIndex: 0,
-                ),
-              ],
-            ),
+            child: _DistributionDoughnut(data: sideList),
           ),
         ),
         const SizedBox(height: 16),
@@ -208,7 +181,7 @@ class _NursingReportPageState extends State<NursingReportPage>
           child: _barChart(
             sortedEntries(computed.feedingTypeCounts),
             name: 'Count',
-            color: (e, _) => tierColor(e.value, high: 20, mid: 10, low: 5),
+            color: (_, index) => _seriesColor(index),
           ),
         ),
         const SizedBox(height: 16),
@@ -231,7 +204,7 @@ class _NursingReportPageState extends State<NursingReportPage>
             child: _barChart(
               amountTypeList,
               name: 'Amount',
-              color: (_, index) => index == 0 ? Colors.pinkAccent : Colors.teal,
+              color: (_, index) => _seriesColor(index),
             ),
           ),
           const SizedBox(height: 16),
@@ -247,7 +220,7 @@ class _NursingReportPageState extends State<NursingReportPage>
         const ReportTipsCard(
           title: "AI Nursing Tips",
           leading: "🤖",
-          badgeColor: Colors.pinkAccent,
+          badgeColor: AppColors.peachTint,
           tips: [
             (
               "💡",
@@ -276,21 +249,20 @@ class _NursingReportPageState extends State<NursingReportPage>
       height: 220,
       child: SfCartesianChart(
         backgroundColor: Colors.transparent,
-        primaryXAxis: CategoryAxis(
-          majorGridLines: const MajorGridLines(width: 0),
-        ),
-        primaryYAxis: NumericAxis(
-          majorGridLines: const MajorGridLines(width: 0.4),
-          axisLine: const AxisLine(width: 0),
-        ),
-        tooltipBehavior: TooltipBehavior(enable: true),
+        plotAreaBorderWidth: 0,
+        primaryXAxis: _categoryAxis(),
+        primaryYAxis: _valueAxis(),
+        tooltipBehavior: _tooltip(),
         series: [
           BarSeries<ChartEntry, String>(
             dataSource: data,
             xValueMapper: (e, _) => e.label,
             yValueMapper: (e, _) => e.value,
+            // Renk eşleyici yoksa tek seri: berry.
+            color: AppColors.activeBerry,
             pointColorMapper: color,
-            dataLabelSettings: const DataLabelSettings(isVisible: true),
+            borderRadius: _barRadius,
+            dataLabelSettings: _barDataLabels,
             name: name,
           ),
         ],
@@ -306,74 +278,201 @@ class _NursingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final subtle = theme.textTheme.bodySmall?.copyWith(color: Colors.black54);
+    final subtle = theme.textTheme.bodySmall?.copyWith(
+      color: AppColors.charcoalSoft,
+    );
     final title = n.side.trim().isEmpty
         ? n.feedingType.toUpperCase()
         : '${n.feedingType.toUpperCase()} - ${n.side.toUpperCase()}';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade100,
-              borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            IconSquircle(
+              background: AppColors.pinkTint,
+              size: 40,
+              radius: 14,
+              child: Icon(
+                n.feedingType.toLowerCase() == 'nursing'
+                    ? Icons.child_care_outlined
+                    : Icons.local_drink_outlined,
+                color: AppColors.activeBerry,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              n.feedingType.toLowerCase() == 'nursing'
-                  ? Icons.child_care
-                  : Icons.local_drink,
-              color: Colors.teal,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                Row(
-                  children: [
-                    Text('${n.duration}min', style: subtle),
-                    if (n.amount > 0) ...[
-                      const Text(' • '),
-                      Text(
-                        '${n.amount.toStringAsFixed(1)} ${n.amountType}',
-                        style: subtle,
-                      ),
+                  Row(
+                    children: [
+                      Text('${n.duration}min', style: subtle),
+                      if (n.amount > 0) ...[
+                        Text(' • ', style: subtle),
+                        Text(
+                          '${n.amount.toStringAsFixed(1)} ${n.amountType}',
+                          style: subtle,
+                        ),
+                      ],
+                      if (n.milkType != null) ...[
+                        Text(' • ', style: subtle),
+                        Text(n.milkType!, style: subtle),
+                      ],
                     ],
-                    if (n.milkType != null) ...[
-                      const Text(' • '),
-                      Text(n.milkType!, style: subtle),
-                    ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Text(
-            n.startTime,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.teal,
-            ),
-          ),
-        ],
+            _TimeBadge(n.startTime),
+          ],
+        ),
       ),
     );
   }
 }
+
+/// Saat rozeti: pembe tint zemin, berry ink metin.
+class _TimeBadge extends StatelessWidget {
+  final String time;
+  const _TimeBadge(this.time);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.pinkTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        time,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: AppColors.berryInk,
+        ),
+      ),
+    );
+  }
+}
+
+/// Dağılım halkası: dilimler seri sırasıyla (berry → pembe → şeftali …).
+class _DistributionDoughnut extends StatelessWidget {
+  final List<ChartEntry> data;
+  const _DistributionDoughnut({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return SfCircularChart(
+      backgroundColor: Colors.transparent,
+      legend: _legend,
+      series: <CircularSeries<ChartEntry, String>>[
+        DoughnutSeries<ChartEntry, String>(
+          dataSource: data,
+          xValueMapper: (e, _) => e.label,
+          yValueMapper: (e, _) => e.value,
+          pointColorMapper: (_, i) => _seriesColor(i),
+          innerRadius: '58%',
+          radius: '78%',
+          strokeColor: AppColors.cottonWhite,
+          strokeWidth: 2,
+          legendIconType: LegendIconType.circle,
+          dataLabelSettings: _pieDataLabels,
+          explode: true,
+          explodeIndex: 0,
+        ),
+      ],
+    );
+  }
+}
+
+// =========================
+// GRAFİK STİLİ (Warm Cotton & Berry)
+// =========================
+
+const _axisLabelStyle = TextStyle(
+  fontSize: 11,
+  fontWeight: FontWeight.w600,
+  color: AppColors.charcoalSoft,
+);
+
+/// Sütun/çubuk ucundaki değer etiketleri (beyaz kart üzerinde berry ink).
+const _barDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelAlignment: ChartDataLabelAlignment.outer,
+  textStyle: TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: AppColors.berryInk,
+  ),
+);
+
+/// Halka grafik etiketleri: dilimin dışında, kömür renginde.
+const _pieDataLabels = DataLabelSettings(
+  isVisible: true,
+  labelPosition: ChartDataLabelPosition.outside,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.deepCharcoal,
+  ),
+  connectorLineSettings: ConnectorLineSettings(color: AppColors.outline),
+);
+
+const _legend = Legend(
+  isVisible: true,
+  overflowMode: LegendItemOverflowMode.wrap,
+  iconHeight: 10,
+  iconWidth: 10,
+  textStyle: TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: AppColors.deepCharcoal,
+  ),
+);
+
+/// Sütunların üst köşeleri yuvarlak.
+const _columnRadius = BorderRadius.vertical(top: Radius.circular(8));
+
+/// Yatay çubukların değer ucu (sağ) yuvarlak.
+const _barRadius = BorderRadius.horizontal(right: Radius.circular(8));
+
+/// Kategori ekseni: çizgisiz, ızgarasız, yumuşak kömür etiketler.
+CategoryAxis _categoryAxis() => const CategoryAxis(
+  majorGridLines: MajorGridLines(width: 0),
+  majorTickLines: MajorTickLines(width: 0),
+  axisLine: AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+/// Değer ekseni: ince pembe (hairline) ızgara.
+NumericAxis _valueAxis({String? labelFormat}) => NumericAxis(
+  labelFormat: labelFormat,
+  majorGridLines: const MajorGridLines(width: 1, color: AppColors.hairline),
+  majorTickLines: const MajorTickLines(width: 0),
+  axisLine: const AxisLine(width: 0),
+  labelStyle: _axisLabelStyle,
+);
+
+TooltipBehavior _tooltip() => TooltipBehavior(
+  enable: true,
+  color: AppColors.deepCharcoal,
+  textStyle: const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.cottonWhite,
+  ),
+);
+
+/// Kategori sırasına göre seri rengi (berry → pembe → şeftali → ink → kömür).
+Color _seriesColor(int index) =>
+    AppColors.chartSeries[index % AppColors.chartSeries.length];

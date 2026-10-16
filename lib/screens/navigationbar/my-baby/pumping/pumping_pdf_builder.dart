@@ -8,8 +8,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class PumpingReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(0.964, 0.824, 0.796); // soft peach
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -18,7 +16,7 @@ class PumpingReportPdfBuilder {
     required PumpingReportComputed computed,
     PumpingAiInsight? ai,
   }) async {
-    final t = await ReportPdfTheme.load(accent: _accent);
+    final t = await ReportPdfTheme.load();
 
     final totalSide = computed.leftMinutes + computed.rightMinutes;
     int pct(int part) =>

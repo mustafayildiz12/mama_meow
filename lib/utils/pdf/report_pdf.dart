@@ -11,38 +11,92 @@ import 'package:mama_meow/utils/date_range.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+// ---- Warm Cotton & Berry PDF renkleri ----
+// PdfColor, Flutter Color'dan farklı bir tür olduğu için değerler burada
+// tekrar tanımlanır (kaynak: lib/constants/app_colors.dart). Hex değer
+// barındıran tek PDF dosyası budur.
+const _berry = PdfColor.fromInt(0xFFFF6584);
+const _warmPink = PdfColor.fromInt(0xFFFFA6B5);
+const _peach = PdfColor.fromInt(0xFFFFD0B8);
+const _ivory = PdfColor.fromInt(0xFFFFF8F9);
+const _charcoal = PdfColor.fromInt(0xFF3D353A);
+const _charcoalSoft = PdfColor.fromInt(0xFF6E6369);
+const _berryInk = PdfColor.fromInt(0xFFC7365A);
+const _hairline = PdfColor.fromInt(0xFFF5E3E7);
+const _outline = PdfColor.fromInt(0xFFE8CDD3);
+const _pinkTint = PdfColor.fromInt(0xFFFFE3E9);
+const _peachTint = PdfColor.fromInt(0xFFFFF0E8);
+const _white = PdfColor.fromInt(0xFFFFFFFF);
+
+/// PDF raporlarının Berry paleti. Rapor oluşturucular renklerini yalnızca
+/// buradan (ya da [ReportPdfTheme] üzerinden) alır.
+class ReportPdfColors {
+  ReportPdfColors._();
+
+  static const PdfColor berry = _berry;
+  static const PdfColor warmPink = _warmPink;
+  static const PdfColor peach = _peach;
+  static const PdfColor ivory = _ivory;
+  static const PdfColor charcoal = _charcoal;
+  static const PdfColor charcoalSoft = _charcoalSoft;
+  static const PdfColor berryInk = _berryInk;
+  static const PdfColor hairline = _hairline;
+  static const PdfColor outline = _outline;
+  static const PdfColor pinkTint = _pinkTint;
+  static const PdfColor peachTint = _peachTint;
+  static const PdfColor white = _white;
+
+  /// Grafik seri sırası (uygulamadaki AppColors.chartSeries ile aynı).
+  static const List<PdfColor> chartSeries = [
+    _berry,
+    _warmPink,
+    _peach,
+    _berryInk,
+    _charcoalSoft,
+  ];
+}
+
 /// Rapor renkleri + Nunito fontları.
 ///
 /// Belge teması Nunito'dur; varsayılan Helvetica yalnızca Latin-1 içerdiği
 /// için Türkçe karakterler (ş, ğ, ı) tablolarda kayboluyordu.
+///
+/// Tüm raporlar aynı Warm Cotton & Berry paletini kullanır; aktiviteye özel
+/// renk yoktur.
 class ReportPdfTheme {
   ReportPdfTheme._({
     required this.regular,
     required this.semiBold,
     required this.bold,
-    required this.accent,
-    required this.gradientEnd,
-    required this.scaffold,
   });
 
   final pw.Font regular;
   final pw.Font semiBold;
   final pw.Font bold;
 
-  /// Kart/başlık rengi (tablo başlığı da bu renk).
-  final PdfColor accent;
+  /// Vurgu rengi (madde işaretleri, başlık çizgisi).
+  PdfColor get accent => ReportPdfColors.berry;
 
-  /// Gradyanın bittiği renk.
-  final PdfColor gradientEnd;
+  /// Küçük vurgu metinleri (bölüm etiketleri).
+  PdfColor get accentText => ReportPdfColors.berryInk;
 
-  /// Tablo satırı ve AI bloğu zemini.
-  final PdfColor scaffold;
+  /// Ana metin.
+  PdfColor get text => ReportPdfColors.charcoal;
 
-  static const PdfColor defaultScaffold = PdfColor(
-    0.9725490196,
-    0.9803921569,
-    0.9882352941,
-  );
+  /// İkincil metin (alt başlık, tarih, açıklama).
+  PdfColor get textSoft => ReportPdfColors.charcoalSoft;
+
+  /// Kart ve tablo çizgileri.
+  PdfColor get line => ReportPdfColors.outline;
+
+  /// Tablo başlık satırı zemini.
+  PdfColor get tableHeader => ReportPdfColors.pinkTint;
+
+  /// Tablonun çift satır zemini.
+  PdfColor get scaffold => ReportPdfColors.ivory;
+
+  /// AI analiz bloğu zemini (uygulamadaki "Meow's insight" kartı gibi).
+  PdfColor get insight => ReportPdfColors.peachTint;
 
   static const String _fontDir = 'assets/fonts/nunito';
 
@@ -61,11 +115,7 @@ class ReportPdfTheme {
     });
   }
 
-  static Future<ReportPdfTheme> load({
-    required PdfColor accent,
-    PdfColor gradientEnd = PdfColors.white,
-    PdfColor scaffold = defaultScaffold,
-  }) async {
+  static Future<ReportPdfTheme> load() async {
     final data = await Future.wait([
       _font('Nunito-Regular.ttf'),
       _font('Nunito-SemiBold.ttf'),
@@ -75,17 +125,14 @@ class ReportPdfTheme {
       regular: pw.Font.ttf(data[0]),
       semiBold: pw.Font.ttf(data[1]),
       bold: pw.Font.ttf(data[2]),
-      accent: accent,
-      gradientEnd: gradientEnd,
-      scaffold: scaffold,
     );
   }
 
-  pw.LinearGradient get gradient => pw.LinearGradient(
+  /// Başlık kartının yumuşak pembe → şeftali zemini.
+  pw.LinearGradient get gradient => const pw.LinearGradient(
     begin: pw.Alignment.topLeft,
     end: pw.Alignment.bottomRight,
-    colors: [accent, gradientEnd],
-    stops: const [0.2, 1.0],
+    colors: [ReportPdfColors.pinkTint, ReportPdfColors.peachTint],
   );
 
   /// Belgedeki tüm metinler (tablolar dahil) için Nunito.
@@ -128,8 +175,8 @@ pw.Widget pdfHeader(
   return pw.Container(
     padding: const pw.EdgeInsets.all(14),
     decoration: pw.BoxDecoration(
-      borderRadius: pw.BorderRadius.circular(10),
-      border: pw.Border.all(color: PdfColors.grey300),
+      borderRadius: pw.BorderRadius.circular(12),
+      border: pw.Border.all(color: ReportPdfColors.hairline),
       gradient: t.gradient,
     ),
     child: pw.Row(
@@ -144,6 +191,7 @@ pw.Widget pdfHeader(
                   font: t.semiBold,
                   fontSize: 18,
                   fontWeight: pw.FontWeight.bold,
+                  color: t.text,
                 ),
               ),
               pw.SizedBox(height: 2),
@@ -152,7 +200,7 @@ pw.Widget pdfHeader(
                 style: pw.TextStyle(
                   font: t.regular,
                   fontSize: 11,
-                  color: PdfColors.grey700,
+                  color: t.textSoft,
                 ),
               ),
             ],
@@ -174,10 +222,11 @@ pw.Widget pdfSummaryCards(
   pw.Widget card(PdfStat s) => pw.Expanded(
     child: pw.Container(
       padding: const pw.EdgeInsets.all(12),
+      // Uygulamadaki özet kartları gibi: beyaz zemin, ince pembe çizgi.
       decoration: pw.BoxDecoration(
-        gradient: t.gradient,
-        borderRadius: pw.BorderRadius.circular(10),
-        border: pw.Border.all(color: PdfColors.grey300),
+        color: ReportPdfColors.white,
+        borderRadius: pw.BorderRadius.circular(12),
+        border: pw.Border.all(color: t.line),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -188,6 +237,7 @@ pw.Widget pdfSummaryCards(
               font: t.regular,
               fontSize: 11,
               fontWeight: pw.FontWeight.bold,
+              color: t.textSoft,
             ),
           ),
           pw.SizedBox(height: 8),
@@ -197,6 +247,7 @@ pw.Widget pdfSummaryCards(
               font: t.semiBold,
               fontSize: valueFontSize,
               fontWeight: pw.FontWeight.bold,
+              color: t.text,
             ),
           ),
         ],
@@ -240,14 +291,16 @@ pw.Widget pdfAiBlock(
   final small = pw.TextStyle(
     font: t.regular,
     fontSize: 10,
-    color: PdfColors.grey700,
+    color: t.textSoft,
   );
-  pw.Widget heading(String text) =>
-      pw.Text(text, style: pw.TextStyle(font: t.semiBold, fontSize: 11));
+  pw.Widget heading(String text) => pw.Text(
+    text,
+    style: pw.TextStyle(font: t.semiBold, fontSize: 11, color: t.accentText),
+  );
 
   pw.Widget bullets(String head, List<String> items) {
     if (items.isEmpty) return pw.SizedBox();
-    final style = pw.TextStyle(font: t.regular, fontSize: 10);
+    final style = pw.TextStyle(font: t.regular, fontSize: 10, color: t.text);
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -260,7 +313,7 @@ pw.Widget pdfAiBlock(
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('•  ', style: style),
+                pw.Text('•  ', style: style.copyWith(color: t.accent)),
                 pw.Expanded(child: pw.Text(it, style: style)),
               ],
             ),
@@ -271,10 +324,11 @@ pw.Widget pdfAiBlock(
 
   return pw.Container(
     padding: const pw.EdgeInsets.all(12),
+    // Uygulamadaki "Meow's insight" kartı gibi şeftali zemin.
     decoration: pw.BoxDecoration(
-      borderRadius: pw.BorderRadius.circular(10),
-      border: pw.Border.all(color: PdfColors.grey300),
-      color: t.scaffold,
+      borderRadius: pw.BorderRadius.circular(12),
+      border: pw.Border.all(color: ReportPdfColors.peach),
+      color: t.insight,
     ),
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -285,6 +339,7 @@ pw.Widget pdfAiBlock(
             font: t.semiBold,
             fontSize: 13,
             fontWeight: pw.FontWeight.bold,
+            color: t.text,
           ),
         ),
         bullets('Summary', clean(ai.aiSummaryBullets)),
@@ -320,6 +375,7 @@ pw.Widget pdfSectionTitle(ReportPdfTheme t, String text) => pw.Text(
     font: t.semiBold,
     fontSize: 16,
     fontWeight: pw.FontWeight.bold,
+    color: t.text,
   ),
 );
 
@@ -335,19 +391,22 @@ pw.Widget pdfTable(
       font: t.bold,
       fontSize: 10,
       fontWeight: pw.FontWeight.bold,
+      color: t.text,
     ),
-    cellStyle: pw.TextStyle(font: t.regular, fontSize: 9),
-    headerDecoration: pw.BoxDecoration(color: t.accent),
-    rowDecoration: pw.BoxDecoration(color: t.scaffold),
+    cellStyle: pw.TextStyle(font: t.regular, fontSize: 9, color: t.text),
+    // Başlık pembe tint, satırlar beyaz / ivory dönüşümlü.
+    headerDecoration: pw.BoxDecoration(color: t.tableHeader),
+    rowDecoration: const pw.BoxDecoration(color: ReportPdfColors.white),
+    oddRowDecoration: pw.BoxDecoration(color: t.scaffold),
     cellAlignment: pw.Alignment.center,
     cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-    border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.6),
+    border: pw.TableBorder.all(color: t.line, width: 0.6),
   );
 }
 
 pw.Widget pdfGeneratedAt(ReportPdfTheme t, {DateTime? now}) => pw.Text(
   'Generated at: ${DateFormat('yyyy-MM-dd HH:mm').format(now ?? DateTime.now())}',
-  style: pw.TextStyle(font: t.regular, fontSize: 10, color: PdfColors.grey700),
+  style: pw.TextStyle(font: t.regular, fontSize: 10, color: t.textSoft),
 );
 
 /// Dakika → "0m", "45m", "2h", "2h 5m".

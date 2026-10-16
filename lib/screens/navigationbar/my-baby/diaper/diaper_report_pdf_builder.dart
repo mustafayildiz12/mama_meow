@@ -8,8 +8,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class DiaperReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(0.6588, 0.9020, 0.8118); // A8E6CF
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -18,7 +16,7 @@ class DiaperReportPdfBuilder {
     DiaperAiInsight? ai,
     DiaperReportComputed? computed,
   }) async {
-    final t = await ReportPdfTheme.load(accent: _accent);
+    final t = await ReportPdfTheme.load();
     final c = computed ?? DiaperReportComputed.fromDiapers(diapers);
 
     return buildReportPdf(

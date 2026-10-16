@@ -8,9 +8,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class SolidReportPdfBuilder {
-  static const PdfColor _accent = PdfColor(0.91, 0.96, 0.94); // soft mint
-  static const PdfColor _scaffold = PdfColor(0.973, 0.980, 0.988);
-
   static Future<Uint8List> build({
     required PdfPageFormat format,
     required ReportPeriod mode,
@@ -19,7 +16,7 @@ class SolidReportPdfBuilder {
     required SolidReportComputed computed,
     SolidAiInsight? ai,
   }) async {
-    final t = await ReportPdfTheme.load(accent: _accent, scaffold: _scaffold);
+    final t = await ReportPdfTheme.load();
 
     // Kronolojik (kullanıcının seçtiği yeme saatine göre)
     final epoch = DateTime.fromMillisecondsSinceEpoch(0);
