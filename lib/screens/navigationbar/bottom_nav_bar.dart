@@ -120,7 +120,10 @@ class _NavItem extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
+        // heightFactor: 1 → yalnızca içerik kadar yükseklik; aksi halde Scaffold
+        // alt menüye tüm ekranı verir ve sekme içerikleri görünmez olur.
         child: Center(
+          heightFactor: 1,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
