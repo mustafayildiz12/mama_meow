@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_globals.dart';
 import 'package:mama_meow/constants/app_localization.dart';
 import 'package:mama_meow/constants/app_pages.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/service/app_init_service.dart';
 import 'package:mama_meow/service/audio/background_handler.dart';
 
@@ -34,10 +35,7 @@ void runMyApp() {
       title: 'Coo Care Baby Tracker',
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: "Nunito",
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: AppTheme.light(),
       locale: AppLocalization.locale,
       supportedLocales: AppLocalization.supportedLocales,
       localizationsDelegates: AppLocalization.localizationsDelegates,

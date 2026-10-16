@@ -1,18 +1,62 @@
 import 'package:flutter/material.dart';
 
+/// Warm Cotton & Berry renk token'ları (docs/design/warm-cotton-berry/DESIGN.md).
+/// Uygulamada yalnızca bu dosyadaki renkler kullanılır.
 class AppColors {
-  static const Color pink50 = Color(0xFFFFF1F5);
-  static const Color pink100 = Color(0xFFFFE4E6);
-  static const Color purple50 = Color(0xFFF3E8FF);
-  static const Color blue100 = Color(0xFFDBEAFE);
-  static const Color pink300 = Color(0xFFF9A8D4);
-  static const Color pink200 = Color(0xFFFBCFE8);
-  static const Color pink500 = Color(0xFFEC4899);
-  static const Color purple200 = Color(0xFFE9D5FF);
-  static const Color purple500 = Color(0xFF8B5CF6);
-  static const Color pink400 = Color(0xFFF472B6);
+  AppColors._();
 
-  static const Color kDeepOrange = Color(0xFFffac71);
-  static const Color kOrange = Color(0xFFfeddc0);
-  static const Color kLightOrange = Color(0xFFfffdf4);
+  // ---- 5 marka rengi ----
+  static const Color activeBerry = Color(0xFFFF6584);
+  static const Color warmPink = Color(0xFFFFA6B5);
+  static const Color peachPastel = Color(0xFFFFD0B8);
+  static const Color cosyIvory = Color(0xFFFFF8F9);
+  static const Color deepCharcoal = Color(0xFF3D353A);
+
+  // ---- Türetilmiş tonlar ----
+  static const Color cottonWhite = Color(0xFFFFFFFF);
+  static const Color pinkTint = Color(0xFFFFE3E9);
+  static const Color peachTint = Color(0xFFFFF0E8);
+
+  /// Küçük vurgu metinleri (link, seçili sekme etiketi, fiyat). Ivory üzerinde 4.9:1.
+  static const Color berryInk = Color(0xFFC7365A);
+
+  /// İkincil metin, zaman damgası, placeholder.
+  static const Color charcoalSoft = Color(0xFF6E6369);
+  static const Color hairline = Color(0xFFF5E3E7);
+  static const Color outline = Color(0xFFE8CDD3);
+  static const Color scrim = Color(0x663D353A);
+
+  /// Grafik seri sırası.
+  static const List<Color> chartSeries = [
+    activeBerry,
+    warmPink,
+    peachPastel,
+    berryInk,
+    charcoalSoft,
+  ];
+
+  /// Birincil butonun yumuşak berry parıltısı.
+  static const List<BoxShadow> berryGlow = [
+    BoxShadow(color: Color(0x4DFF6584), blurRadius: 16, offset: Offset(0, 6)),
+  ];
+
+  /// Yüzen öğeler (sheet, FAB, alt menü) için gölge.
+  static const List<BoxShadow> floatShadow = [
+    BoxShadow(color: Color(0x143D353A), blurRadius: 24, offset: Offset(0, 8)),
+  ];
+
+  // ---- Eski adlar (geçiş bitince kaldırılacak) ----
+  static const Color pink50 = pinkTint;
+  static const Color pink100 = pinkTint;
+  static const Color pink200 = warmPink;
+  static const Color pink300 = warmPink;
+  static const Color pink400 = activeBerry;
+  static const Color pink500 = activeBerry;
+  static const Color purple50 = peachTint;
+  static const Color purple200 = warmPink;
+  static const Color purple500 = berryInk;
+  static const Color blue100 = peachTint;
+  static const Color kDeepOrange = activeBerry;
+  static const Color kOrange = pinkTint;
+  static const Color kLightOrange = cosyIvory;
 }
