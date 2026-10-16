@@ -33,7 +33,7 @@ class AskMeowView extends StatefulWidget {
 
 class _AskMeowViewState extends State<AskMeowView> {
   static const _overlayStyle = SystemUiOverlayStyle(
-    statusBarColor: AppColors.pink50,
+    statusBarColor: AppColors.cosyIvory,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
   );
@@ -66,6 +66,9 @@ class _AskMeowViewState extends State<AskMeowView> {
   String? _imageMimeType;
 
   MiaAnswer? _miaAnswer;
+
+  /// Ekranda kullanıcı balonu olarak gösterilen (sorulan / cevaplanan) soru.
+  String? _askedQuestion;
   List<String> _suggestions = [];
   bool _isLoading = false;
 
@@ -114,6 +117,7 @@ class _AskMeowViewState extends State<AskMeowView> {
       setState(() {
         _history = [];
         _miaAnswer = null;
+        _askedQuestion = null;
         _suggestions = [];
         _isUserPremium = false;
       });
@@ -200,7 +204,10 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 
   Future<void> _sendQuestion(String question) async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _askedQuestion = question;
+    });
 
     MiaAnswer? answer;
     try {
@@ -220,6 +227,7 @@ class _AskMeowViewState extends State<AskMeowView> {
       setState(() {
         _isLoading = false;
         _miaAnswer = null;
+        _askedQuestion = null;
         _suggestions = [];
       });
       // Soruyu geri koy ki tek dokunuşla yeniden gönderebilsin.
@@ -232,10 +240,7 @@ class _AskMeowViewState extends State<AskMeowView> {
 
     var suggestions = const <String>[];
     try {
-      suggestions = await GptService().getSuggestions(
-        question: question,
-        
-      );
+      suggestions = await GptService().getSuggestions(question: question);
     } catch (e) {
       debugPrint('getSuggestions failed: $e');
     }
@@ -356,49 +361,64 @@ class _AskMeowViewState extends State<AskMeowView> {
   @override
   Widget build(BuildContext context) {
     final answer = _miaAnswer;
+    final asked = _askedQuestion;
+    final showConversation = _isLoading || answer != null;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _overlayStyle,
       child: Scaffold(
-        backgroundColor: AppColors.pink50,
+        backgroundColor: AppColors.cosyIvory,
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const _Header(),
-                const SizedBox(height: 24),
-                QuickQuestionsCard(
-                  questions: _quickQuestions,
-                  enabled: !_isLoading,
-                  onShuffle: () => setState(_quickQuestions.shuffle),
-                  onQuestionTap: _ask,
-                ),
-                const SizedBox(height: 24),
-                AskInputCard(
-                  controller: _controller,
-                  voice: _voice,
-                  isLoading: _isLoading,
-                  imageBytes: _imageBytes,
-                  onPickImage: _pickImage,
-                  onRemoveImage: _removeImage,
-                  onMicPressed: _onMicPressed,
-                  onAsk: _ask,
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const MiaThinkingCard()
-                else if (answer != null)
-                  MiaAnswerCard(
-                    answer: answer,
-                    suggestions: _suggestions,
-                    onSuggestionTap: _ask,
-                    onShare: _shareAnswer,
+          child: Column(
+            children: [
+              const _Header(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      QuickQuestionsCard(
+                        questions: _quickQuestions,
+                        enabled: !_isLoading,
+                        onShuffle: () => setState(_quickQuestions.shuffle),
+                        onQuestionTap: _ask,
+                      ),
+                      // ------ Sohbet: soru balonu + cevap ------
+                      if (showConversation) ...[
+                        const SizedBox(height: 24),
+                        if (asked != null) ...[
+                          AskedQuestionBubble(question: asked),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_isLoading)
+                          const MiaThinkingCard()
+                        else if (answer != null)
+                          MiaAnswerCard(
+                            answer: answer,
+                            suggestions: _suggestions,
+                            onSuggestionTap: _ask,
+                            onShare: _shareAnswer,
+                          ),
+                      ],
+                      const SizedBox(height: 28),
+                      PastQuestionsList(items: _history),
+                    ],
                   ),
-                const SizedBox(height: 16),
-                PastQuestionsList(items: _history),
-              ],
-            ),
+                ),
+              ),
+              // Giriş çubuğu ekranın altında sabit durur.
+              AskInputCard(
+                controller: _controller,
+                voice: _voice,
+                isLoading: _isLoading,
+                imageBytes: _imageBytes,
+                onPickImage: _pickImage,
+                onRemoveImage: _removeImage,
+                onMicPressed: _onMicPressed,
+                onAsk: _ask,
+              ),
+            ],
           ),
         ),
       ),
@@ -406,38 +426,65 @@ class _AskMeowViewState extends State<AskMeowView> {
   }
 }
 
+/// Üst başlık: şeftali daire içinde maskot + başlık ve alt başlık.
 class _Header extends StatelessWidget {
   const _Header();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 96,
-          height: 96,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [AppColors.pink200, AppColors.pink300],
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.cosyIvory,
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: AppColors.peachTint,
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                "assets/happy.png",
+                color: AppColors.deepCharcoal,
+              ),
             ),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/happy.png", color: AppColors.pink500),
-          ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Ask Meow",
+                    style: TextStyle(
+                      fontSize: 24,
+                      height: 30 / 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.deepCharcoal,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Your Baby's AI Cat Companion",
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 20 / 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.charcoalSoft,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        const Text(
-          "Ask Meow",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        const Text(
-          "Your Baby's AI Cat Companion",
-          style: TextStyle(color: Colors.grey),
-        ),
-      ],
+      ),
     );
   }
 }
