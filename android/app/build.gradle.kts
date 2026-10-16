@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -34,11 +35,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        // Match Kotlin JVM target to Java 21
-        jvmTarget = JavaVersion.VERSION_21.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.yildiz.mama_meow"
@@ -66,6 +62,14 @@ android {
         release {
             signingConfig = signingConfigs.findByName("release")
         }
+    }
+}
+
+// Kotlin 2.2+ `android { kotlinOptions {} }` bloğunu hata sayar; JVM hedefi burada.
+kotlin {
+    compilerOptions {
+        // Match Kotlin JVM target to Java 21
+        jvmTarget = JvmTarget.JVM_21
     }
 }
 
