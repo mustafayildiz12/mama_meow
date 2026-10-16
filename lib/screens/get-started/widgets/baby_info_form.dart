@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/auth/widgets/auth_text_field.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 /// Bebek yaş aralığı seçenekleri. Boş değer "seçilmedi" anlamına gelir.
 const List<String> babyAgeOptions = [
@@ -60,50 +61,43 @@ class _BabyInfoFormState extends State<BabyInfoForm> {
   Widget build(BuildContext context) {
     const labelStyle = TextStyle(
       fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: AppColors.pink500,
+      fontWeight: FontWeight.w700,
+      color: AppColors.deepCharcoal,
     );
     const fieldPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
-    final continueStyle = ElevatedButton.styleFrom(
-      backgroundColor: AppColors.pink400,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    );
 
+    // Zemin (beyaz) ve 24 px köşe yarıçapı dialogTheme'den gelir.
     return Dialog(
-      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxHeight: 750, maxWidth: 500),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                '👶💕 Tell Me About Your Little One',
+                'Tell me about your little one',
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.pink500,
+                  fontSize: 20,
+                  height: 26 / 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.deepCharcoal,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 "Let's personalize Coo Care Baby Tracker for your family",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: AppColors.charcoalSoft),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               const _IntroBox(),
               const SizedBox(height: 24),
 
-              const Text("Baby's Name", style: labelStyle),
+              const Text("Baby's name", style: labelStyle),
               const SizedBox(height: 8),
               AuthTextField(
                 controller: _nameController,
@@ -113,17 +107,20 @@ class _BabyInfoFormState extends State<BabyInfoForm> {
                 textInputAction: TextInputAction.done,
                 contentPadding: fieldPadding,
               ),
+              const SizedBox(height: 4),
               const Text(
-                'You can always change this later in settings 😊',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                'You can always change this later in settings',
+                style: TextStyle(fontSize: 12, color: AppColors.charcoalSoft),
               ),
               const SizedBox(height: 24),
 
-              const Text("Baby's Age (Optional)", style: labelStyle),
+              const Text("Baby's age (optional)", style: labelStyle),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _selectedAge,
                 isExpanded: true,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: AppColors.cottonWhite,
                 decoration: AuthTextField.decoration(
                   contentPadding: fieldPadding,
                 ),
@@ -146,13 +143,7 @@ class _BabyInfoFormState extends State<BabyInfoForm> {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
+                      child: FilledButton.tonal(
                         onPressed: widget.onBack,
                         child: const Text('Back'),
                       ),
@@ -160,7 +151,6 @@ class _BabyInfoFormState extends State<BabyInfoForm> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        style: continueStyle,
                         onPressed: _submit,
                         child: const Text('Continue'),
                       ),
@@ -168,16 +158,9 @@ class _BabyInfoFormState extends State<BabyInfoForm> {
                   ],
                 )
               else
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 120),
-                    child: ElevatedButton(
-                      style: continueStyle,
-                      onPressed: _submit,
-                      child: const Text('Continue'),
-                    ),
-                  ),
+                ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text('Continue'),
                 ),
             ],
           ),
@@ -195,14 +178,13 @@ class _IntroBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.pink50,
-        border: Border.all(color: AppColors.pink200),
+        color: AppColors.peachTint,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🍼', style: TextStyle(fontSize: 30)),
+          IconSquircle(child: ActivityIcon(kind: ActivityKind.nursing)),
           SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -211,14 +193,19 @@ class _IntroBox extends StatelessWidget {
                 Text(
                   "What's your baby's name?",
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.pink500,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepCharcoal,
                   ),
                 ),
                 SizedBox(height: 4),
                 Text(
                   'This helps me give more personalized advice and suggestions tailored to your little one',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 18 / 13,
+                    color: AppColors.charcoalSoft,
+                  ),
                 ),
               ],
             ),
@@ -237,27 +224,67 @@ class _BenefitsBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.pink50, AppColors.purple50],
-        ),
+        color: AppColors.pinkTint,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.pink200),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '🌟 With this info, I can help you with:',
+            'With this info, I can help you with:',
             style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: AppColors.pink500,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.deepCharcoal,
             ),
           ),
           SizedBox(height: 12),
-          Text('📅 Age-appropriate milestone tracking'),
-          Text('🍎 Personalized feeding schedules'),
-          Text('😴 Customized sleep routines'),
-          Text('🎨 Fun activities for your little one'),
+          _BenefitRow(
+            icon: Icons.event_outlined,
+            text: 'Age-appropriate milestone tracking',
+          ),
+          _BenefitRow(
+            icon: Icons.restaurant_outlined,
+            text: 'Personalized feeding schedules',
+          ),
+          _BenefitRow(
+            icon: Icons.bedtime_outlined,
+            text: 'Customized sleep routines',
+          ),
+          _BenefitRow(
+            icon: Icons.palette_outlined,
+            text: 'Fun activities for your little one',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fayda listesinde berry çizgi ikonlu tek satır.
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.activeBerry),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.deepCharcoal,
+              ),
+            ),
+          ),
         ],
       ),
     );

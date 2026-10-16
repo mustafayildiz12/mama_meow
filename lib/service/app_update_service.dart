@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/utils/platform_info.dart';
 
 class AppUpdateService {
@@ -67,32 +66,22 @@ class AppUpdateService {
       barrierDismissible: !force,
       builder: (_) => PopScope(
         canPop: !force,
+        // Renkler temadan gelir: beyaz diyalog, charcoal başlık/metin,
+        // berry ink "Later", berry hap "Update".
         child: AlertDialog(
-          backgroundColor: AppColors.kLightOrange,
-          title: Text(
-            'Update Available',
-            style: TextStyle(color: AppColors.kDeepOrange),
-          ),
+          title: const Text('Update Available'),
           content: Text(
             latestVersion.isNotEmpty
                 ? '$message\nNew version: $latestVersion'
                 : message,
-            style: TextStyle(color: Colors.black87),
           ),
           actions: [
             if (!force)
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Later',
-                  style: TextStyle(color: AppColors.kDeepOrange),
-                ),
+                child: const Text('Later'),
               ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.kDeepOrange,
-                foregroundColor: Colors.white,
-              ),
               onPressed: () async {
                 final uri = Uri.parse(storeUrl);
                 await launchUrl(uri, mode: LaunchMode.externalApplication);

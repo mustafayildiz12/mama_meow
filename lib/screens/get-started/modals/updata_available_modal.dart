@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 class UpdateAvailableModal extends StatelessWidget {
   final VoidCallback? onUpdate;
@@ -16,16 +18,12 @@ class UpdateAvailableModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Zemin (beyaz) ve 24 px köşe yarıçapı dialogTheme'den gelir.
     return Dialog(
-      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxHeight: 750, maxWidth: 500),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -36,18 +34,22 @@ class UpdateAvailableModal extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '✨ New Update Available',
+                      'New update available',
                       style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFEC4899),
+                        fontSize: 20,
+                        height: 26 / 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.deepCharcoal,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 8),
                     Text(
                       'Update the app now for the best experience',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.charcoalSoft,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -59,14 +61,18 @@ class UpdateAvailableModal extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F5),
-                  border: Border.all(color: Color(0xFFFBCFE8)),
+                  color: AppColors.peachTint,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('📦', style: TextStyle(fontSize: 30)),
+                    const IconSquircle(
+                      child: Icon(
+                        Icons.system_update_rounded,
+                        color: AppColors.activeBerry,
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -77,14 +83,19 @@ class UpdateAvailableModal extends StatelessWidget {
                                 ? "New version ready: ${version!}"
                                 : "New version ready",
                             style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFFEC4899),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.deepCharcoal,
                             ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             'Performance improvements, bug fixes, and new features for a smoother experience.',
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 18 / 13,
+                              color: AppColors.charcoalSoft,
+                            ),
                           ),
                         ],
                       ),
@@ -95,25 +106,35 @@ class UpdateAvailableModal extends StatelessWidget {
 
               // Değişiklikler kutusu (opsiyonel)
               if (highlights != null && highlights!.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFFF1F5), Color(0xFFF3E8FF)],
-                    ),
+                    color: AppColors.pinkTint,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Color(0xFFFBCFE8)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "🔎 What's new in this update?",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFEC4899),
-                        ),
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_outlined,
+                            size: 18,
+                            color: AppColors.activeBerry,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "What's new in this update?",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.deepCharcoal,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
 
@@ -123,13 +144,25 @@ class UpdateAvailableModal extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('•  '),
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: const EdgeInsets.only(
+                                  top: 6,
+                                  right: 10,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.activeBerry,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                               Expanded(
                                 child: Text(
                                   e,
                                   style: const TextStyle(
                                     fontSize: 13,
-                                    color: Colors.black87,
+                                    height: 18 / 13,
+                                    color: AppColors.deepCharcoal,
                                   ),
                                 ),
                               ),
@@ -142,27 +175,31 @@ class UpdateAvailableModal extends StatelessWidget {
                 ),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // "Şimdi mi?" sorusu
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F5),
-                  border: Border.all(color: Color(0xFFFBCFE8)),
+                  color: AppColors.cosyIvory,
+                  border: Border.all(color: AppColors.hairline),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Row(
                   children: [
-                    Text('⏱️', style: TextStyle(fontSize: 28)),
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 22,
+                      color: AppColors.activeBerry,
+                    ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Would you like to update now?',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFFEC4899),
-                          fontWeight: FontWeight.w600,
+                          color: AppColors.deepCharcoal,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -172,54 +209,28 @@ class UpdateAvailableModal extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Butonlar
+              // Butonlar: ikincil tonal, birincil berry hap
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFFFBCFE8),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
+                    child: FilledButton.tonal(
                       onPressed:
                           onCancel ??
                           () {
                             Navigator.of(context).pop(false);
                           },
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Color(0xFFEC4899),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF472B6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
                       onPressed:
                           onUpdate ??
                           () {
                             Navigator.of(context).pop(true);
                           },
-                      child: const Text(
-                        'Update',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                      child: const Text('Update'),
                     ),
                   ),
                 ],

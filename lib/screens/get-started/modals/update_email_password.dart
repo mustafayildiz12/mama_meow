@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
@@ -141,7 +140,7 @@ class _UpdateEmailPasswordInfoModalState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog.adaptive(
-        title: const Text("Delete Account?"),
+        title: const Text("Delete account?"),
         content: const Text(
           "Are you sure you want to delete your account? All your data will be deleted along with your account. Do you still want to proceed?",
         ),
@@ -156,7 +155,9 @@ class _UpdateEmailPasswordInfoModalState
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: OutlinedButton(
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.berryInk,
+              ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text("Delete"),
             ),
@@ -194,33 +195,30 @@ class _UpdateEmailPasswordInfoModalState
   Widget build(BuildContext context) {
     const labelStyle = TextStyle(
       fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: AppColors.pink500,
+      fontWeight: FontWeight.w700,
+      color: AppColors.deepCharcoal,
     );
     const fieldPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
     final signedIn = _user != null && _provider != null;
 
+    // Zemin (beyaz) ve 24 px köşe yarıçapı dialogTheme'den gelir.
     return Dialog(
-      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxHeight: 750, maxWidth: 500),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                '👶💕 Update your information',
+                'Update your information',
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.pink500,
+                  fontSize: 20,
+                  height: 26 / 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.deepCharcoal,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -238,6 +236,10 @@ class _UpdateEmailPasswordInfoModalState
                   child: Text(
                     "Please sign in to manage your account.",
                     textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.charcoalSoft,
+                    ),
                   ),
                 ),
 
@@ -271,13 +273,19 @@ class _UpdateEmailPasswordInfoModalState
                   ),
                 ),
                 if (!_isEmailVerified)
-                  const Text(
-                    'Verify your email to be able to change it.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Verify your email to be able to change it.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.charcoalSoft,
+                      ),
+                    ),
                   ),
                 const SizedBox(height: 24),
 
-                const Text("New Password", style: labelStyle),
+                const Text("New password", style: labelStyle),
                 const SizedBox(height: 8),
                 Form(
                   key: _passwordFormKey,
@@ -309,24 +317,23 @@ class _UpdateEmailPasswordInfoModalState
                 const SizedBox(height: 12),
               ],
 
-              if (signedIn) ...[
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _confirmAndDeleteAccount,
-                  icon: const Icon(CupertinoIcons.delete),
-                  label: const Text("Delete Account"),
-                ),
-                const SizedBox(height: 12),
-              ],
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
+              FilledButton.tonal(
                 onPressed: _busy ? null : () => Navigator.pop(context),
                 child: const Text('Back'),
               ),
+              if (signedIn) ...[
+                const SizedBox(height: 8),
+                // Üçüncül eylem: altı çizili berry ink bağlantı.
+                Center(
+                  child: TextButton(
+                    onPressed: _busy ? null : _confirmAndDeleteAccount,
+                    child: const Text(
+                      "Delete account",
+                      style: TextStyle(decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
