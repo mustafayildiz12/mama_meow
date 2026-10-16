@@ -3,7 +3,7 @@ import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/auth/widgets/auth_text_field.dart';
 
 /// Şifre sıfırlama için e-posta soran diyalog. Geçerli e-postayı (trim'li)
-/// döndürür; vazgeçilirse null.
+/// döndürür; vazgeçilirse null. Görünüm temadan gelir (beyaz, 24 radius).
 class ForgotPasswordDialog extends StatefulWidget {
   const ForgotPasswordDialog({super.key, this.initialEmail});
 
@@ -49,11 +49,13 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
           children: [
             const Text(
               "Enter your account's email and we'll send you a link to reset your password.",
+              style: TextStyle(color: AppColors.charcoalSoft),
             ),
             const SizedBox(height: 16),
             AuthTextField(
               controller: _emailController,
               hintText: 'Enter your email',
+              prefixIcon: Icons.mail_outline,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.send,
               autofillHints: const [AutofillHints.email],
@@ -63,21 +65,15 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
           ],
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(foregroundColor: AppColors.charcoalSoft),
           child: const Text('Cancel'),
         ),
-        TextButton(
-          onPressed: _submit,
-          child: const Text(
-            'Send reset link',
-            style: TextStyle(
-              color: AppColors.pink500,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
+        // Birincil eylem: temadan berry hap buton.
+        FilledButton(onPressed: _submit, child: const Text('Send reset link')),
       ],
     );
   }

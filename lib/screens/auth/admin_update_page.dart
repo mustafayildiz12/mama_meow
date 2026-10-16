@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/get-started/modals/updata_available_modal.dart';
 import 'package:mama_meow/service/update_service.dart';
 
@@ -122,9 +123,6 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
 
   @override
   Widget build(BuildContext context) {
-    final pink = const Color(0xFFEC4899);
-    final pinkLight = const Color(0xFFFBCFE8);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Admin: Publish Update')),
       body: AbsorbPointer(
@@ -143,14 +141,14 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F5),
-                        border: Border.all(color: pinkLight),
+                        color: AppColors.pinkTint,
+                        border: Border.all(color: AppColors.hairline),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
                         'Yeni sürümü ve öne çıkanları ekleyip yayınlayın. '
                         'Publish ettiğinizde kullanıcılar uygulamayı açtıklarında update modalını görür.',
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: AppColors.deepCharcoal),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -164,16 +162,10 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                             onTapOutside: (event) {
                               FocusManager.instance.primaryFocus?.unfocus();
                             },
-                            decoration: InputDecoration(
+                            // Çerçeve ve odak rengi temadan gelir.
+                            decoration: const InputDecoration(
                               labelText: 'Version (ör. 1.0.5)',
                               hintText: '1.0.5',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: pink, width: 2),
-                              ),
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
@@ -232,10 +224,10 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                           background: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            color: Colors.redAccent,
+                            color: AppColors.berryInk,
                             child: const Icon(
                               Icons.delete,
-                              color: Colors.white,
+                              color: AppColors.cottonWhite,
                             ),
                           ),
                           onDismissed: (_) => _removeHighlight(index),
@@ -248,7 +240,7 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                                   padding: EdgeInsets.only(top: 14.0, right: 8),
                                   child: Icon(
                                     Icons.drag_handle,
-                                    color: Colors.grey,
+                                    color: AppColors.charcoalSoft,
                                   ),
                                 ),
                                 Expanded(
@@ -259,19 +251,9 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                                           ?.unfocus();
                                     },
                                     maxLines: null,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       hintText:
                                           'Örn. Bildirim hatası düzeltildi',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(
-                                          color: pink,
-                                          width: 2,
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ),
@@ -324,7 +306,10 @@ class _AdminUpdatePageState extends State<AdminUpdatePage> {
                     const SizedBox(height: 8),
                     const Text(
                       'Not: publishedAt Sunucu zamanı ile otomatik eklenir.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.charcoalSoft,
+                      ),
                     ),
                   ],
                 ),

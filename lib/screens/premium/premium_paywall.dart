@@ -1,13 +1,14 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/screens/auth/widgets/auth_visuals.dart';
 import 'package:mama_meow/screens/premium/widgets/feature_carousel.dart';
 import 'package:mama_meow/screens/premium/widgets/legal_footer.dart';
 import 'package:mama_meow/screens/premium/widgets/package_card.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:mama_meow/utils/platform_info.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -23,7 +24,7 @@ class PremiumPaywall extends StatefulWidget {
 
 class _PremiumPaywallState extends State<PremiumPaywall> {
   static const _overlayStyle = SystemUiOverlayStyle(
-    statusBarColor: Color(0xFFfbe7f3),
+    statusBarColor: AppColors.cosyIvory,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
   );
@@ -33,19 +34,19 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
 
   static const List<PaywallFeature> _features = [
     PaywallFeature(
-      icon: "👩‍🍼",
+      icon: Icons.child_care_outlined,
       title: "Complete Baby Tracking",
-      advantages: ["Feeding & Sleep Logs", "Diaper & Medicine Tracking"],
+      advantages: ["Feeding & sleep logs", "Diaper & medicine tracking"],
     ),
     PaywallFeature(
-      icon: "🎧",
+      icon: Icons.headphones_outlined,
       title: "Expert Podcast Library",
-      advantages: ["Summarized Parenting Books", "Expert Interview Series"],
+      advantages: ["Summarized parenting books", "Expert interview series"],
     ),
     PaywallFeature(
-      icon: "🚀",
+      icon: Icons.auto_awesome_outlined,
       title: "AI-Powered Assistant",
-      advantages: ["24/7 Smart Q&A Support", "Personalized Recommendations"],
+      advantages: ["24/7 smart Q&A support", "Personalized recommendations"],
     ),
   ];
 
@@ -75,34 +76,28 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
 
   @override
   Widget build(BuildContext context) {
+    final infoReady = !_loading && _error == null;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _overlayStyle,
       child: Scaffold(
+        backgroundColor: AppColors.cosyIvory,
         body: SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.topRight,
-                colors: [Color(0xFFfdf5fd), Color(0xFFfbe7f3)],
-                stops: [0.1, 0.4],
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
+                child: _buildTopBar(),
               ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              Expanded(child: _buildBody()),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                child: PaywallLegalFooter(
+                  onAboutSubscriptions: infoReady
+                      ? _showSubscriptionInfo
+                      : null,
+                ),
               ),
-              boxShadow: [BoxShadow(blurRadius: 16, color: Colors.black12)],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Column(
-                children: [
-                  _buildTopBar(),
-                  Expanded(child: _buildBody()),
-                  const PaywallLegalFooter(),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
       ),
@@ -122,22 +117,9 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text(
-                  'Restore',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
+              : const Text('Restore'),
         ),
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          child: IconButton(
-            tooltip: 'Close',
-            icon: const Icon(CupertinoIcons.clear, color: Colors.black87),
-            onPressed: _purchasing ? null : () => _close(),
-          ),
-        ),
+        CircleCloseButton(onPressed: _purchasing ? null : () => _close()),
       ],
     );
   }
@@ -147,106 +129,147 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final textTheme = Theme.of(context).textTheme;
+
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.tonal(
-              onPressed: _loadOfferings,
-              child: const Text("Try Again"),
-            ),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: AppColors.charcoalSoft,
+                ),
+              ),
+              const SizedBox(height: 20),
+              PrimaryPillButton(label: "Try Again", onPressed: _loadOfferings),
+            ],
+          ),
         ),
       );
     }
 
-    final yearly = _yearlyPackage;
-    final monthly = _monthlyPackage;
+    final cta = _ctaText();
+    final priceNote = cta.priceNote;
+    const captionStyle = TextStyle(
+      fontSize: 13,
+      height: 18 / 13,
+      color: AppColors.charcoalSoft,
+    );
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 4),
-          const Center(
-            child: Text(
-              "Unlock Premium Features",
+          Center(child: MascotCircle(size: MascotCircle.sizeFor(context))),
+          const SizedBox(height: 16),
+          const Center(child: _AudienceBadge()),
+          const SizedBox(height: 12),
+          Text(
+            "Unlock Premium Features",
+            textAlign: TextAlign.center,
+            style: textTheme.displaySmall,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Calmer days, smarter nights.",
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge?.copyWith(color: AppColors.charcoalSoft),
+          ),
+          const SizedBox(height: 24),
+          const PaywallFeatureList(features: _features),
+
+          // Rozet kartın üst kenarından taştığı için ek boşluk.
+          const SizedBox(height: 36),
+          _buildPlans(),
+
+          const SizedBox(height: 24),
+          Semantics(
+            hint: priceNote,
+            child: PrimaryPillButton(
+              label: cta.label,
+              icon: Icons.arrow_forward,
+              loading: _purchasing,
+              onPressed: (_selectedPackage == null || _busy)
+                  ? null
+                  : _purchaseSelected,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+          if (priceNote != null) ...[
+            Text(
+              priceNote,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 24,
-                color: Color(0xFFf15a5f),
-                height: 1,
+              style: captionStyle.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.deepCharcoal,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          const PaywallFeatureCarousel(features: _features),
-          const SizedBox(height: 24),
-
-          RadioGroup<PremiumType>(
-            groupValue: _selectedType,
-            onChanged: (type) {
-              if (type != null && !_busy) setState(() => _selectedType = type);
-            },
-            child: Column(
-              children: [
-                if (yearly != null) ...[
-                  _packageCard(yearly, PremiumType.yearly),
-                  const SizedBox(height: 16),
-                ],
-                if (monthly != null) ...[
-                  _packageCard(monthly, PremiumType.monthly),
-                  const SizedBox(height: 16),
-                ],
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-          _SubscribeButton(
-            label: _buttonText(),
-            loading: _purchasing,
-            onPressed: (_selectedPackage == null || _busy)
-                ? null
-                : _purchaseSelected,
-          ),
-
-          const SizedBox(height: 18),
+            const SizedBox(height: 2),
+          ],
           Text(
             _renewalNotice,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.black54,
-              height: 1.3,
-            ),
-          ),
-
-          Center(
-            child: TextButton(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => _InfoDialog(monthly: monthly, yearly: yearly),
-              ),
-              child: const Text(
-                "About Subscriptions",
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            style: captionStyle,
           ),
         ],
       ),
+    );
+  }
+
+  /// Paket kartları: sığarsa yan yana (eşit yükseklik), dar ekranda veya
+  /// büyük yazı ölçeğinde alt alta.
+  Widget _buildPlans() {
+    final yearly = _yearlyPackage;
+    final monthly = _monthlyPackage;
+    final cards = <Widget>[
+      if (yearly != null) _packageCard(yearly, PremiumType.yearly),
+      if (monthly != null) _packageCard(monthly, PremiumType.monthly),
+    ];
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sideBySide =
+            cards.length == 2 &&
+            constraints.maxWidth >= 320 &&
+            textScale <= 1.3;
+        if (sideBySide) {
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 12),
+                Expanded(child: cards[1]),
+              ],
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < cards.length; i++) ...[
+              if (i > 0) const SizedBox(height: 24),
+              cards[i],
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSubscriptionInfo() {
+    showDialog<void>(
+      context: context,
+      builder: (_) =>
+          _InfoDialog(monthly: _monthlyPackage, yearly: _yearlyPackage),
     );
   }
 
@@ -356,91 +379,53 @@ class _PremiumPaywallState extends State<PremiumPaywall> {
     if (isPremium && mounted) _close(true);
   }
 
-  String _buttonText() {
+  /// Satın alma düğmesinin metni. Deneme varsa `Then <fiyat> / <dönem>`
+  /// kısmı tek satırlık hap düğmede kesilmesin diye düğmenin hemen altında
+  /// [priceNote] olarak gösterilir.
+  ({String label, String? priceNote}) _ctaText() {
     final p = _selectedPackage;
-    if (p == null) return "Subscribe";
+    if (p == null) return (label: "Subscribe", priceNote: null);
     final price = p.storeProduct.priceString;
     final freq = _selectedType == PremiumType.monthly ? "month" : "year";
     final trialDays = _iap.getTrialDays(p);
 
     if (trialDays != null && trialDays != "0") {
-      return "Start $trialDays-day free trial • Then $price / $freq";
+      return (
+        label: "Start $trialDays-day free trial",
+        priceNote: "Then $price / $freq",
+      );
     }
-    return "Subscribe for $price / $freq";
+    return (label: "Subscribe for $price / $freq", priceNote: null);
   }
 }
 
-/// Gradyanlı ana satın alma düğmesi; işlem sürerken spinner gösterir.
-class _SubscribeButton extends StatelessWidget {
-  const _SubscribeButton({
-    required this.label,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool loading;
-  final VoidCallback? onPressed;
+/// "For tired parents" beyaz hap rozeti (berry kalp ikonlu).
+class _AudienceBadge extends StatelessWidget {
+  const _AudienceBadge();
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null;
-    final radius = BorderRadius.circular(20);
-
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      child: Opacity(
-        opacity: enabled || loading ? 1 : 0.5,
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: radius,
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.pink500, Colors.pink],
+    return const DecoratedBox(
+      decoration: ShapeDecoration(
+        color: AppColors.cottonWhite,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.favorite_border, size: 16, color: AppColors.activeBerry),
+            SizedBox(width: 6),
+            Text(
+              "For tired parents",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.deepCharcoal,
               ),
             ),
-            child: InkWell(
-              borderRadius: radius,
-              onTap: onPressed,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minHeight: 52,
-                  minWidth: double.infinity,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Center(
-                    child: loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            label,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          ],
         ),
       ),
     );

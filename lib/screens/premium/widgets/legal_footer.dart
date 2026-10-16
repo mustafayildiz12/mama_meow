@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:mama_meow/utils/platform_info.dart';
 import 'package:mama_meow/utils/url_utils.dart';
 
-/// Paywall altındaki yasal bağlantılar: Terms, Privacy ve (Android'de)
-/// Manage Subscription.
+/// Paywall altındaki yasal bağlantılar: Terms, Privacy, (verilirse) About
+/// Subscriptions ve (Android'de) Manage Subscription; aralarında "·".
 class PaywallLegalFooter extends StatelessWidget {
-  const PaywallLegalFooter({super.key});
+  const PaywallLegalFooter({super.key, this.onAboutSubscriptions});
+
+  /// Abonelik bilgi diyaloğunu açar; null ise bağlantı gösterilmez.
+  final VoidCallback? onAboutSubscriptions;
 
   static const _privacyUrl =
       "https://kuyumcu-fd31a.firebaseapp.com/#/mamaMeowPolicy";
@@ -32,43 +37,58 @@ class PaywallLegalFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const linkStyle = TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w700,
-      color: Colors.black87,
-    );
-    const separator = Icon(Icons.circle, size: 4);
     final termsUrl = _termsUrl;
+    final about = onAboutSubscriptions;
+    final links = <Widget>[
+      if (termsUrl != null) _FooterLink("Terms", () => _open(termsUrl)),
+      _FooterLink("Privacy", () => _open(_privacyUrl)),
+      if (about != null) _FooterLink("About Subscriptions", about),
+      if (PlatformInfo.isAndroid)
+        _FooterLink("Manage Subscription", () => _open(_playSubscriptionsUrl)),
+    ];
 
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (termsUrl != null) ...[
-          TextButton(
-            onPressed: () => _open(termsUrl),
-            child: const Text("Terms", style: linkStyle),
-          ),
-          separator,
-        ],
-        TextButton(
-          onPressed: () => _open(_privacyUrl),
-          child: const Text("Privacy", style: linkStyle),
-        ),
-        if (PlatformInfo.isAndroid) ...[
-          separator,
-          TextButton(
-            onPressed: () => _open(_playSubscriptionsUrl),
-            child: const Text(
-              "Manage Subscription",
+        for (var i = 0; i < links.length; i++) ...[
+          if (i > 0)
+            const Text(
+              "·",
               style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.charcoalSoft,
               ),
             ),
-          ),
+          links[i],
         ],
       ],
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  const _FooterLink(this.label, this.onPressed);
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.charcoalSoft,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(40, 40),
+        textStyle: const TextStyle(
+          fontFamily: AppTheme.fontFamily,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      child: Text(label),
     );
   }
 }

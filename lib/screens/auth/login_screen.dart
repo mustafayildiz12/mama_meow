@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/screens/auth/widgets/auth_text_field.dart';
+import 'package:mama_meow/screens/auth/widgets/auth_visuals.dart';
 import 'package:mama_meow/screens/auth/widgets/forgot_password_dialog.dart';
 import 'package:mama_meow/screens/get-started/modals/baby_info_modal.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/app_update_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_loader.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:mama_meow/utils/platform_info.dart';
@@ -24,7 +26,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   static const _overlayStyle = SystemUiOverlayStyle(
-    statusBarColor: Colors.white,
+    statusBarColor: AppColors.cosyIvory,
     statusBarIconBrightness: Brightness.dark,
     statusBarBrightness: Brightness.light,
   );
@@ -58,57 +60,29 @@ class _LoginScreenState extends State<LoginScreen> {
       child: CustomLoader(
         inAsyncCall: _isLoading,
         child: Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.cosyIvory,
           body: SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(32),
-                            ),
-                            child: SingleChildScrollView(
-                              child: AutofillGroup(child: _buildForm()),
-                            ),
-                          ),
-                          // Dekoratif noktalar
-                          const Positioned(
-                            top: -10,
-                            left: -10,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor: AppColors.pink200,
-                            ),
-                          ),
-                          const Positioned(
-                            bottom: -10,
-                            right: -10,
-                            child: CircleAvatar(
-                              radius: 10,
-                              backgroundColor: AppColors.purple200,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: CircleCloseButton(onPressed: _close),
                   ),
                 ),
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: IconButton(
-                    tooltip: 'Close',
-                    icon: const Icon(Icons.close, color: Colors.black54),
-                    onPressed: _close,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Form(
+                          key: _formKey,
+                          child: AutofillGroup(child: _buildForm()),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -120,52 +94,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildForm() {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [AppColors.pink200, AppColors.pink300],
-                ),
-              ),
-              child: const Center(
-                child: Icon(Icons.pets, size: 40, color: AppColors.pink500),
-              ),
-            ),
-            const Text(
-              "Welcome Back!",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Sign in to continue your parenting journey 🐾",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-          ],
+        Center(child: MascotCircle(size: MascotCircle.sizeFor(context))),
+        const SizedBox(height: 20),
+        Text(
+          "Welcome Back!",
+          textAlign: TextAlign.center,
+          style: textTheme.displaySmall,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
+        Text(
+          "Sign in to continue your parenting journey",
+          textAlign: TextAlign.center,
+          style: textTheme.bodyLarge?.copyWith(color: AppColors.charcoalSoft),
+        ),
+        const SizedBox(height: 28),
 
-        const Text(
-          "Email Address",
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
+        const AuthFieldLabel("Email Address"),
         const SizedBox(height: 8),
         AuthTextField(
           controller: _emailController,
           hintText: "Enter your email",
+          prefixIcon: Icons.mail_outline,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           autofillHints: const [AutofillHints.email],
@@ -173,11 +127,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 16),
 
-        const Text("Password", style: TextStyle(fontWeight: FontWeight.w500)),
+        const AuthFieldLabel("Password"),
         const SizedBox(height: 8),
         AuthTextField(
           controller: _passwordController,
           hintText: "Enter your password",
+          prefixIcon: Icons.lock_outline,
           isPassword: true,
           textInputAction: TextInputAction.done,
           autofillHints: const [AutofillHints.password],
@@ -188,63 +143,74 @@ class _LoginScreenState extends State<LoginScreen> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: _isLoading ? null : _handleForgotPassword,
-            child: const Text(
-              "Forgot password?",
-              style: TextStyle(
-                color: AppColors.pink500,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text("Forgot password?"),
           ),
         ),
         const SizedBox(height: 8),
 
-        ElevatedButton(
+        // Yükleme göstergesi CustomLoader'da; etiket her zaman görünür kalır.
+        PrimaryPillButton(
+          label: "Sign In",
           onPressed: _isLoading ? null : _handleLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.pink400,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          child: const Text(
-            "Sign In",
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
 
-        if (PlatformInfo.isIOS) ...[
-          _SocialButton(
-            icon: const Icon(Icons.apple, size: 30),
-            label: "Login with Apple",
-            onPressed: _isLoading
-                ? null
-                : () => _handleSocialSignIn(
-                    authenticationService.signInWithApple,
-                  ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        _SocialButton(
-          icon: Image.asset("assets/google.png", height: 24),
-          label: "Login with Google",
-          onPressed: _isLoading
-              ? null
-              : () =>
-                    _handleSocialSignIn(authenticationService.signInWithGoogle),
+        const _DividerLabel("or continue with"),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            if (PlatformInfo.isIOS) ...[
+              Expanded(
+                child: _SocialButton(
+                  icon: const Icon(Icons.apple, size: 24),
+                  label: "Apple",
+                  semanticsLabel: "Login with Apple",
+                  onPressed: _isLoading
+                      ? null
+                      : () => _handleSocialSignIn(
+                          authenticationService.signInWithApple,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: _SocialButton(
+                icon: Image.asset("assets/google.png", height: 20),
+                label: "Google",
+                semanticsLabel: "Login with Google",
+                onPressed: _isLoading
+                    ? null
+                    : () => _handleSocialSignIn(
+                        authenticationService.signInWithGoogle,
+                      ),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 20),
         Center(
           child: TextButton(
             onPressed: _isLoading ? null : _openRegister,
-            child: const Text(
-              "Don't have an account? Sign Up",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.pink500,
-                fontWeight: FontWeight.w600,
+            child: Text.rich(
+              TextSpan(
+                text: "Don't have an account? ",
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.charcoalSoft,
+                ),
+                children: const [
+                  TextSpan(
+                    text: "Sign Up",
+                    style: TextStyle(
+                      color: AppColors.berryInk,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.berryInk,
+                    ),
+                  ),
+                ],
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
@@ -351,25 +317,55 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+/// "or continue with" ayracı: iki yanda hairline çizgi.
+class _DividerLabel extends StatelessWidget {
+  const _DividerLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    );
+  }
+}
+
+/// Beyaz, çerçeveli hap sosyal giriş düğmesi (Apple / Google).
 class _SocialButton extends StatelessWidget {
   const _SocialButton({
     required this.icon,
     required this.label,
+    required this.semanticsLabel,
     required this.onPressed,
   });
 
   final Widget icon;
   final String label;
+  final String semanticsLabel;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: OutlinedButton.icon(
-        icon: icon,
-        label: Text(label),
-        onPressed: onPressed,
+    return OutlinedButton.icon(
+      icon: icon,
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        semanticsLabel: semanticsLabel,
+      ),
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: AppColors.cottonWhite,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
       ),
     );
   }

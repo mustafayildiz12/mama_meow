@@ -1,10 +1,10 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 
 class PaywallFeature {
-  final String icon;
+  /// Berry çizgi ikon (ör. Icons.headphones_outlined).
+  final IconData icon;
   final String title;
   final List<String> advantages;
 
@@ -15,114 +15,75 @@ class PaywallFeature {
   });
 }
 
-/// Premium özelliklerini kaydırmalı kartlarla gösterir; altında ilerleme
-/// çubuğu vardır. Yükseklik yazı ölçeğine göre büyür.
-class PaywallFeatureCarousel extends StatefulWidget {
-  const PaywallFeatureCarousel({super.key, required this.features});
+/// Premium özelliklerini tek beyaz kart içinde listeler (eski kaydırmalı
+/// carousel'in yerini aldı). Her satır: pinkTint squircle içinde berry ikon,
+/// başlık ve tek satırda birleşen avantajlar; satırlar arası içeriden
+/// başlayan hairline ayraç.
+class PaywallFeatureList extends StatelessWidget {
+  const PaywallFeatureList({super.key, required this.features});
 
   final List<PaywallFeature> features;
 
-  @override
-  State<PaywallFeatureCarousel> createState() => _PaywallFeatureCarouselState();
-}
-
-class _PaywallFeatureCarouselState extends State<PaywallFeatureCarousel> {
-  static const double _baseHeight = 192;
-
-  int _pageIndex = 0;
+  static const double _iconSize = 44;
+  static const double _iconGap = 14;
 
   @override
   Widget build(BuildContext context) {
-    final features = widget.features;
-    // Büyük yazı boyutlarında kesilmemesi için yüksekliği ölçekle.
-    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
-    final height = _baseHeight * math.max(1.0, textScale);
-
-    return Column(
-      children: [
-        Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: PageView.builder(
-            itemCount: features.length,
-            onPageChanged: (i) => setState(() => _pageIndex = i),
-            itemBuilder: (_, i) => _FeaturePage(feature: features[i]),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: features.isEmpty ? 0 : (_pageIndex + 1) / features.length,
-              backgroundColor: Colors.pink.shade100,
-              color: AppColors.pink500,
-              minHeight: 6,
-            ),
-          ),
-        ),
-      ],
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(
+        children: [
+          for (var i = 0; i < features.length; i++) ...[
+            if (i > 0) const Divider(indent: _iconSize + _iconGap),
+            _FeatureRow(feature: features[i]),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _FeaturePage extends StatelessWidget {
-  const _FeaturePage({required this.feature});
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.feature});
 
   final PaywallFeature feature;
 
   @override
   Widget build(BuildContext context) {
-    // Yine de sığmazsa içerik kaydırılabilir olsun.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
         children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              color: AppColors.pink400,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Text(feature.icon, style: const TextStyle(fontSize: 32)),
+          IconSquircle(
+            size: PaywallFeatureList._iconSize,
+            background: AppColors.pinkTint,
+            child: Icon(feature.icon, size: 22, color: AppColors.activeBerry),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              feature.title,
-              maxLines: 3,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          const SizedBox(width: PaywallFeatureList._iconGap),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  feature.title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    height: 22 / 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.deepCharcoal,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  feature.advantages.join(' · '),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.charcoalSoft,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          for (final advantage in feature.advantages)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("✅"),
-                  const SizedBox(width: 8),
-                  Flexible(child: Text(advantage)),
-                ],
-              ),
-            ),
         ],
       ),
     );

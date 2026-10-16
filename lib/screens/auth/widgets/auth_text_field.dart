@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mama_meow/constants/app_colors.dart';
 import 'package:mama_meow/service/global_functions.dart';
 
 /// Giriş/kayıt ve hesap modallarındaki form alanları için ortak doğrulayıcılar.
@@ -27,13 +26,16 @@ abstract final class AuthValidators {
       (value ?? '').trim().isEmpty ? 'Please enter your name' : null;
 }
 
-/// Uygulamanın pembe çerçeveli metin alanı. [isPassword] verilirse
-/// görünürlük düğmesi (tooltip'li) alanın kendisi tarafından yönetilir.
+/// Uygulamanın standart metin alanı. Görünüm temadan gelir (beyaz zemin,
+/// 16 radius, outline çerçeve, odakta 2 px berry, charcoalSoft ikonlar).
+/// [isPassword] verilirse görünürlük düğmesi (tooltip'li) alanın kendisi
+/// tarafından yönetilir.
 class AuthTextField extends StatefulWidget {
   const AuthTextField({
     super.key,
     this.controller,
     this.hintText,
+    this.prefixIcon,
     this.keyboardType,
     this.textInputAction,
     this.isPassword = false,
@@ -49,6 +51,9 @@ class AuthTextField extends StatefulWidget {
 
   final TextEditingController? controller;
   final String? hintText;
+
+  /// Alanın solundaki çizgi ikon (ör. Icons.mail_outline).
+  final IconData? prefixIcon;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool isPassword;
@@ -61,25 +66,26 @@ class AuthTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final EdgeInsetsGeometry? contentPadding;
 
+  /// Varsayılan iç boşluk: 16 + 24 (satır) + 16 = 56 px yükseklik.
+  static const EdgeInsetsGeometry _defaultPadding = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 16,
+  );
+
   /// Aynı görünümü dropdown gibi diğer form alanlarında kullanmak için.
+  /// Çerçeve ve renkler temanın `inputDecorationTheme`'inden gelir.
   static InputDecoration decoration({
     String? hintText,
+    Widget? prefixIcon,
     Widget? suffixIcon,
     EdgeInsetsGeometry? contentPadding,
   }) {
     return InputDecoration(
       hintText: hintText,
       counterText: '',
+      prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       contentPadding: contentPadding,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.pink200),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.pink400, width: 2),
-      ),
     );
   }
 
@@ -93,6 +99,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
   @override
   Widget build(BuildContext context) {
     final isPassword = widget.isPassword;
+    final prefixIcon = widget.prefixIcon;
     return TextFormField(
       controller: widget.controller,
       keyboardType: widget.keyboardType,
@@ -110,13 +117,15 @@ class _AuthTextFieldState extends State<AuthTextField> {
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       decoration: AuthTextField.decoration(
         hintText: widget.hintText,
-        contentPadding: widget.contentPadding,
+        contentPadding: widget.contentPadding ?? AuthTextField._defaultPadding,
+        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 22),
         suffixIcon: isPassword
             ? IconButton(
                 tooltip: _obscured ? 'Show password' : 'Hide password',
                 icon: Icon(
-                  _obscured ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.grey,
+                  _obscured
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
                 onPressed: () => setState(() => _obscured = !_obscured),
               )

@@ -1,12 +1,14 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 enum PremiumType { monthly, yearly }
 
-/// Tek bir abonelik paketi kartı. Bir `RadioGroup<PremiumType>` altında
-/// kullanılmalıdır (seçim radyosu gruba bağlanır).
+/// Tek bir abonelik paketi kartı: beyaz, 24 radius. Seçiliyken 2 px berry
+/// çerçeve ve berry onay dairesi; değilken hairline çerçeve ve boş daire.
+/// Kartın tamamı dokunulabilir; seçim [onSelected] ile bildirilir.
+/// Yan yana dizildiğinde eşit yükseklik için dikey kısıtı olduğu gibi alır.
 class PaywallPackageCard extends StatelessWidget {
   const PaywallPackageCard({
     super.key,
@@ -44,121 +46,139 @@ class PaywallPackageCard extends StatelessWidget {
         ? "Includes a $trialDays-day free trial.$_planLabel"
         : _planLabel;
     // Yıllık plan genelde en popüler
-    final chipText = isYearly ? "MOST POPULAR" : null;
+    final chipText = isYearly ? "Most popular" : null;
     final select = onSelected;
+
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      side: selected
+          ? const BorderSide(color: AppColors.activeBerry, width: 2)
+          : const BorderSide(color: AppColors.hairline),
+    );
 
     return Semantics(
       selected: selected,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: select == null ? null : () => select(type),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              constraints: const BoxConstraints(minHeight: 128),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.pink.shade100,
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.pink,
-                  width: selected ? 2 : 0.2,
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black87,
+      inMutuallyExclusiveGroup: true,
+      child: Stack(
+        clipBehavior: Clip.none,
+        // Row(stretch) içinde kart tam yüksekliği alır, Column içinde
+        // içeriği kadar uzar.
+        fit: StackFit.passthrough,
+        children: [
+          Material(
+            color: AppColors.cottonWhite,
+            shape: shape,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: select == null ? null : () => select(type),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              height: 22 / 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.deepCharcoal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _CheckCircle(selected: selected),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
+                    const SizedBox(height: 10),
 
-                  // Fiyat satırı
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          perText,
-                          style: const TextStyle(
-                            color: Color(0xFF7d828f),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      Text(
+                    // Fiyat: uzun para birimlerinde taşmasın diye küçülür.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
                         package.storeProduct.priceString,
+                        maxLines: 1,
+                        softWrap: false,
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.pink500,
+                          fontSize: 32,
+                          height: 38 / 32,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: AppColors.deepCharcoal,
                         ),
                       ),
-                      Radio<PremiumType>(
-                        value: type,
-                        fillColor: WidgetStatePropertyAll(Colors.pink.shade500),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      perText,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.berryInk,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
+                    ),
+                    const SizedBox(height: 10),
 
-                  // Açıklama
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.info,
-                        size: 16,
-                        color: Colors.black54,
+                    // Açıklama (deneme / yenileme bilgisi)
+                    Text(
+                      subtitle.trim(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 16 / 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.charcoalSoft,
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          subtitle,
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            if (chipText != null)
-              Positioned(
-                top: -10,
-                left: 0,
-                right: 0,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: _PopularChip(text: chipText),
-                ),
-              ),
-          ],
-        ),
+          ),
+          if (chipText != null)
+            Positioned(
+              top: -12,
+              left: 0,
+              right: 0,
+              child: Center(child: _PopularChip(text: chipText)),
+            ),
+        ],
       ),
     );
   }
 }
 
+/// Seçim göstergesi: seçiliyse berry dolgulu onay, değilse boş daire.
+class _CheckCircle extends StatelessWidget {
+  const _CheckCircle({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? AppColors.activeBerry : AppColors.cottonWhite,
+        border: Border.all(
+          color: selected ? AppColors.activeBerry : AppColors.outline,
+          width: 1.5,
+        ),
+      ),
+      child: selected
+          ? const Icon(Icons.check, size: 16, color: AppColors.cottonWhite)
+          : null,
+    );
+  }
+}
+
+/// Kartın üst kenarına oturan berry hap rozet.
 class _PopularChip extends StatelessWidget {
   const _PopularChip({required this.text});
 
@@ -166,33 +186,22 @@ class _PopularChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const orange = Color(0xFFf46a12);
-    return Container(
-      constraints: const BoxConstraints(minWidth: 136, minHeight: 40),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            orange.withValues(alpha: 0.1),
-            orange.withValues(alpha: 0.9), // Canlı turuncu
-            orange, // Turuncuyu baskın yap
-          ],
-          stops: const [0.0, 0.15, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(12),
+    return DecoratedBox(
+      decoration: const ShapeDecoration(
+        color: AppColors.activeBerry,
+        shape: StadiumBorder(),
       ),
-      // Faktörler 1: içerik kadar yer kaplar, min boyutta ortalanır.
-      child: Center(
-        widthFactor: 1,
-        heightFactor: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Text(
           text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
+            color: AppColors.cottonWhite,
+            fontSize: 12,
+            height: 16 / 12,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
