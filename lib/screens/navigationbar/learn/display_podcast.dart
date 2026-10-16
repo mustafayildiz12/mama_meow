@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mama_meow/constants/app_colors.dart';
+import 'package:mama_meow/constants/app_theme.dart';
 import 'package:mama_meow/main.dart';
 import 'package:mama_meow/models/podcast_model.dart';
 import 'package:mama_meow/service/analytic_service.dart';
 import 'package:mama_meow/service/authentication_service.dart';
 import 'package:mama_meow/service/in_app_purchase_service.dart';
+import 'package:mama_meow/utils/custom_widgets/berry_ui.dart';
 import 'package:mama_meow/utils/custom_widgets/custom_snackbar.dart';
 import 'package:mama_meow/utils/extensions/post_media_item_extension.dart';
 import 'package:mama_meow/utils/url_utils.dart';
@@ -219,7 +222,9 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height;
+    final screen = MediaQuery.sizeOf(context);
+    final coverSize = math.min(screen.height * 0.32, screen.width - 80);
+    final textTheme = Theme.of(context).textTheme;
 
     return StreamBuilder<MediaItem?>(
       stream: _mediaItemStream,
@@ -238,23 +243,17 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
         final iconUrl = (extras["icon"] as String?) ?? widget.podcast.icon;
 
         return Scaffold(
+          backgroundColor: AppColors.cosyIvory,
           appBar: AppBar(
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            ),
-            title: Text(
-              title,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+            leadingWidth: 72,
+            leading: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: _CircleBackButton(
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
             ),
-            centerTitle: true,
-            backgroundColor: AppColors.pink500,
           ),
 
           bottomNavigationBar: SafeArea(
@@ -267,148 +266,148 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
 
                 final controlsEnabled = _canControl(state);
 
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (busy) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            "Loading...",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-
-                    if (_prepareError != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Row(
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (busy) ...[
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: Text(
-                                _prepareError!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            TextButton.icon(
-                              onPressed: _retry,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text("Retry"),
+                            SizedBox(width: 10),
+                            Text(
+                              "Loading...",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.charcoalSoft,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.skip_previous,
-                            size: 36,
-                            color: controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey.shade400,
-                          ),
-                          onPressed: controlsEnabled ? _playPrevious : null,
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.replay_10,
-                            size: 32,
-                            color: controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey.shade400,
-                          ),
-                          onPressed: controlsEnabled ? _skipBackward : null,
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            state.playing
-                                ? Icons.pause_circle
-                                : Icons.play_circle,
-                            size: 64,
-                            color: controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey.shade400,
-                          ),
-                          onPressed: () {
-                            togglePlay(controlsEnabled);
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.forward_10,
-                            size: 32,
-                            color: controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey.shade400,
-                          ),
-                          onPressed: controlsEnabled ? _skipForward : null,
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.skip_next,
-                            size: 36,
-                            color: controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey.shade400,
-                          ),
-                          onPressed: controlsEnabled ? _playNext : null,
-                        ),
+                        const SizedBox(height: 8),
                       ],
-                    ),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        "These podcasts are for informational purposes only...",
-                        style: TextStyle(fontSize: 9, height: 1),
+                      if (_prepareError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _prepareError!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.berryInk,
+                                  ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: _retry,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text("Retry"),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _PlainControl(
+                            icon: Icons.skip_previous_rounded,
+                            onPressed: controlsEnabled ? _playPrevious : null,
+                          ),
+                          _SoftControl(
+                            icon: Icons.replay_10_rounded,
+                            onPressed: controlsEnabled ? _skipBackward : null,
+                          ),
+                          _PlayPauseButton(
+                            playing: state.playing,
+                            active: controlsEnabled,
+                            onPressed: () {
+                              togglePlay(controlsEnabled);
+                            },
+                          ),
+                          _SoftControl(
+                            icon: Icons.forward_10_rounded,
+                            onPressed: controlsEnabled ? _skipForward : null,
+                          ),
+                          _PlainControl(
+                            icon: Icons.skip_next_rounded,
+                            onPressed: controlsEnabled ? _playNext : null,
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
+
+                      const SizedBox(height: 8),
+                      const Text(
+                        "These podcasts are for informational purposes only...",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.3,
+                          color: AppColors.charcoalSoft,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
                 );
               },
             ),
           ),
 
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: CachedNetworkImage(
-                    imageUrl: iconUrl,
-                    height: height * 0.3,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) =>
-                        const Center(child: CircularProgressIndicator()),
-                    errorWidget: (_, _, _) => const Icon(Icons.error),
-                  ),
-                ),
+                Center(child: _cover(iconUrl, coverSize)),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
 
                 Text(
-                  description,
-                  style: const TextStyle(color: Colors.black87, fontSize: 16),
+                  title,
                   textAlign: TextAlign.center,
+                  style: textTheme.headlineMedium,
                 ),
 
-                const SizedBox(height: 12),
+                if (creator.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.mic_none_rounded,
+                        size: 16,
+                        color: AppColors.charcoalSoft,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          creator,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.charcoalSoft,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: 20),
 
                 // --- Slider + Time ---
                 StreamBuilder<PlaybackState>(
@@ -427,7 +426,7 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                   },
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 // --- Speed ---
                 StreamBuilder<double>(
@@ -437,71 +436,85 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
                     final speed = (spSnap.data ?? 1.0);
                     playbackSpeed = speed;
 
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.speed, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        DropdownButton<double>(
-                          value: playbackSpeed,
-                          items: speedOptions.map((s) {
-                            return DropdownMenuItem<double>(
-                              value: s,
-                              child: Text(
-                                "${s}x",
-                                style: TextStyle(
-                                  color: _controlsEnabled
-                                      ? Colors.pink.shade500
-                                      : Colors.grey,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: _controlsEnabled
-                              ? (newSpeed) {
-                                  if (newSpeed != null) {
-                                    _changePlaybackSpeed(newSpeed);
-                                  }
-                                }
-                              : null,
-                          underline: Container(),
-                          dropdownColor: Colors.white,
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: _controlsEnabled
-                                ? Colors.pink.shade500
-                                : Colors.grey,
-                          ),
+                    final fg = _controlsEnabled
+                        ? AppColors.deepCharcoal
+                        : AppColors.charcoalSoft;
+
+                    return Center(
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 14, right: 8),
+                        decoration: const ShapeDecoration(
+                          color: AppColors.pinkTint,
+                          shape: StadiumBorder(),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.speed_rounded, size: 18, color: fg),
+                            const SizedBox(width: 6),
+                            DropdownButton<double>(
+                              value: playbackSpeed,
+                              items: speedOptions.map((s) {
+                                return DropdownMenuItem<double>(
+                                  value: s,
+                                  child: Text(
+                                    "${s}x",
+                                    style: TextStyle(
+                                      color: fg,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: _controlsEnabled
+                                  ? (newSpeed) {
+                                      if (newSpeed != null) {
+                                        _changePlaybackSpeed(newSpeed);
+                                      }
+                                    }
+                                  : null,
+                              underline: const SizedBox.shrink(),
+                              dropdownColor: AppColors.cottonWhite,
+                              borderRadius: BorderRadius.circular(16),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                              ),
+                              iconEnabledColor: AppColors.deepCharcoal,
+                              iconDisabledColor: AppColors.charcoalSoft,
+                            ),
+                          ],
+                        ),
+                      ),
                     );
                   },
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
 
-                Row(
-                  children: [
-                    const Text(
-                      "Creator: ",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Expanded(child: Text(creator)),
-                  ],
-                ),
+                if (description.isNotEmpty) ...[
+                  AppCard(child: Text(description, style: textTheme.bodyLarge)),
+                  const SizedBox(height: 12),
+                ],
 
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    const Text(
-                      "Source: ",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(child: _buildSource(source)),
-                  ],
+                AppCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Source: ",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.deepCharcoal,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(child: _buildSource(source)),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -511,21 +524,75 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     );
   }
 
+  /// Büyük, 24 px yuvarlatılmış kapak; görsel yoksa pembe kulaklık kutusu.
+  Widget _cover(String iconUrl, double size) {
+    final fallback = IconSquircle(
+      size: size,
+      radius: AppTheme.radiusCard,
+      background: AppColors.pinkTint,
+      child: Icon(
+        Icons.headphones_rounded,
+        size: size * 0.3,
+        color: AppColors.activeBerry,
+      ),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      child: iconUrl.isEmpty
+          ? fallback
+          : CachedNetworkImage(
+              imageUrl: iconUrl,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => IconSquircle(
+                size: size,
+                radius: AppTheme.radiusCard,
+                background: AppColors.pinkTint,
+                child: const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+              errorWidget: (_, _, _) => fallback,
+            ),
+    );
+  }
+
   Widget _buildSource(String source) {
     if (!UrlUtils.isWebUrl(source)) {
-      return Text(source, maxLines: 1, overflow: TextOverflow.ellipsis);
-    }
-
-    return TextButton(
-      onPressed: () async {
-        final opened = await UrlUtils.openExternal(source);
-        if (!opened) customSnackBar.warning("Couldn't open this link");
-      },
-      child: Text(
+      return Text(
         source,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(decoration: TextDecoration.underline),
+        style: const TextStyle(color: AppColors.charcoalSoft),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        onPressed: () async {
+          final opened = await UrlUtils.openExternal(source);
+          if (!opened) customSnackBar.warning("Couldn't open this link");
+        },
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(0, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          alignment: Alignment.centerLeft,
+        ),
+        child: Text(
+          source,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            decoration: TextDecoration.underline,
+            decorationColor: AppColors.berryInk,
+          ),
+        ),
       ),
     );
   }
@@ -552,36 +619,44 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
 
             return Column(
               children: [
-                Slider(
-                  min: 0,
-                  max: (maxMs <= 0 ? 1 : maxMs),
-                  value: shownMs.toDouble(),
-                  onChangeStart: (!enabled || maxMs <= 0)
-                      ? null
-                      : (v) => setState(() {
-                          _dragging = true;
-                          _dragValueMs = v;
-                        }),
-                  onChanged: (!enabled || maxMs <= 0)
-                      ? null
-                      : (v) {
-                          // Drag sırasında sadece local değer güncelle
-                          // setState burada yine var ama ağır iş yok, jitter azalır.
-                          // İstersen bunu ValueNotifier’a da çevirebiliriz.
-                          setState(() => _dragValueMs = v);
-                        },
-                  onChangeEnd: (!enabled || maxMs <= 0)
-                      ? null
-                      : (v) async {
-                          final target = Duration(milliseconds: v.toInt());
-                          await audioHandler.seek(_clamp(target, duration));
-                          if (!mounted) return;
-                          setState(() {
-                            _dragging = false;
-                            _dragValueMs = null;
-                          });
-                        },
-                  activeColor: Colors.pink.shade500,
+                // Renkler temadan (berry / pinkTint); pasifken açık pembe.
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    disabledActiveTrackColor: AppColors.warmPink,
+                    disabledInactiveTrackColor: AppColors.pinkTint,
+                    disabledThumbColor: AppColors.warmPink,
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: (maxMs <= 0 ? 1 : maxMs),
+                    value: shownMs.toDouble(),
+                    onChangeStart: (!enabled || maxMs <= 0)
+                        ? null
+                        : (v) => setState(() {
+                            _dragging = true;
+                            _dragValueMs = v;
+                          }),
+                    onChanged: (!enabled || maxMs <= 0)
+                        ? null
+                        : (v) {
+                            // Drag sırasında sadece local değer güncelle
+                            // setState burada yine var ama ağır iş yok, jitter azalır.
+                            // İstersen bunu ValueNotifier’a da çevirebiliriz.
+                            setState(() => _dragValueMs = v);
+                          },
+                    onChangeEnd: (!enabled || maxMs <= 0)
+                        ? null
+                        : (v) async {
+                            final target = Duration(milliseconds: v.toInt());
+                            await audioHandler.seek(_clamp(target, duration));
+                            if (!mounted) return;
+                            setState(() {
+                              _dragging = false;
+                              _dragValueMs = null;
+                            });
+                          },
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -613,7 +688,12 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return Text(
       h > 0 ? "$h:$m:$s" : "$m:$s",
-      style: const TextStyle(color: Colors.grey),
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.charcoalSoft,
+        fontFeatures: [FontFeature.tabularFigures()],
+      ),
     );
   }
 
@@ -646,5 +726,117 @@ class _DisplayPodcastPageState extends State<DisplayPodcastPage> {
         await audioHandler.play();
       }
     }
+  }
+}
+
+/// Beyaz, ince çizgili yuvarlak geri butonu.
+class _CircleBackButton extends StatelessWidget {
+  const _CircleBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.cottonWhite,
+        foregroundColor: AppColors.deepCharcoal,
+        side: const BorderSide(color: AppColors.hairline),
+        fixedSize: const Size(44, 44),
+        minimumSize: const Size(44, 44),
+        shape: const CircleBorder(),
+      ),
+      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+    );
+  }
+}
+
+/// Pasif kontroller için soluk ikon rengi.
+Color get _disabledControlColor =>
+    AppColors.charcoalSoft.withValues(alpha: 0.4);
+
+/// Zeminsiz kömür rengi kontrol (önceki / sonraki).
+class _PlainControl extends StatelessWidget {
+  const _PlainControl({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      iconSize: 32,
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.deepCharcoal,
+        disabledForegroundColor: _disabledControlColor,
+        fixedSize: const Size(48, 48),
+      ),
+      icon: Icon(icon),
+    );
+  }
+}
+
+/// Pembe yuvarlak zeminli kontrol (10 sn geri / ileri).
+class _SoftControl extends StatelessWidget {
+  const _SoftControl({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      iconSize: 26,
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.pinkTint,
+        foregroundColor: AppColors.deepCharcoal,
+        disabledBackgroundColor: AppColors.pinkTint.withValues(alpha: 0.6),
+        disabledForegroundColor: _disabledControlColor,
+        fixedSize: const Size(52, 52),
+        shape: const CircleBorder(),
+      ),
+      icon: Icon(icon),
+    );
+  }
+}
+
+/// 72 px berry oynat / duraklat dairesi. Her zaman dokunulabilir: oynatma
+/// hazır değilse giriş → paywall → oynat akışını başlatır.
+class _PlayPauseButton extends StatelessWidget {
+  const _PlayPauseButton({
+    required this.playing,
+    required this.active,
+    required this.onPressed,
+  });
+
+  final bool playing;
+
+  /// Kontroller hazır mı; değilse daha açık pembe ve parıltısız.
+  final bool active;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: active ? AppColors.berryGlow : null,
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        iconSize: 40,
+        style: IconButton.styleFrom(
+          backgroundColor: active ? AppColors.activeBerry : AppColors.warmPink,
+          foregroundColor: AppColors.cottonWhite,
+          fixedSize: const Size(72, 72),
+          shape: const CircleBorder(),
+        ),
+        icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+      ),
+    );
   }
 }
