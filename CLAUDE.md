@@ -17,7 +17,7 @@ flutter run                         # run on connected device/emulator
 flutter analyze                     # static analysis (flutter_lints 6); must stay at "No issues found!"
 flutter build apk                   # Android release build (needs android/key.properties for signing)
 flutter build ios                   # iOS release build
-dart run flutter_launcher_icons     # regenerate launcher icons from assets/full-logo.png
+dart run flutter_launcher_icons     # regenerate Android/legacy icons from assets/icon/ (see "App icon")
 
 # End-to-end smoke test against the real Firebase project: logs in with the test account from
 # .env.example (username=/password=, git-ignored), visits every tab, report and reminder page and
@@ -186,6 +186,11 @@ contains old field types (e.g. medicine `amount` int, solid amount as String).
 - **Colors:** use `AppColors` (`lib/constants/app_colors.dart`) instead of hex literals.
 - **Snackbars** go through `customSnackBar` + `rootScaffoldMessengerKey`.
 - **Localization** is English only; AI prompts ask the model to reply in the user's language.
+- **App icon:** on iOS the real icon is the Icon Composer file `ios/Runner/AppIcon.icon` (iOS 26
+  Liquid Glass, separate dark-mode fill; Xcode 26 also derives the icons for older iOS from it, so
+  `AppIcon.appiconset` only matters for pre-26 Xcode). Edit it in Icon Composer (Xcode → Open
+  Developer Tool). Android adaptive/themed icons and the appiconset come from `assets/icon/*.png`
+  via `flutter_launcher_icons` (config in `pubspec.yaml`).
 - **Versioning:** `pubspec.yaml` `version:` sets versionName/CFBundleShortVersionString, but Android
   `versionCode` is hardcoded in `android/app/build.gradle.kts` — bump it for every Play upload.
 - **iOS:** deployment target 15.0. Native dependencies come from **Swift Package Manager** —
